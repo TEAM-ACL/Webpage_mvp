@@ -8,17 +8,20 @@ export function Header() {
   const location = useLocation();
 
   const navItems = [
-    { name: 'Intelligence', path: '/' },
+    { name: 'Home', path: '/' },
+    { name: 'Intelligence', path: '/intelligence' },
     { name: 'Workspace', path: '/workspace' },
     { name: 'Network', path: '/network' },
     { name: 'Admin', path: '/admin' },
+    { name: 'about', path: '/about' },
+    { name: 'Login/Signup', path: '/login/Signup' },
   ];
 
   return (
     <header className="fixed top-0 w-full z-50 glass-panel shadow-[0_12px_40px_rgba(25,28,29,0.04)]">
       <nav className="flex justify-between items-center px-6 md:px-8 h-20 w-full max-w-7xl mx-auto">
         <Link to="/" className="text-2xl font-bold tracking-tighter text-primary font-headline">
-          NeonCurator
+          VisionTech
         </Link>
 
         {/* Desktop Nav */}
@@ -104,7 +107,7 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-6 md:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1 md:col-span-2">
-            <div className="text-2xl font-bold tracking-tighter text-primary font-headline mb-6">NeonCurator</div>
+            <div className="text-2xl font-bold tracking-tighter text-primary font-headline mb-6">VisionTech</div>
             <p className="text-on-surface-variant max-w-sm font-sans leading-relaxed">
               Engineering the next era of collaborative intelligence. Our platform bridges the gap between raw data and creative execution.
             </p>
@@ -127,7 +130,7 @@ export function Footer() {
           </div>
         </div>
         <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-outline-variant/10 font-label text-[11px] uppercase tracking-widest">
-          <span className="text-on-surface-variant/60 mb-4 md:mb-0">© 2024 NEON CURATOR AI. ENGINEERING THE FUTURE.</span>
+          <span className="text-on-surface-variant/60 mb-4 md:mb-0">© 2026 VISIONTECH AI. ENGINEERING THE FUTURE.</span>
           <div className="flex space-x-8">
             <a className="text-on-surface-variant/60 hover:opacity-100 transition-opacity" href="#">Privacy Policy</a>
             <a className="text-on-surface-variant/60 hover:opacity-100 transition-opacity" href="#">Terms of Service</a>
