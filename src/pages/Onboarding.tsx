@@ -8,15 +8,15 @@ export default function Onboarding() {
       {/* Left Side: Editorial Context */}
       <section className="hidden md:flex w-2/5 hero-gradient p-16 flex-col justify-between text-white">
         <div>
-          <h1 className="font-headline text-3xl font-bold tracking-tighter text-white mb-2">NeonCurator</h1>
-          <p className="font-label text-xs uppercase tracking-[0.2em] opacity-70">Intelligence Hub V3.4</p>
+          <h1 className="font-headline text-3xl font-bold tracking-tighter text-white mb-2">VisionTech</h1>
+          <p className="font-label text-xs uppercase tracking-[0.2em] opacity-70">Youth Empowerment Platform</p>
         </div>
         
         <div className="space-y-8">
           <div className="relative">
             <span className="absolute -left-8 top-0 font-headline text-6xl opacity-20 select-none">“</span>
             <h2 className="font-headline text-4xl font-light leading-tight tracking-tight">
-              Engineering the future through <span className="font-bold italic">asymmetric</span> intelligence.
+              Guiding young talent from self-discovery to real innovation.
             </h2>
           </div>
           <div className="flex items-center space-x-4">
@@ -29,14 +29,14 @@ export default function Onboarding() {
               />
             </div>
             <div>
-              <p className="font-label text-sm font-bold">Curated Experience</p>
-              <p className="font-sans text-xs opacity-60">Step 1 of 3: Identity & Intent</p>
+              <p className="font-label text-sm font-bold">Guided Discovery</p>
+              <p className="font-sans text-xs opacity-60">Step 1 of 3: Discover, Match, Create</p>
             </div>
           </div>
         </div>
         
         <div className="text-xs opacity-40 font-label">
-          © 2024 NEON CURATOR AI. ALL RIGHTS RESERVED.
+          © 2026 VISIONTECH AI. ALL RIGHTS RESERVED.
         </div>
       </section>
 
@@ -45,30 +45,30 @@ export default function Onboarding() {
         <div className="max-w-2xl mx-auto">
           {/* Mobile Branding */}
           <div className="md:hidden mb-12">
-            <h1 className="font-headline text-2xl font-bold tracking-tighter text-primary">NeonCurator</h1>
+            <h1 className="font-headline text-2xl font-bold tracking-tighter text-primary">VisionTech</h1>
           </div>
 
           {/* Progress Stepper */}
           <nav className="flex items-center space-x-8 mb-16">
             <div className="flex items-center group cursor-pointer">
               <span className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-headline text-sm font-bold mr-3">1</span>
-              <span className="font-label text-xs uppercase tracking-widest font-bold text-primary">Account</span>
+              <span className="font-label text-xs uppercase tracking-widest font-bold text-primary">Discover</span>
             </div>
             <div className="h-[1px] flex-1 bg-outline-variant/30"></div>
             <div className="flex items-center opacity-40">
               <span className="w-8 h-8 rounded-full bg-outline-variant flex items-center justify-center text-on-surface font-headline text-sm font-bold mr-3">2</span>
-              <span className="font-label text-xs uppercase tracking-widest">Skills</span>
+              <span className="font-label text-xs uppercase tracking-widest">Match</span>
             </div>
             <div className="h-[1px] flex-1 bg-outline-variant/30"></div>
             <div className="flex items-center opacity-40">
               <span className="w-8 h-8 rounded-full bg-outline-variant flex items-center justify-center text-on-surface font-headline text-sm font-bold mr-3">3</span>
-              <span className="font-label text-xs uppercase tracking-widest">Interests</span>
+              <span className="font-label text-xs uppercase tracking-widest">Create</span>
             </div>
           </nav>
 
           <header className="mb-12">
-            <h3 className="font-headline text-4xl font-bold tracking-tight text-on-surface mb-3">Begin your evolution.</h3>
-            <p className="text-on-surface-variant font-sans leading-relaxed">Let's establish your professional core. This information helps our AI personalize your intelligence stream.</p>
+            <h3 className="font-headline text-4xl font-bold tracking-tight text-on-surface mb-3">Start your innovation journey.</h3>
+            <p className="text-on-surface-variant font-sans leading-relaxed">Answer a few questions so VisionTech can recommend your strongest skills, collaborators, and practical innovation pathways.</p>
           </header>
 
           <form className="space-y-10" onSubmit={(e) => e.preventDefault()}>
@@ -78,12 +78,12 @@ export default function Onboarding() {
                 <input className="w-full bg-surface-container-lowest border-none rounded-xl h-14 px-5 font-sans focus:ring-2 focus:ring-secondary/20 transition-all outline-none" placeholder="name@innovation.lab" type="email"/>
               </div>
               <div className="space-y-2">
-                <label className="font-label text-[11px] uppercase tracking-widest text-on-surface-variant/60 font-bold ml-1">Educational Background</label>
+                <label className="font-label text-[11px] uppercase tracking-widest text-on-surface-variant/60 font-bold ml-1">Learning Stage</label>
                 <select className="w-full bg-surface-container-lowest border-none rounded-xl h-14 px-5 font-sans focus:ring-2 focus:ring-secondary/20 transition-all outline-none appearance-none">
-                  <option>Post-Doctorate / Research</option>
-                  <option>Graduate Studies</option>
+                  <option>Secondary / College</option>
                   <option>Undergraduate</option>
-                  <option>Self-Taught Specialist</option>
+                  <option>Apprentice / Bootcamp</option>
+                  <option>Early Career</option>
                 </select>
               </div>
             </div>
@@ -154,7 +154,7 @@ export default function Onboarding() {
                 Save Progress & Exit
               </button>
               <button className="hero-gradient px-12 py-5 rounded-xl text-white font-headline font-bold tracking-tight shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center">
-                Synchronize Workspace
+                Continue to Collaboration
                 <ArrowRight className="ml-3 w-5 h-5" />
               </button>
             </div>

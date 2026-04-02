@@ -26,13 +26,13 @@ export default function Admin() {
       {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
         <div>
-          <h1 className="text-4xl font-headline font-bold text-primary tracking-tight mb-2">System Control</h1>
-          <p className="text-on-surface-variant font-sans">Real-time oversight of the NeonCurator intelligence network.</p>
+          <h1 className="text-4xl font-headline font-bold text-primary tracking-tight mb-2">Program Dashboard</h1>
+          <p className="text-on-surface-variant font-sans">Real-time oversight of VisionTech’s AI-powered collaboration network.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant/40" />
-            <input className="bg-surface-container-high border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-secondary/20 w-64" placeholder="Search nodes..." type="text" />
+            <input className="bg-surface-container-high border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-secondary/20 w-64" placeholder="Search pathways..." type="text" />
           </div>
           <button className="p-2 bg-surface-container-high rounded-lg text-on-surface-variant hover:text-primary transition-all">
             <Filter className="w-5 h-5" />
@@ -43,10 +43,10 @@ export default function Admin() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
         {[
-          { label: 'Total Curators', value: '12,482', change: '+12.5%', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Active Synergies', value: '3,842', change: '+8.2%', icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50' },
-          { label: 'Network Velocity', value: '94.8%', change: '-2.1%', icon: Activity, color: 'text-emerald-600', bg: 'bg-emerald-50', down: true },
-          { label: 'Impact Score', value: '8.4/10', change: '+0.4', icon: TrendingUp, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+          { label: 'Total Innovators', value: '12,482', change: '+12.5%', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Active Collaborations', value: '3,842', change: '+8.2%', icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { label: 'Engagement Velocity', value: '94.8%', change: '-2.1%', icon: Activity, color: 'text-emerald-600', bg: 'bg-emerald-50', down: true },
+          { label: 'Opportunity Score', value: '8.4/10', change: '+0.4', icon: TrendingUp, color: 'text-indigo-600', bg: 'bg-indigo-50' },
         ].map((stat, i) => (
           <motion.div 
             key={i}
@@ -79,8 +79,8 @@ export default function Admin() {
         <div className="lg:col-span-8 bg-white p-8 rounded-[2rem] ambient-shadow border border-outline-variant/10">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h3 className="font-headline text-xl font-bold text-primary">Intelligence Growth</h3>
-              <p className="text-xs text-on-surface-variant">Cumulative network impact over the last 7 cycles.</p>
+              <h3 className="font-headline text-xl font-bold text-primary">Innovation Growth</h3>
+              <p className="text-xs text-on-surface-variant">Progress across discovery, matching, and project delivery over the last 7 cycles.</p>
             </div>
             <div className="flex gap-2">
               <button className="px-3 py-1 bg-surface-container-high rounded text-[10px] font-bold text-primary uppercase tracking-widest">7 Days</button>
@@ -112,7 +112,7 @@ export default function Admin() {
         {/* Activity Feed */}
         <div className="lg:col-span-4 bg-surface-container-lowest p-8 rounded-[2rem] ambient-shadow border border-outline-variant/10">
           <div className="flex justify-between items-center mb-8">
-            <h3 className="font-headline text-xl font-bold text-primary">Activity Feed</h3>
+            <h3 className="font-headline text-xl font-bold text-primary">Engagement Feed</h3>
             <button className="text-on-surface-variant/40 hover:text-primary transition-all">
               <MoreVertical className="w-5 h-5" />
             </button>
@@ -158,19 +158,19 @@ export default function Admin() {
           <table className="w-full text-left">
             <thead>
               <tr className="bg-surface-container-low/50">
-                <th className="px-8 py-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant/60">Node ID</th>
-                <th className="px-8 py-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant/60">Curator</th>
-                <th className="px-8 py-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant/60">Specialization</th>
-                <th className="px-8 py-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant/60">Uptime</th>
+                <th className="px-8 py-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant/60">Project ID</th>
+                <th className="px-8 py-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant/60">Participant</th>
+                <th className="px-8 py-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant/60">Focus Area</th>
+                <th className="px-8 py-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant/60">Progress</th>
                 <th className="px-8 py-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant/60">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant/10">
               {[
-                { id: 'NC-4829', user: 'Dr. Aris Thorne', spec: 'Quantum Bio-Logic', uptime: '99.9%', status: 'Active' },
-                { id: 'NC-1024', user: 'Sarah Chen', spec: 'Spatial Audio', uptime: '98.4%', status: 'Active' },
-                { id: 'NC-7721', user: 'Marcus Vane', spec: 'Ethics API', uptime: '94.2%', status: 'Maintenance' },
-                { id: 'NC-3309', user: 'Elena Rossi', spec: 'Neural Privacy', uptime: '99.1%', status: 'Active' },
+                { id: 'VT-4829', user: 'Dr. Aris Thorne', spec: 'Quantum Bio-Logic', uptime: '99.9%', status: 'Active' },
+                { id: 'VT-1024', user: 'Sarah Chen', spec: 'Spatial Audio', uptime: '98.4%', status: 'Active' },
+                { id: 'VT-7721', user: 'Marcus Vane', spec: 'Ethics API', uptime: '94.2%', status: 'Maintenance' },
+                { id: 'VT-3309', user: 'Elena Rossi', spec: 'Neural Privacy', uptime: '99.1%', status: 'Active' },
               ].map((node, i) => (
                 <tr key={i} className="hover:bg-surface-container-low/30 transition-colors cursor-pointer">
                   <td className="px-8 py-5 font-mono text-xs text-on-surface-variant">{node.id}</td>
