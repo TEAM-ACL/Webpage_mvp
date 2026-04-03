@@ -1,68 +1,32 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap');
 
 @theme {
-  --font-headline: "Space Grotesk", sans-serif;
-  --font-sans: "Inter", sans-serif;
-  --font-label: "Manrope", sans-serif;
+  --font-headline: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-label: "Manrope", ui-sans-serif, system-ui, sans-serif;
 
   --color-primary: #24389c;
   --color-primary-container: #3f51b5;
   --color-secondary: #006875;
   --color-secondary-container: #00e3fd;
   --color-tertiary: #4b00c6;
-  --color-tertiary-container: #642de6;
   --color-surface: #f8f9fa;
-  --color-on-surface: #191c1d;
-  --color-on-surface-variant: #454652;
   --color-surface-container-low: #f3f4f5;
   --color-surface-container-lowest: #ffffff;
+  --color-on-surface: #191c1d;
+  --color-on-surface-variant: #454652;
   --color-outline-variant: #c5c5d4;
-
-  --radius-xl: 0.75rem;
-  --radius-2xl: 1rem;
-  --radius-3xl: 1.5rem;
 }
 
 @layer base {
   body {
     @apply bg-surface text-on-surface font-sans antialiased;
   }
-
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-headline tracking-tight;
-  }
 }
 
-@layer components {
-  .glass-panel {
-    @apply bg-white/70 backdrop-blur-xl border border-white/20;
-  }
-
-  .ambient-shadow {
-    box-shadow: 0 12px 40px rgba(25, 28, 29, 0.04);
-  }
-
-  .hero-gradient {
-    background: linear-gradient(135deg, #24389c 0%, #3f51b5 100%);
-  }
-
-  .gradient-pulse {
-    background: linear-gradient(135deg, #24389c 0%, #3f51b5 100%);
-    @apply transition-all duration-300;
-  }
-
-  .gradient-pulse:hover {
-    @apply scale-[1.02] shadow-xl;
-  }
-}
-
-/* Custom animations */
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.animate-spin-slow {
-  animation: spin-slow 8s linear infinite;
+.silent-grid {
+  mask-image: linear-gradient(to bottom, white, transparent);
+  background-image: radial-gradient(circle, #c5c5d4 1px, transparent 1px);
+  background-size: 40px 40px;
 }

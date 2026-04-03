@@ -81,7 +81,7 @@ export default function Onboarding() {
                 <label className="font-label text-[11px] uppercase tracking-widest text-on-surface-variant/60 font-bold ml-1">Learning Stage</label>
                 <select className="w-full bg-surface-container-lowest border-none rounded-xl h-14 px-5 font-sans focus:ring-2 focus:ring-secondary/20 transition-all outline-none appearance-none">
                   <option>Secondary / College</option>
-                  <option>Undergraduate</option>
+                  <option>Undergraduate / Graduate</option>
                   <option>Apprentice / Bootcamp</option>
                   <option>Early Career</option>
                 </select>
