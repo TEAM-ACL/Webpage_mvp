@@ -7,21 +7,10 @@ export default function SignUp(): JSX.Element {
   return (
     <main className="grid grid-cols-1 md:grid-cols-2 min-h-screen w-full">
       {/* Left Side */}
-      <section className="relative hidden md:flex flex-col justify-between p-16 overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img
-            className="w-full h-full object-cover grayscale-[20%] contrast-125"
-            src="https://picsum.photos/seed/neural/1200/1200"
-            alt="AI Visualization"
-            referrerPolicy="no-referrer"
-          />
-          <div className="absolute inset-0 bg-primary/40 mix-blend-multiply" />
-          <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-transparent to-primary/20" />
-        </div>
-
+      <section className="relative hidden md:flex flex-col justify-between p-16 overflow-hidden bg-[#1f0954] text-white">
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-12">
-            <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center border border-white/10">
+            <div className="w-10 h-10 bg-white/15 backdrop-blur-md rounded-lg flex items-center justify-center border border-white/10">
               <Zap className="text-white h-5 w-5 fill-current" />
             </div>
             <span className="font-headline font-bold text-2xl tracking-tighter text-white">VisionTech</span>
@@ -37,18 +26,16 @@ export default function SignUp(): JSX.Element {
         </div>
 
         <div className="relative z-10 max-w-lg">
-          <div className="p-8 rounded-xl glass-panel shadow-2xl">
-            <span className="text-secondary text-4xl mb-4 block font-serif">"</span>
-            <blockquote className="text-on-surface font-sans italic text-xl leading-snug mb-4">
+          <div className="p-8 rounded-xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/10">
+            <span className="text-white/70 text-4xl mb-4 block font-serif">"</span>
+            <blockquote className="text-white font-sans italic text-xl leading-snug mb-4">
               Innovation is not just about moving fast; it's about seeing what others miss through the noise of the now.
             </blockquote>
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-headline font-bold">
-                ET
-              </div>
+              <div className="w-10 h-10 rounded-full bg-white text-[#1f0954] flex items-center justify-center font-headline font-bold">ET</div>
               <div>
-                <cite className="not-italic block font-headline font-bold text-on-surface">Elias Thorne</cite>
-                <span className="text-sm font-label text-on-surface-variant/60">Director of Predictive Dynamics</span>
+                <cite className="not-italic block font-headline font-bold text-white">Elias Thorne</cite>
+                <span className="text-sm font-label text-white/70">Director of Predictive Dynamics</span>
               </div>
             </div>
           </div>
