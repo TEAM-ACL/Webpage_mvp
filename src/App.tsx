@@ -10,27 +10,33 @@ import Workspace from './pages/Workspace';
 import Onboarding from './pages/Onboarding';
 import Admin from './pages/Admin';
 import Network from './pages/Network';
+import About from './pages/About';
+import Login from './pages/login';
+import SignUp from './pages/signup';
 
 export default function App() {
   return (
     <Router>
       <div className="min-h-screen flex flex-col">
         <Routes>
-          {/* Onboarding has its own layout */}
-          <Route path="/onboarding" element={<Onboarding />} />
-          
+          {/* Standalone layouts (no global header/footer) */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
+
           {/* Other pages share the main layout */}
           <Route
             path="*"
             element={
               <div className="flex flex-col min-h-screen">
                 <Header />
-                <main className="flex-grow">
+                <main className="flex-grow pt-24 pb-16">
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/workspace" element={<Workspace />} />
                     <Route path="/network" element={<Network />} />
                     <Route path="/admin" element={<Admin />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/onboarding" element={<Onboarding />} />
                   </Routes>
                 </main>
                 <Footer />
