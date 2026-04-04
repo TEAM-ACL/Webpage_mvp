@@ -116,7 +116,7 @@ export function Footer() {
           </div>
         </div>
         <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-outline-variant/10 font-label text-[11px] uppercase tracking-widest">
-          <span className="text-white/60 mb-4 md:mb-0">© 2026 VISIONTECH AI. ENGINEERING THE FUTURE.</span>
+          <span className="text-white/60 mb-4 md:mb-0">© 2026 VISIONTECH AI. EMPOWERING THE FUTURE.</span>
           <div className="flex space-x-8">
           <a className="text-white/60 hover:text-white transition-opacity" href="#">Privacy Policy</a>
             <a className="text-white/60 hover:text-white transition-opacity" href="#">Terms of Service</a>
