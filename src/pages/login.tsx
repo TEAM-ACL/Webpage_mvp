@@ -19,7 +19,7 @@ export default function Login(): JSX.Element {
     try {
       const session = await api.login(email, password);
       storeSession(session);
-      navigate("/workspace");
+      navigate("/dashboard");
     } catch (err) {
       setError((err as Error).message || "Unable to sign in. Please try again.");
     } finally {
