@@ -1,9 +1,32 @@
 import type { JSX } from "react";
+import { useState } from "react";
 import { Mail, Lock } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
+import { api, storeSession } from "../lib/api";
 
 export default function Login(): JSX.Element {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const session = await api.login(email, password);
+      storeSession(session);
+      navigate("/workspace");
+    } catch (err) {
+      setError((err as Error).message || "Unable to sign in. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-surface flex flex-col relative overflow-hidden">
       {/* Background Accents */}
@@ -37,7 +60,7 @@ export default function Login(): JSX.Element {
               </p>
             </div>
 
-            <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+            <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <label className="font-label text-xs font-semibold uppercase tracking-wider text-on-surface-variant ml-1">
                   Email Address
@@ -48,6 +71,9 @@ export default function Login(): JSX.Element {
                     className="w-full bg-surface-container-high border-none rounded-xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-secondary/20 focus:bg-white transition-all text-on-surface placeholder:text-on-surface-variant/40"
                     placeholder="name@company.com"
                     type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
                   />
                 </div>
               </div>
@@ -56,7 +82,7 @@ export default function Login(): JSX.Element {
                   <label className="font-label text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
                     Password
                   </label>
-                  <button className="font-label text-xs font-bold text-secondary hover:underline transition-all">
+                  <button type="button" className="font-label text-xs font-bold text-secondary hover:underline transition-all">
                     Forgot Password?
                   </button>
                 </div>
@@ -66,11 +92,24 @@ export default function Login(): JSX.Element {
                     className="w-full bg-surface-container-high border-none rounded-xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-secondary/20 focus:bg-[#1f0954] transition-all text-on-surface placeholder:text-on-surface-variant/40"
                     placeholder="••••••••"
                     type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={6}
                   />
                 </div>
               </div>
-              <button className="w-full bg-[#1f0954] hover:bg-black text-white py-4 rounded-xl font-headline font-bold text-lg shadow-lg shadow-primary/20 hover:shadow-xl transition-all active:scale-[0.98]">
-                Sign In
+              {error && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                  {error}
+                </p>
+              )}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#1f0954] hover:bg-black disabled:opacity-60 disabled:cursor-not-allowed text-white py-4 rounded-xl font-headline font-bold text-lg shadow-lg shadow-primary/20 hover:shadow-xl transition-all active:scale-[0.98]"
+              >
+                {loading ? "Signing in..." : "Sign In"}
               </button>
             </form>
 
