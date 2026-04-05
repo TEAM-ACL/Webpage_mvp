@@ -1,6 +1,6 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Settings, Search } from 'lucide-react';
+import { Settings, Search, Linkedin, Instagram, Youtube } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export function Header() {
@@ -91,7 +91,7 @@ export function Footer() {
   return (
     <footer className="w-full border-t border-outline-variant/0 bg-[#1f0954] pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-6 md:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-12 mb-16">
           <div className="col-span-1 md:col-span-2">
             <div className="text-2xl font-bold tracking-tighter text-white font-headline mb-6">VisionTech</div>
             <p className="text-white/80 max-w-sm font-sans leading-relaxed">
@@ -114,6 +114,37 @@ export function Footer() {
               <li><a className="hover:text-white transition-colors" href="#">Innovation Reports</a></li>
             </ul>
           </div>
+          <div>
+            <h4 className="font-label text-xs font-extrabold uppercase tracking-widest text-white mb-6">Contact</h4>
+            <ul className="space-y-3 text-sm font-medium text-white/80">
+              <li>Email: <span className="text-white">hello@visiontech.ai</span></li>
+              <li>Address: <span className="text-white">123 Innovation Way, London, UK</span></li>
+              <li className="text-white/70 text-xs">Partnerships, pilots, and enterprise programs welcome.</li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-label text-xs font-extrabold uppercase tracking-widest text-white mb-6">Social</h4>
+            <ul className="flex flex-wrap gap-4 text-sm font-medium text-white/80 items-center">
+              <li>
+                <a className="hover:text-white transition-colors inline-flex items-center gap-2" href="#">
+                  <Linkedin className="w-5 h-5" aria-hidden="true" />
+                  <span className="sr-only">LinkedIn</span>
+                </a>
+              </li>
+              <li>
+                <a className="hover:text-white transition-colors inline-flex items-center gap-2" href="#">
+                  <Instagram className="w-5 h-5" aria-hidden="true" />
+                  <span className="sr-only">Instagram</span>
+                </a>
+              </li>
+              <li>
+                <a className="hover:text-white transition-colors inline-flex items-center gap-2" href="#">
+                  <Youtube className="w-5 h-5" aria-hidden="true" />
+                  <span className="sr-only">YouTube</span>
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
         <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-outline-variant/10 font-label text-[11px] uppercase tracking-widest">
           <span className="text-white/60 mb-4 md:mb-0">© 2026 VISIONTECH AI. EMPOWERING THE FUTURE.</span>
@@ -128,3 +159,7 @@ export function Footer() {
     </footer>
   );
 }
+
+
+
+

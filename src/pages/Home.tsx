@@ -1,6 +1,6 @@
 import type { JSX, ReactNode } from "react";
 import { motion } from "motion/react";
-import { ArrowRight, MapPin, Mail, Users } from "lucide-react";
+import { ArrowRight, Users, CheckCircle2, ChevronDown } from "lucide-react";
 
 type SocialLink = {
   label: string;
@@ -130,6 +130,136 @@ export default function Home(): JSX.Element {
         </div>
       </section>
 
+      {/* Solution */}
+      <section
+        id="solution"
+        className="py-20 px-6 md:px-12 lg:px-16 bg-white border-t border-slate-200"
+      >
+        <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-10 items-center">
+          <div className="space-y-3">
+            <p className="font-label text-[11px] uppercase tracking-[0.3em] text-[#1f0954] font-bold">Solution</p>
+            <h2 className="text-3xl md:text-4xl font-headline font-bold text-slate-900">
+              A smarter way to navigate technology careers.
+            </h2>
+            <p className="text-slate-700 leading-relaxed">
+              VisionTech connects structured learning, guided pathways, and AI recommendations so you always know the next best step.
+            </p>
+          </div>
+          <a
+            href="/about#problem"
+            className="block rounded-2xl border border-[#d8cffc] bg-[#f7f3ff] p-8 shadow-[0_20px_60px_rgba(31,9,84,0.08)] hover:shadow-[0_24px_70px_rgba(31,9,84,0.12)] transition"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="font-label text-xs uppercase tracking-[0.25em] text-[#1f0954]">Explore</p>
+                <h3 className="text-2xl font-headline font-bold text-slate-900 mt-2">The problem VisionTech solves</h3>
+              </div>
+              <ArrowRight className="w-5 h-5 text-[#1f0954]" />
+            </div>
+            <p className="text-slate-700 leading-relaxed">
+              See how VisionTech tackles fragmented learning, unclear pathways, and inaccessible opportunities with an integrated, intelligent guide.
+            </p>
+          </a>
+        </div>
+      </section>
+
+      {/* How it Works */}
+      <section className="py-20 px-6 md:px-12 lg:px-16 bg-surface-container-low border-t border-slate-200">
+        <div className="max-w-6xl mx-auto space-y-10">
+          <div className="space-y-3 text-center">
+            <p className="font-label text-[11px] uppercase tracking-[0.3em] text-[#1f0954] font-bold">How it works</p>
+            <h2 className="text-3xl md:text-4xl font-headline font-bold text-slate-900">
+              Start your journey in four simple steps
+            </h2>
+            <p className="text-slate-700 max-w-3xl mx-auto leading-relaxed">
+              Move from intent to action with a guided flow that keeps you focused on the next best move.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            {[
+              { title: "Create an Account", body: "Sign up and access your personalized dashboard." },
+              { title: "Select Your Goals", body: "Tell us your interests, preferred skills, and career direction." },
+              { title: "Receive Your Pathway", body: "Get a structured learning and development plan tailored to your profile." },
+              { title: "Track Your Progress", body: "Monitor growth, stay on track, and move closer to real opportunities." },
+            ].map((step, idx) => (
+              <div
+                key={step.title}
+                className="bg-white border border-[#e6defc] rounded-2xl p-6 shadow-sm flex gap-4"
+              >
+                <div className="h-12 w-12 rounded-full bg-[#1f0954] text-white flex items-center justify-center font-headline font-bold">
+                  {idx + 1}
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-headline font-bold text-slate-900">{step.title}</h3>
+                  <p className="text-slate-700 leading-relaxed text-sm">{step.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQs */}
+      <section className="py-20 px-6 md:px-12 lg:px-16 bg-white border-t border-slate-200">
+        <div className="max-w-5xl mx-auto space-y-8">
+          <div className="space-y-2 text-center">
+            <p className="font-label text-[11px] uppercase tracking-[0.3em] text-[#1f0954] font-bold">FAQs</p>
+            <h2 className="text-3xl md:text-4xl font-headline font-bold text-slate-900">Your questions, answered</h2>
+          </div>
+          <div className="divide-y divide-slate-200 rounded-2xl border border-slate-200 overflow-hidden">
+            {[
+              { q: "What is VisionTech?", a: "VisionTech is a digital platform that helps individuals navigate technology careers through structured learning pathways and intelligent guidance." },
+              { q: "Who is VisionTech for?", a: "Students, graduates, career changers, and anyone looking to grow in their field without a clear plan." },
+              { q: "Do I need prior experience in technology?", a: "No. VisionTech supports users at all levels, from beginners to those specializing or advancing their skills." },
+              { q: "How are pathways created?", a: "Pathways are designed from industry requirements and structured learning progressions, combined with intelligent recommendation logic." },
+              { q: "Is VisionTech free to use?", a: "The MVP version provides core features for free, with premium features planned as the platform evolves." },
+              { q: "How does VisionTech use AI?", a: "AI provides guidance and recommendations based on your goals, helping you make informed decisions about learning and career paths." },
+              { q: "Can VisionTech help me get a job?", a: "Yes—by guiding you through the right skills and matching you to relevant opportunities and collaborators, improving readiness for real outcomes." },
+            ].map((item, idx) => (
+              <details key={item.q} className="group bg-white">
+                <summary className="cursor-pointer px-5 py-4 flex items-center justify-between gap-3 text-slate-900 font-semibold hover:bg-[#f7f3ff]">
+                  <span>{`${idx + 1}. ${item.q}`}</span>
+                  <ChevronDown className="w-4 h-4 text-slate-500 group-open:rotate-180 transition-transform" />
+                </summary>
+                <div className="px-5 pb-5 text-slate-700 leading-relaxed text-sm bg-[#faf9ff] border-t border-slate-100">
+                  {item.a}
+                </div>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Call To Action */}
+      <section className="py-20 px-6 md:px-12 lg:px-16 bg-[#0b1b2d] text-white relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.08),transparent_35%),radial-gradient(circle_at_80%_40%,rgba(255,255,255,0.05),transparent_30%)]" />
+        <div className="relative max-w-5xl mx-auto text-center space-y-6">
+          <p className="font-label text-[11px] uppercase tracking-[0.3em] text-white/70 font-bold">Call to action</p>
+          <h2 className="text-3xl md:text-4xl font-headline font-bold">Start building your future today</h2>
+          <p className="text-lg text-white/80 leading-relaxed">
+            Take the first step toward a structured and guided technology journey. Join VisionTech for clarity, direction, and opportunities designed for your growth.
+          </p>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <a
+              href="/signup"
+              className="bg-white text-[#0b1b2d] px-8 py-4 rounded-xl font-headline font-semibold shadow-lg hover:bg-slate-100 transition"
+            >
+              Join VisionTech
+            </a>
+            <a
+              href="/onboarding"
+              className="border border-white/50 text-white px-8 py-4 rounded-xl font-headline font-semibold hover:border-white transition"
+            >
+              Get Started
+            </a>
+          </div>
+          <div className="flex items-center justify-center gap-2 text-sm text-white/70">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>No experience required. Start from where you are and grow with guidance.</span>
+          </div>
+        </div>
+      </section>
+
       <section
         id="waitlist"
         className="relative overflow-hidden py-20 px-6 md:px-12 lg:px-16 bg-white border-t border-slate-200"
@@ -172,48 +302,6 @@ export default function Home(): JSX.Element {
         </div>
       </section>
       
-      <section id="contact" className="py-16 px-6 md:px-12 lg:px-16 bg-white border-t border-slate-200">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12">
-          <div className="space-y-4">
-            <p className="font-label text-[11px] uppercase tracking-[0.3em] text-[#1f0954] font-bold">
-              Contact
-            </p>
-            <div className="space-y-3 text-slate-700">
-              <p className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-[#1f0954]" />
-                <span>
-                  Email: <span className="text-slate-900">hello@visiontech.ai</span>
-                </span>
-              </p>
-              <p className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-[#1f0954]" />
-                <span>
-                  Address: <span className="text-slate-900">123 Innovation Way, London, UK</span>
-                </span>
-              </p>
-              <p className="text-sm text-slate-600">
-                Reach out for partnerships, pilots, or enterprise innovation programs.
-              </p>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <p className="font-label text-[11px] uppercase tracking-[0.3em] text-[#1f0954] font-bold">
-              Social
-            </p>
-            <div className="flex flex-wrap gap-3">
-              {socialLinks.map((link) => (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  className="px-4 py-2 rounded-full border border-slate-200 hover:border-[#1f0954] text-sm text-slate-800 transition-colors"
-                >
-                  {link.label}
-                </a>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

@@ -154,7 +154,7 @@ export default function About(): JSX.Element {
       </section>
 
       {/* Problem We Solve */}
-      <section className="py-20 bg-white">
+      <section id="problem" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-8 space-y-10">
           <div className="space-y-4 max-w-4xl">
             <p className="font-label text-[11px] uppercase tracking-[0.3em] text-tertiary font-bold">The problem VisionTech solves</p>
