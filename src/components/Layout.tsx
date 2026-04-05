@@ -1,10 +1,11 @@
-﻿import React from 'react';
+﻿import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Settings, Search, Linkedin, Instagram, Youtube } from 'lucide-react';
+import { Settings, Search, Linkedin, Instagram, Youtube, Menu, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export function Header() {
   const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const navItems = [
     { name: 'Home', path: '/' },
@@ -79,10 +80,55 @@ export function Header() {
               Sign up
             </Link>
           </div>
+
+          {/* Mobile menu toggle */}
+          <button
+            className="md:hidden p-2 text-white/80 hover:text-white transition-colors"
+            aria-label="Toggle navigation"
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen((open) => !open)}
+          >
+            {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
       </nav>
 
       {/* Mobile Nav */}
+      {mobileOpen && (
+        <div className="md:hidden bg-[#1f0954] border-t border-white/10 shadow-lg">
+          <div className="px-6 py-4 flex flex-col space-y-4">
+            {navItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={cn(
+                  "text-base font-headline tracking-tight transition-colors",
+                  location.pathname === item.path ? "text-white font-semibold" : "text-white/80 hover:text-white"
+                )}
+                onClick={() => setMobileOpen(false)}
+              >
+                {item.name}
+              </Link>
+            ))}
+            <div className="flex gap-3 pt-2">
+              <Link
+                to="/login"
+                className="flex-1 text-center text-white bg-white/10 hover:bg-white/20 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+                onClick={() => setMobileOpen(false)}
+              >
+                Log in
+              </Link>
+              <Link
+                to="/signup"
+                className="flex-1 text-center text-[#1f0954] bg-white hover:bg-slate-100 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+                onClick={() => setMobileOpen(false)}
+              >
+                Sign up
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }
@@ -159,6 +205,8 @@ export function Footer() {
     </footer>
   );
 }
+
+
 
 
 

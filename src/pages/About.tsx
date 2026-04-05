@@ -1,11 +1,13 @@
 import type { JSX } from "react";
 import { motion } from "motion/react";
+import { Linkedin } from "lucide-react";
 
 type TeamMember = {
   name: string;
   title: string;
   focus: string[];
   description: string;
+  linkedin: string;
 };
 
 const team: TeamMember[] = [
@@ -15,6 +17,7 @@ const team: TeamMember[] = [
     focus: ["Product Vision", "Frontend", "Cloud Architecture"],
     description:
       "Sets product direction, builds the web experience, and architects scalable cloud delivery.",
+    linkedin: "https://www.linkedin.com/in/chidera-andy-b81a647a",
   },
   {
     name: "Mac-Collins",
@@ -22,6 +25,7 @@ const team: TeamMember[] = [
     focus: ["Platform", "APIs", "Cloud Ops"],
     description:
       "Owns platform foundations, APIs, and cloud reliability so new features ship safely.",
+    linkedin: "https://www.linkedin.com/in/maccollinsmatblas",
   },
   {
     name: "Franklyn",
@@ -29,6 +33,7 @@ const team: TeamMember[] = [
     focus: ["AI Matching", "Data Pipelines", "ML Ops"],
     description:
       "Designs the AI matching models and data pipelines that power recommendations.",
+    linkedin: "https://www.linkedin.com/in/franklyn-oliha",
   },
   {
     name: "Trisha",
@@ -36,6 +41,8 @@ const team: TeamMember[] = [
     focus: ["Delivery", "Stakeholders", "Roadmap"],
     description:
       "Coordinates delivery, removes blockers, and keeps roadmap milestones on track.",
+    linkedin:
+      "https://www.linkedin.com/in/trisha-kolibea-adoba-b45b781a5/?lipi=urn%3Ali%3Apage%3Ad_flagship3_profile_view_base_contact_details%3BG%2FDsAaxORjajdATBf67%2BGQ%3D%3D",
   },
 ];
 
@@ -289,6 +296,15 @@ export default function About(): JSX.Element {
                     <p className="text-lg font-semibold text-white/100">{member.name}</p>
                     <p className="text-sm text-white/100">{member.title}</p>
                   </div>
+                  <a
+                    href={member.linkedin}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-white/80 hover:text-white transition-colors"
+                    aria-label={`${member.name} LinkedIn profile`}
+                  >
+                    <Linkedin className="w-5 h-5" />
+                  </a>
                 </div>
                 <p className="text-white/100 text-sm leading-relaxed">{member.description}</p>
                 <div className="flex flex-wrap gap-2">
