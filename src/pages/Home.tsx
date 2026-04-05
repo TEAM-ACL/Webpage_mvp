@@ -63,20 +63,26 @@ export default function Home(): JSX.Element {
               VisionTech maps skills, potential, and collaboration fit so innovators, teams, and organisations
               can discover each other, form the right squads, and deliver faster.
             </p>
-            <div className="flex flex-wrap gap-4">
-              <a
-                href="#waitlist"
-                className="bg-[#1f0954] hover:bg-black text-white px-8 py-4 rounded-xl font-headline font-semibold shadow-lg transition"
-              >
-                Join the Waitlist
-              </a>
-              <a
-                href="/about#team"
-                className="border border-slate-200 text-slate-800 px-8 py-4 rounded-xl font-headline font-semibold hover:border-[#1f0954] transition"
-              >
-                Meet the Team
-              </a>
-            </div>
+              <div className="flex flex-wrap gap-4">
+                <a
+                  href="/signup"
+                  className="bg-[#1f0954] hover:bg-black text-white px-8 py-4 rounded-xl font-headline font-semibold shadow-lg transition"
+                >
+                  Join VisionTech
+                </a>
+                <a
+                  href="/intelligence"
+                  className="border border-slate-200 text-slate-800 px-8 py-4 rounded-xl font-headline font-semibold hover:border-[#1f0954] transition"
+                >
+                  Get Started
+                </a>
+                <a
+                  href="/about#team"
+                  className="border border-slate-200 text-slate-800 px-8 py-4 rounded-xl font-headline font-semibold hover:border-[#1f0954] transition"
+                >
+                  Meet the Team
+                </a>
+              </div>
             <div className="flex flex-wrap gap-3 text-xs text-slate-600">
               {["Capability Graphs", "AI Matching", "Collaboration Fit", "Innovation Pathways"].map((pill) => (
                 <span key={pill} className="bg-[#f2ecff] border border-[#d8cffc] text-[#1f0954] px-3 py-1 rounded-full">

@@ -1,9 +1,45 @@
 import type { JSX } from "react";
+import { useState } from "react";
 import { Mail, Lock, ArrowRight, User, AtSign } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
+import { api, storeSession } from "../lib/api";
 
 export default function SignUp(): JSX.Element {
+  const navigate = useNavigate();
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [agree, setAgree] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!agree) {
+      setError("Please accept the terms to continue.");
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    try {
+      const [first_name, last_name] = fullName.trim().split(" ", 2);
+      const session = await api.register({
+        email,
+        password,
+        display_name: fullName || email,
+        first_name: first_name || null,
+        last_name: last_name || null,
+      });
+      storeSession(session);
+      navigate("/workspace");
+    } catch (err) {
+      setError((err as Error).message || "Unable to create account. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="grid grid-cols-1 md:grid-cols-2 min-h-screen w-full">
       {/* Left Side */}
@@ -54,7 +90,7 @@ export default function SignUp(): JSX.Element {
               Create your workstation and start curating with AI precision.
             </p>
           </div>
-          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <label className="font-label text-sm font-semibold text-on-surface-variant ml-1">Full Name</label>
               <div className="relative">
@@ -62,6 +98,9 @@ export default function SignUp(): JSX.Element {
                   className="w-full px-5 py-4 bg-surface-container-high rounded-xl border-none focus:ring-2 focus:ring-secondary/20 focus:bg-white text-on-surface placeholder:text-on-surface-variant/40 transition-all"
                   placeholder="Alex Sterling"
                   type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
                 />
                 <User className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 h-5 w-5" />
               </div>
@@ -73,6 +112,9 @@ export default function SignUp(): JSX.Element {
                   className="w-full px-5 py-4 bg-surface-container-high rounded-xl border-none focus:ring-2 focus:ring-secondary/20 focus:bg-white text-on-surface placeholder:text-on-surface-variant/40 transition-all"
                   placeholder="alex@company.ai"
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
                 <AtSign className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 h-5 w-5" />
               </div>
@@ -84,6 +126,10 @@ export default function SignUp(): JSX.Element {
                   className="w-full px-5 py-4 bg-surface-container-high rounded-xl border-none focus:ring-2 focus:ring-secondary/20 focus:bg-white text-on-surface placeholder:text-on-surface-variant/40 transition-all"
                   placeholder="••••••••••••"
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
                 />
                 <Lock className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 h-5 w-5" />
               </div>
@@ -93,6 +139,8 @@ export default function SignUp(): JSX.Element {
                 className="mt-1 rounded border-surface-container-high text-primary focus:ring-primary h-4 w-4"
                 id="terms"
                 type="checkbox"
+                checked={agree}
+                onChange={(e) => setAgree(e.target.checked)}
               />
               <label className="text-sm text-on-surface-variant leading-tight" htmlFor="terms">
                 I agree to the{" "}
@@ -106,8 +154,17 @@ export default function SignUp(): JSX.Element {
                 .
               </label>
             </div>
-            <button className="w-full py-4 px-6 bg-[#1f0954] hover:bg-black text-white font-headline font-bold text-lg rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2">
-              Create Account
+            {error && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                {error}
+              </p>
+            )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 px-6 bg-[#1f0954] hover:bg-black disabled:opacity-60 disabled:cursor-not-allowed text-white font-headline font-bold text-lg rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+              {loading ? "Creating..." : "Create Account"}
               <ArrowRight className="h-5 w-5" />
             </button>
           </form>
