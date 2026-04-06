@@ -50,7 +50,7 @@ export default function SignUp(): JSX.Element {
             <div className="w-10 h-10 bg-white/15 backdrop-blur-md rounded-lg flex items-center justify-center border border-white/10">
               <Zap className="text-white h-5 w-5 fill-current" />
             </div>
-            <span className="font-headline font-bold text-2xl tracking-tighter text-white">VisionTech</span>
+            <Link to="/" className="font-headline font-bold text-2xl tracking-tighter text-white">VisionTech</Link>
           </div>
           <div className="max-w-md">
             <h1 className="font-headline text-5xl font-bold text-white tracking-tight leading-[1.1] mb-6">
@@ -83,7 +83,7 @@ export default function SignUp(): JSX.Element {
       <section className="flex flex-col justify-center items-center p-8 md:p-16 bg-white">
         <div className="w-full max-w-md">
           <div className="flex md:hidden items-center gap-2 mb-12">
-            <span className="font-headline font-bold text-3xl tracking-tighter text-primary">VisionTech</span>
+            <Link to="/" className="font-headline font-bold text-3xl tracking-tighter text-primary">VisionTech</Link>
           </div>
           <div className="mb-10">
             <h2 className="font-headline text-4xl font-bold text-on-surface tracking-tight mb-2">Begin your evolution</h2>
@@ -231,3 +231,4 @@ function Zap({ className }: { className?: string }) {
     </svg>
   );
 }
+

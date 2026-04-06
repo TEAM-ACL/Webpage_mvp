@@ -35,7 +35,7 @@ export default function Login(): JSX.Element {
       <div className="absolute bottom-[-10%] left-[-5%] w-[30vw] h-[30vw] bg-secondary/5 rounded-full blur-[100px]" />
 
       <header className="fixed top-0 w-full z-50 glass-panel flex justify-between items-center px-8 h-20">
-        <div className="text-2xl font-bold tracking-tighter text-primary font-headline">VisionTech</div>
+        <Link to="/" className="text-2xl font-bold tracking-tighter text-primary font-headline">VisionTech</Link>
         <div className="flex items-center gap-4">
           <span className="text-on-surface-variant font-medium text-sm hidden sm:inline">New here?</span>
           <Link
@@ -142,7 +142,7 @@ export default function Login(): JSX.Element {
 
       <footer className="w-full border-t border-surface-container-high bg-surface-container-low flex flex-col md:flex-row justify-between items-center px-12 py-8">
         <div className="mb-4 md:mb-0">
-          <span className="font-headline font-bold text-primary">VisionTech</span>
+          <Link to="/" className="font-headline font-bold text-primary">VisionTech</Link>
           <p className="text-on-surface-variant/60 font-sans text-xs mt-1">© 2026 VisionTech AI. All rights reserved.</p>
         </div>
         <div className="flex gap-8">
@@ -172,3 +172,4 @@ function SocialButton({ label, icon }: { label: string; icon: string }) {
     </button>
   );
 }
+
