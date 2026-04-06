@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Settings, Search, Linkedin, Instagram, Youtube, Menu, X } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -68,7 +68,7 @@ export function Header() {
 
           <div className="hidden lg:flex items-center gap-3">
             <Link
-              to="/login"
+              to="/login" target="_blank" rel="noopener noreferrer"
               className="text-white hover:text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-white/30"
             >
               Log in
@@ -112,7 +112,7 @@ export function Header() {
             ))}
             <div className="flex gap-3 pt-2">
               <Link
-                to="/login"
+                to="/login" target="_blank" rel="noopener noreferrer"
                 className="flex-1 text-center text-white bg-white/10 hover:bg-white/20 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
                 onClick={() => setMobileOpen(false)}
               >
@@ -193,7 +193,7 @@ export function Footer() {
           </div>
         </div>
         <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-outline-variant/10 font-label text-[11px] uppercase tracking-widest">
-          <span className="text-white/60 mb-4 md:mb-0">© 2026 VISIONTECH AI. EMPOWERING THE FUTURE.</span>
+          <span className="text-white/60 mb-4 md:mb-0">� 2026 VISIONTECH AI. EMPOWERING THE FUTURE.</span>
           <div className="flex space-x-8">
           <a className="text-white/60 hover:text-white transition-opacity" href="#">Privacy Policy</a>
             <a className="text-white/60 hover:text-white transition-opacity" href="#">Terms of Service</a>
@@ -205,6 +205,7 @@ export function Footer() {
     </footer>
   );
 }
+
 
 
 

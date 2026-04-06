@@ -9,6 +9,7 @@ export default function Login(): JSX.Element {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,7 +35,7 @@ export default function Login(): JSX.Element {
       <div className="absolute bottom-[-10%] left-[-5%] w-[30vw] h-[30vw] bg-secondary/5 rounded-full blur-[100px]" />
 
       <header className="fixed top-0 w-full z-50 glass-panel flex justify-between items-center px-8 h-20">
-        <div className="text-2xl font-bold tracking-tighter text-primary font-headline">VisionTech</div>
+        <Link to="/" className="text-2xl font-bold tracking-tighter text-primary font-headline">VisionTech</Link>
         <div className="flex items-center gap-4">
           <span className="text-on-surface-variant font-medium text-sm hidden sm:inline">New here?</span>
           <Link
@@ -89,14 +90,21 @@ export default function Login(): JSX.Element {
                 <div className="relative group">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 group-focus-within:text-secondary transition-colors h-5 w-5" />
                   <input
-                    className="w-full bg-surface-container-high border-none rounded-xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-secondary/20 focus:bg-[#1f0954] transition-all text-on-surface placeholder:text-on-surface-variant/40"
+                    className="w-full bg-surface-container-high border-none rounded-xl py-4 pl-12 pr-16 focus:ring-2 focus:ring-secondary/20 focus:bg-white transition-all text-on-surface placeholder:text-on-surface-variant/40"
                     placeholder="••••••••"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={6}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-primary hover:text-secondary transition-colors"
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
                 </div>
               </div>
               {error && (
@@ -134,7 +142,7 @@ export default function Login(): JSX.Element {
 
       <footer className="w-full border-t border-surface-container-high bg-surface-container-low flex flex-col md:flex-row justify-between items-center px-12 py-8">
         <div className="mb-4 md:mb-0">
-          <span className="font-headline font-bold text-primary">VisionTech</span>
+          <Link to="/" className="font-headline font-bold text-primary">VisionTech</Link>
           <p className="text-on-surface-variant/60 font-sans text-xs mt-1">© 2026 VisionTech AI. All rights reserved.</p>
         </div>
         <div className="flex gap-8">
@@ -164,3 +172,4 @@ function SocialButton({ label, icon }: { label: string; icon: string }) {
     </button>
   );
 }
+

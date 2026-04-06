@@ -13,6 +13,7 @@ import Network from './pages/Network';
 import About from './pages/About';
 import Login from './pages/login';
 import SignUp from './pages/signup';
+import Intelligence from './pages/Intelligence';
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
                     <Route path="/admin" element={<Admin />} />
                     <Route path="/about" element={<About />} />
                     <Route path="/onboarding" element={<Onboarding />} />
+                    <Route path="/intelligence" element={<Intelligence />} />
                   </Routes>
                 </main>
                 <Footer />
@@ -48,4 +50,8 @@ export default function App() {
     </Router>
   );
 }
+
+
+
+
 

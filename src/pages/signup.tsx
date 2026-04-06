@@ -7,9 +7,11 @@ import { api, storeSession } from "../lib/api";
 
 export default function SignUp(): JSX.Element {
   const navigate = useNavigate();
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,13 +25,12 @@ export default function SignUp(): JSX.Element {
     setError(null);
     setLoading(true);
     try {
-      const [first_name, last_name] = fullName.trim().split(" ", 2);
       const session = await api.register({
         email,
         password,
-        display_name: fullName || email,
-        first_name: first_name || null,
-        last_name: last_name || null,
+        display_name: `${firstName} ${lastName}`.trim() || email,
+        first_name: firstName || null,
+        last_name: lastName || null,
       });
       storeSession(session);
       navigate("/workspace");
@@ -49,7 +50,7 @@ export default function SignUp(): JSX.Element {
             <div className="w-10 h-10 bg-white/15 backdrop-blur-md rounded-lg flex items-center justify-center border border-white/10">
               <Zap className="text-white h-5 w-5 fill-current" />
             </div>
-            <span className="font-headline font-bold text-2xl tracking-tighter text-white">VisionTech</span>
+            <Link to="/" className="font-headline font-bold text-2xl tracking-tighter text-white">VisionTech</Link>
           </div>
           <div className="max-w-md">
             <h1 className="font-headline text-5xl font-bold text-white tracking-tight leading-[1.1] mb-6">
@@ -82,7 +83,7 @@ export default function SignUp(): JSX.Element {
       <section className="flex flex-col justify-center items-center p-8 md:p-16 bg-white">
         <div className="w-full max-w-md">
           <div className="flex md:hidden items-center gap-2 mb-12">
-            <span className="font-headline font-bold text-3xl tracking-tighter text-primary">VisionTech</span>
+            <Link to="/" className="font-headline font-bold text-3xl tracking-tighter text-primary">VisionTech</Link>
           </div>
           <div className="mb-10">
             <h2 className="font-headline text-4xl font-bold text-on-surface tracking-tight mb-2">Begin your evolution</h2>
@@ -91,18 +92,33 @@ export default function SignUp(): JSX.Element {
             </p>
           </div>
           <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="space-y-2">
-              <label className="font-label text-sm font-semibold text-on-surface-variant ml-1">Full Name</label>
-              <div className="relative">
-                <input
-                  className="w-full px-5 py-4 bg-surface-container-high rounded-xl border-none focus:ring-2 focus:ring-secondary/20 focus:bg-white text-on-surface placeholder:text-on-surface-variant/40 transition-all"
-                  placeholder="Alex Sterling"
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                />
-                <User className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 h-5 w-5" />
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="font-label text-sm font-semibold text-on-surface-variant ml-1">First Name</label>
+                <div className="relative">
+                  <input
+                    className="w-full px-5 py-4 bg-surface-container-high rounded-xl border-none focus:ring-2 focus:ring-secondary/20 focus:bg-white text-on-surface placeholder:text-on-surface-variant/40 transition-all"
+                    placeholder="Alex"
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+                  <User className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 h-5 w-5" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="font-label text-sm font-semibold text-on-surface-variant ml-1">Last Name</label>
+                <div className="relative">
+                  <input
+                    className="w-full px-5 py-4 bg-surface-container-high rounded-xl border-none focus:ring-2 focus:ring-secondary/20 focus:bg-white text-on-surface placeholder:text-on-surface-variant/40 transition-all"
+                    placeholder="Sterling"
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                  />
+                  <User className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 h-5 w-5" />
+                </div>
               </div>
             </div>
             <div className="space-y-2">
@@ -123,15 +139,22 @@ export default function SignUp(): JSX.Element {
               <label className="font-label text-sm font-semibold text-on-surface-variant ml-1">Password</label>
               <div className="relative">
                 <input
-                  className="w-full px-5 py-4 bg-surface-container-high rounded-xl border-none focus:ring-2 focus:ring-secondary/20 focus:bg-white text-on-surface placeholder:text-on-surface-variant/40 transition-all"
+                  className="w-full px-5 py-4 bg-surface-container-high rounded-xl border-none focus:ring-2 focus:ring-secondary/20 focus:bg-white text-on-surface placeholder:text-on-surface-variant/40 transition-all pr-12"
                   placeholder="••••••••••••"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
                 />
-                <Lock className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 h-5 w-5" />
+                <Lock className="absolute right-11 top-1/2 -translate-y-1/2 text-on-surface-variant/40 h-5 w-5" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-primary hover:text-secondary transition-colors"
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
               </div>
             </div>
             <div className="flex items-start gap-3 py-2">
@@ -208,3 +231,4 @@ function Zap({ className }: { className?: string }) {
     </svg>
   );
 }
+
