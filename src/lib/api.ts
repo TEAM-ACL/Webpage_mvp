@@ -21,6 +21,8 @@ async function request<T>(
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
+    // allow httpOnly cookie-based sessions set by the API
+    credentials: "include",
   });
 
   if (!response.ok) {

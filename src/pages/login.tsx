@@ -1,17 +1,35 @@
 import type { JSX } from "react";
 import { useState } from "react";
-import { Mail, Lock } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Mail, Lock, ArrowLeft } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
 import { api, storeSession } from "../lib/api";
 
 export default function Login(): JSX.Element {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Prefill credentials when arriving from signup
+  useState(() => {
+    const state = location.state as { email?: string; password?: string } | null;
+    if (state?.email) setEmail(state.email);
+    if (state?.password) setPassword(state.password);
+  });
+
+  const friendlyError = (message: string) => {
+    if (message.toLowerCase().includes("failed to fetch")) {
+      return "Can't reach the server. Check your connection or try again shortly.";
+    }
+    if (message.toLowerCase().includes("timeout")) {
+      return "The request timed out. Please retry.";
+    }
+    return message || "Unable to sign in. Please try again.";
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,8 +40,10 @@ export default function Login(): JSX.Element {
       storeSession(session);
       navigate("/dashboard");
     } catch (err) {
-      setError((err as Error).message || "Unable to sign in. Please try again.");
+      setError(friendlyError((err as Error).message));
     } finally {
+      // Clear sensitive data from memory after submission
+      setPassword("");
       setLoading(false);
     }
   };
@@ -35,7 +55,15 @@ export default function Login(): JSX.Element {
       <div className="absolute bottom-[-10%] left-[-5%] w-[30vw] h-[30vw] bg-secondary/5 rounded-full blur-[100px]" />
 
       <header className="fixed top-0 w-full z-50 glass-panel flex justify-between items-center px-8 h-20">
-        <Link to="/" className="text-2xl font-bold tracking-tighter text-primary font-headline">VisionTech</Link>
+        <div className="flex items-center gap-4">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors text-sm font-semibold"
+          >
+            <ArrowLeft className="h-4 w-4" /> Home
+          </Link>
+          <Link to="/" className="text-2xl font-bold tracking-tighter text-primary font-headline">VisionTech</Link>
+        </div>
         <div className="flex items-center gap-4">
           <span className="text-on-surface-variant font-medium text-sm hidden sm:inline">New here?</span>
           <Link
