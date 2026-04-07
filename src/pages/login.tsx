@@ -3,7 +3,8 @@ import { useState, useEffect } from "react";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
-import { api, storeSession, clearSession } from "../lib/api";
+import { api, storeSession } from "../lib/api";
+import { getOnboardingComplete, signOut } from "../lib/auth";
 
 export default function Login(): JSX.Element {
   const navigate = useNavigate();
@@ -38,7 +39,9 @@ export default function Login(): JSX.Element {
     try {
       const session = await api.login(email, password);
       storeSession(session);
-      navigate("/workspace");
+      // If onboarding already complete, go straight to intelligence; else go to onboarding.
+      const done = getOnboardingComplete();
+      navigate(done ? "/intelligence" : "/onboarding");
     } catch (err) {
       setError(friendlyError((err as Error).message));
     } finally {
@@ -54,7 +57,7 @@ export default function Login(): JSX.Element {
     } catch {
       // ignore logout errors (best-effort)
     } finally {
-      clearSession();
+      signOut();
       navigate("/");
     }
   };

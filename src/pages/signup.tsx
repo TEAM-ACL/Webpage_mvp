@@ -4,6 +4,7 @@ import { Mail, Lock, ArrowRight, ArrowLeft, User, AtSign } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import { api, storeSession } from "../lib/api";
+import { setOnboardingComplete } from "../lib/auth";
 
 export default function SignUp(): JSX.Element {
   const navigate = useNavigate();
@@ -35,15 +36,17 @@ export default function SignUp(): JSX.Element {
     setError(null);
     setLoading(true);
     try {
-      await api.register({
+      const session = await api.register({
         email,
         password,
         display_name: `${firstName} ${lastName}`.trim() || email,
         first_name: firstName || null,
         last_name: lastName || null,
       });
-      // Redirect to login with prefilled credentials
-      navigate("/login", { state: { email, password } });
+      storeSession(session);
+      setOnboardingComplete(false);
+      // Redirect to onboarding for new user flow
+      navigate("/onboarding");
     } catch (err) {
       setError(friendlyError((err as Error).message));
     } finally {
