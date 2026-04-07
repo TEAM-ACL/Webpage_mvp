@@ -20,6 +20,7 @@
         "./*"
       ]
     },
+    "types": ["vitest"],
     "allowImportingTsExtensions": true,
     "noEmit": true
   }

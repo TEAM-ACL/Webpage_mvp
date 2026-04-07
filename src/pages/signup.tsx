@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { useState } from "react";
-import { Mail, Lock, ArrowRight, User, AtSign } from "lucide-react";
+import { Mail, Lock, ArrowRight, ArrowLeft, User, AtSign } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import { api, storeSession } from "../lib/api";
@@ -16,6 +16,16 @@ export default function SignUp(): JSX.Element {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const friendlyError = (message: string) => {
+    if (message.toLowerCase().includes("failed to fetch")) {
+      return "Can't reach the server. Check your connection or try again in a moment.";
+    }
+    if (message.toLowerCase().includes("timeout")) {
+      return "The request timed out. Please retry.";
+    }
+    return message || "Unable to create account. Please try again.";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!agree) {
@@ -25,18 +35,20 @@ export default function SignUp(): JSX.Element {
     setError(null);
     setLoading(true);
     try {
-      const session = await api.register({
+      await api.register({
         email,
         password,
         display_name: `${firstName} ${lastName}`.trim() || email,
         first_name: firstName || null,
         last_name: lastName || null,
       });
-      storeSession(session);
-      navigate("/workspace");
+      // Redirect to login with prefilled credentials
+      navigate("/login", { state: { email, password } });
     } catch (err) {
-      setError((err as Error).message || "Unable to create account. Please try again.");
+      setError(friendlyError((err as Error).message));
     } finally {
+      // Clear sensitive data from memory after submission
+      setPassword("");
       setLoading(false);
     }
   };
@@ -82,6 +94,14 @@ export default function SignUp(): JSX.Element {
       {/* Right Side */}
       <section className="flex flex-col justify-center items-center p-8 md:p-16 bg-white">
         <div className="w-full max-w-md">
+          <div className="mb-6">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors text-sm font-semibold"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back home
+            </Link>
+          </div>
           <div className="flex md:hidden items-center gap-2 mb-12">
             <Link to="/" className="font-headline font-bold text-3xl tracking-tighter text-primary">VisionTech</Link>
           </div>
