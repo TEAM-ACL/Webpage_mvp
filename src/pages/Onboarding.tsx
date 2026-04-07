@@ -1,8 +1,16 @@
 import { motion } from 'motion/react';
 import { ArrowRight, Brain, Code, Network, FlaskConical, Lock } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { setOnboardingComplete } from '../lib/auth';
+import { useNavigate } from 'react-router-dom';
 
 export default function Onboarding() {
+  const navigate = useNavigate();
+  const complete = () => {
+    setOnboardingComplete(true);
+    navigate('/intelligence');
+  };
+
   return (
     <main className="min-h-screen flex flex-col md:flex-row overflow-hidden">
       {/* Left Side: Editorial Context */}
@@ -153,7 +161,11 @@ export default function Onboarding() {
               <button className="text-on-surface-variant/60 font-label text-xs uppercase tracking-widest hover:text-on-surface transition-colors">
                 Save Progress & Exit
               </button>
-              <button className="hero-gradient px-12 py-5 rounded-xl text-white font-headline font-bold tracking-tight shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center">
+              <button
+                type="button"
+                onClick={complete}
+                className="hero-gradient px-12 py-5 rounded-xl text-white font-headline font-bold tracking-tight shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center"
+              >
                 Continue to Collaboration
                 <ArrowRight className="ml-3 w-5 h-5" />
               </button>
