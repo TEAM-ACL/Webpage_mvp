@@ -29,7 +29,7 @@ async function request<T>(
     let message = response.statusText;
     try {
       const data = await response.json();
-      message = data?.detail || data?.message || message;
+      message = data?.error?.message || data?.detail || data?.message || message;
     } catch {
       // ignore parse errors
     }
@@ -68,20 +68,16 @@ export const api = {
       body: payload,
     });
   },
+  logout() {
+    return request<void>("/auth/logout", { method: "POST" });
+  },
 };
 
 export function storeSession(session: AuthSessionResponse) {
-  if (session.access_token) {
-    localStorage.setItem("access_token", session.access_token);
-  }
-  if (session.refresh_token) {
-    localStorage.setItem("refresh_token", session.refresh_token);
-  }
-  localStorage.setItem("user", JSON.stringify(session.user));
+  // Prefer secure httpOnly cookies on the backend; only persist non-sensitive user metadata.
+  sessionStorage.setItem("user", JSON.stringify(session.user));
 }
 
 export function clearSession() {
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("refresh_token");
-  localStorage.removeItem("user");
+  sessionStorage.removeItem("user");
 }

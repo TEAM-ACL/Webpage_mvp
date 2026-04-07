@@ -1,9 +1,9 @@
 import type { JSX } from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
-import { api, storeSession } from "../lib/api";
+import { api, storeSession, clearSession } from "../lib/api";
 
 export default function Login(): JSX.Element {
   const navigate = useNavigate();
@@ -15,11 +15,11 @@ export default function Login(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
 
   // Prefill credentials when arriving from signup
-  useState(() => {
+  useEffect(() => {
     const state = location.state as { email?: string; password?: string } | null;
     if (state?.email) setEmail(state.email);
     if (state?.password) setPassword(state.password);
-  });
+  }, [location.state]);
 
   const friendlyError = (message: string) => {
     if (message.toLowerCase().includes("failed to fetch")) {
@@ -38,13 +38,24 @@ export default function Login(): JSX.Element {
     try {
       const session = await api.login(email, password);
       storeSession(session);
-      navigate("/dashboard");
+      navigate("/workspace");
     } catch (err) {
       setError(friendlyError((err as Error).message));
     } finally {
       // Clear sensitive data from memory after submission
       setPassword("");
       setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+    } catch {
+      // ignore logout errors (best-effort)
+    } finally {
+      clearSession();
+      navigate("/");
     }
   };
 
@@ -72,6 +83,13 @@ export default function Login(): JSX.Element {
           >
             Get Started
           </Link>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="text-on-surface-variant hover:text-primary text-sm font-semibold px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-primary/30"
+          >
+            Log out
+          </button>
         </div>
       </header>
 
@@ -111,9 +129,9 @@ export default function Login(): JSX.Element {
                   <label className="font-label text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
                     Password
                   </label>
-                  <button type="button" className="font-label text-xs font-bold text-secondary hover:underline transition-all">
+                  <Link to="/forgot-password" className="font-label text-xs font-bold text-secondary hover:underline transition-all">
                     Forgot Password?
-                  </button>
+                  </Link>
                 </div>
                 <div className="relative group">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 group-focus-within:text-secondary transition-colors h-5 w-5" />
@@ -124,7 +142,7 @@ export default function Login(): JSX.Element {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    minLength={6}
+                    minLength={8}
                   />
                   <button
                     type="button"

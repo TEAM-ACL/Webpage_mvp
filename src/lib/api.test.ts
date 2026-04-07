@@ -23,23 +23,23 @@ describe("session storage helpers", () => {
 
   it("stores tokens and user when present", () => {
     storeSession(mockSession);
-    expect(localStorage.getItem("access_token")).toBe("access");
-    expect(localStorage.getItem("refresh_token")).toBe("refresh");
-    expect(localStorage.getItem("user")).toContain("user@example.com");
+    expect(sessionStorage.getItem("access_token")).toBeNull();
+    expect(sessionStorage.getItem("refresh_token")).toBeNull();
+    expect(sessionStorage.getItem("user")).toContain("user@example.com");
   });
 
   it("skips token storage when tokens are null", () => {
     storeSession({ ...mockSession, access_token: null, refresh_token: null });
-    expect(localStorage.getItem("access_token")).toBeNull();
-    expect(localStorage.getItem("refresh_token")).toBeNull();
-    expect(localStorage.getItem("user")).toContain("user@example.com");
+    expect(sessionStorage.getItem("access_token")).toBeNull();
+    expect(sessionStorage.getItem("refresh_token")).toBeNull();
+    expect(sessionStorage.getItem("user")).toContain("user@example.com");
   });
 
   it("clears all session data", () => {
     storeSession(mockSession);
     clearSession();
-    expect(localStorage.getItem("access_token")).toBeNull();
-    expect(localStorage.getItem("refresh_token")).toBeNull();
-    expect(localStorage.getItem("user")).toBeNull();
+    expect(sessionStorage.getItem("access_token")).toBeNull();
+    expect(sessionStorage.getItem("refresh_token")).toBeNull();
+    expect(sessionStorage.getItem("user")).toBeNull();
   });
 });

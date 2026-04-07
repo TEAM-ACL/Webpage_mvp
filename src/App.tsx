@@ -14,6 +14,7 @@ import About from './pages/About';
 import Login from './pages/login';
 import SignUp from './pages/signup';
 import Intelligence from './pages/Intelligence';
+import ForgotPassword from './pages/ForgotPassword';
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
           {/* Standalone layouts (no global header/footer) */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* Other pages share the main layout */}
           <Route
