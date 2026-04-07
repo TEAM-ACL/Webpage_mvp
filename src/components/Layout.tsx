@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Settings, Search, Linkedin, Instagram, Youtube, Menu, X } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -8,6 +8,28 @@ export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem("theme");
+    if (stored === "dark") {
+      document.documentElement.classList.add("dark");
+      setDarkMode(true);
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const next = !darkMode;
+    setDarkMode(next);
+    if (next) {
+      document.documentElement.classList.add("dark");
+      sessionStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      sessionStorage.setItem("theme", "light");
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -68,14 +90,54 @@ export function Header() {
             <button className="p-2 text-white/70 hover:text-white transition-all">
               <Settings className="w-5 h-5" />
             </button>
-            <Link to="/onboarding">
-              <img
-                alt="User Profile"
-                className="w-10 h-10 rounded-full border-2 border-white/30 object-cover"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIYUDHKTNyKPp5XA4Df-fOlyFdKT21sSrQgrYXMHP3BuQrSm8ZjheScD3S2RRJS04yvBS5aRzE2YKpX6Z1ToqzY2ZLFZ7hJ6BPvDsWBRthykOwNqu475mHb55jS727aghKuWrZ__-uhl0l5apmuWd98XUZpde1oMSGORsiudoGelr-nCJ_FzWzIDNT3scdUBR9NZzZkR6ejwSq11BYlQWsLf8t4fqOq0fjychvEgX1yBZGLF2aPCCfyW7q792utoL53e7bxiWZXX_y"
-                referrerPolicy="no-referrer"
-              />
-            </Link>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setProfileOpen((o) => !o)}
+                className="w-10 h-10 rounded-full border-2 border-white/30 overflow-hidden focus:outline-none focus:ring-2 focus:ring-white/60"
+              >
+                <img
+                  alt="User Profile"
+                  className="w-full h-full object-cover"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIYUDHKTNyKPp5XA4Df-fOlyFdKT21sSrQgrYXMHP3BuQrSm8ZjheScD3S2RRJS04yvBS5aRzE2YKpX6Z1ToqzY2ZLFZ7hJ6BPvDsWBRthykOwNqu475mHb55jS727aghKuWrZ__-uhl0l5apmuWd98XUZpde1oMSGORsiudoGelr-nCJ_FzWzIDNT3scdUBR9NZzZkR6ejwSq11BYlQWsLf8t4fqOq0fjychvEgX1yBZGLF2aPCCfyW7q792utoL53e7bxiWZXX_y"
+                  referrerPolicy="no-referrer"
+                />
+              </button>
+              {profileOpen && (
+                <div className="absolute right-0 mt-3 w-56 rounded-2xl bg-white/95 text-on-surface shadow-2xl border border-white/40 backdrop-blur-lg py-2 z-50">
+                  <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to="/profile" onClick={() => setProfileOpen(false)}>
+                    Profile
+                  </Link>
+                  <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to="/settings" onClick={() => setProfileOpen(false)}>
+                    Settings
+                  </Link>
+                  <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to="/onboarding" onClick={() => setProfileOpen(false)}>
+                    My Pathway
+                  </Link>
+                  <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to="/workspace" onClick={() => setProfileOpen(false)}>
+                    Workspace
+                  </Link>
+                  <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to="/network" onClick={() => setProfileOpen(false)}>
+                    Network
+                  </Link>
+                  <button
+                    className="flex w-full items-center justify-between px-4 py-2 hover:bg-surface-container-high rounded-xl"
+                    onClick={() => { toggleTheme(); }}
+                    type="button"
+                  >
+                    <span>Theme</span>
+                    <span className="text-xs font-semibold">{darkMode ? "Dark" : "Light"}</span>
+                  </button>
+                  <button
+                    className="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded-xl"
+                    onClick={() => { setProfileOpen(false); handleLogout(); }}
+                    type="button"
+                  >
+                    Log out
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="hidden md:flex items-center gap-3">
@@ -91,13 +153,6 @@ export function Header() {
             >
               Sign up
             </Link>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="text-white/80 hover:text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors border border-white/20"
-            >
-              Log out
-            </button>
           </div>
 
           {/* Mobile menu toggle */}
