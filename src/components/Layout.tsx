@@ -1,11 +1,24 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Settings, Search, Linkedin, Instagram, Youtube, Menu, X } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { api, clearSession } from '../lib/api';
 
 export function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+    } catch {
+      // best-effort
+    } finally {
+      clearSession();
+      navigate("/login");
+    }
+  };
 
   const navItems = [
     { name: 'Home', path: '/' },
@@ -14,7 +27,6 @@ export function Header() {
     { name: 'Network', path: '/network' },
     { name: 'Admin', path: '/admin' },
     { name: 'About', path: '/about' },
-    
   ];
 
   return (
@@ -66,9 +78,9 @@ export function Header() {
             </Link>
           </div>
 
-          <div className="hidden lg:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-3">
             <Link
-              to="/login" target="_blank" rel="noopener noreferrer"
+              to="/login"
               className="text-white hover:text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-white/30"
             >
               Log in
@@ -79,6 +91,13 @@ export function Header() {
             >
               Sign up
             </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="text-white/80 hover:text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors border border-white/20"
+            >
+              Log out
+            </button>
           </div>
 
           {/* Mobile menu toggle */}
@@ -112,7 +131,7 @@ export function Header() {
             ))}
             <div className="flex gap-3 pt-2">
               <Link
-                to="/login" target="_blank" rel="noopener noreferrer"
+                to="/login"
                 className="flex-1 text-center text-white bg-white/10 hover:bg-white/20 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
                 onClick={() => setMobileOpen(false)}
               >
@@ -125,6 +144,13 @@ export function Header() {
               >
                 Sign up
               </Link>
+              <button
+                type="button"
+                onClick={() => { setMobileOpen(false); handleLogout(); }}
+                className="flex-1 text-center text-white/80 border border-white/20 hover:border-white/40 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+              >
+                Log out
+              </button>
             </div>
           </div>
         </div>
@@ -193,7 +219,7 @@ export function Footer() {
           </div>
         </div>
         <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-outline-variant/10 font-label text-[11px] uppercase tracking-widest">
-          <span className="text-white/60 mb-4 md:mb-0">© 2026 VISIONTECH AI. EMPOWERING THE FUTURE.</span>
+          <span className="text-white/60 mb-4 md:mb-0">Â© 2026 VISIONTECH AI. EMPOWERING THE FUTURE.</span>
           <div className="flex space-x-8">
           <a className="text-white/60 hover:text-white transition-opacity" href="#">Privacy Policy</a>
             <a className="text-white/60 hover:text-white transition-opacity" href="#">Terms of Service</a>
@@ -205,10 +231,3 @@ export function Footer() {
     </footer>
   );
 }
-
-
-
-
-
-
-

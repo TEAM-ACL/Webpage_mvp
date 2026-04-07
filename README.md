@@ -16,7 +16,7 @@ VisionTech’s web experience built with Vite + React. It showcases the product 
 - `src/pages/signup.tsx` — real signup flow calling backend `/auth/register`.
 - `src/pages/Onboarding.tsx`, `Workspace.tsx`, `Network.tsx`, `Admin.tsx` — product shells/demos.
 - `src/components/Layout.tsx` — header (desktop + mobile menu) and footer.
-- `src/lib/api.ts` — thin HTTP client to backend; stores tokens in `localStorage`.
+- `src/lib/api.ts` — thin HTTP client to backend; prefers httpOnly cookies and only keeps non-sensitive user data in sessionStorage.
 - `src/lib/supabaseClient.ts` — Supabase client factory (not yet wired into UI).
 
 ## Environment
@@ -40,14 +40,15 @@ Notes:
 ## Auth Flow (current)
 - Signup: POST `/auth/register` with email/password/display_name/etc. Success stores `access_token` (if returned) and redirects to `/workspace`.
 - Login: POST `/auth/login` with email/password. Success stores `access_token` (if returned) and redirects to `/dashboard`.
-- Tokens are saved to `localStorage` (`access_token`, `refresh_token`, `user`) when present. The client also sends `credentials: include` so you can migrate to secure httpOnly cookies server-side without code changes here.
+- Tokens are **not** persisted client-side; the client assumes secure httpOnly cookies are set by the backend. Only the user profile is cached in `sessionStorage`. All requests send `credentials: include` for cookie-based sessions.
 
 ## Routing Highlights
 - Home hero CTAs: Join VisionTech → `/signup`; Get Started → `/intelligence`; Meet the Team → `/about#team`.
 - About “Problem” anchor is `#problem` for deep-links.
-- Mobile nav is toggled via hamburger in the header.
-
-## Folder Layout (key)
+ - Mobile nav toggles via hamburger; login/signup buttons now appear from the `md` breakpoint upward (previously hidden until `lg`).
+ - Forgot password page lives at `/forgot-password` (currently emails support).
+ 
+ ## Folder Layout (key)
 - `src/pages/*` — page-level views
 - `src/components/*` — layout and shared UI
 - `src/lib/api.ts` — backend client
