@@ -5,9 +5,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import { api, storeSession } from "../lib/api";
 import { setOnboardingComplete } from "../lib/auth";
+import { useAuth } from "../context/AuthContext";
 
 export default function SignUp(): JSX.Element {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -44,6 +46,7 @@ export default function SignUp(): JSX.Element {
         last_name: lastName || null,
       });
       storeSession(session);
+      setUser(session.user);
       setOnboardingComplete(false);
       // Redirect to onboarding for new user flow
       navigate("/onboarding");
