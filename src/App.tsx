@@ -30,6 +30,12 @@ export default function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
+            {/* Dashboard pages use shared shell internally */}
+            <Route path="/intelligence" element={<Intelligence />} />
+            <Route path="/workspace" element={<Workspace />} />
+            <Route path="/network" element={<Network />} />
+            <Route path="/admin" element={<Admin />} />
+
             {/* Other pages share the main layout */}
             <Route
               path="*"
@@ -39,12 +45,8 @@ export default function App() {
                   <main className="flex-grow pt-24 pb-16">
                     <Routes>
                       <Route path="/" element={<Home />} />
-                      <Route path="/workspace" element={<Workspace />} />
-                      <Route path="/network" element={<Network />} />
-                      <Route path="/admin" element={<Admin />} />
                       <Route path="/about" element={<About />} />
                       <Route path="/onboarding" element={<Onboarding />} />
-                      <Route path="/intelligence" element={<Intelligence />} />
                     </Routes>
                   </main>
                   <Footer />
