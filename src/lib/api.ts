@@ -15,7 +15,8 @@ async function request<T>(
   } = {},
 ): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) headers.Authorization = `Bearer ${token}`;
+  const bearer = token ?? getAccessToken();
+  if (bearer) headers.Authorization = `Bearer ${bearer}`;
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,
@@ -69,15 +70,43 @@ export const api = {
     });
   },
   logout() {
-    return request<void>("/auth/logout", { method: "POST" });
+    const token = getAccessToken();
+    return request<void>("/auth/logout", { method: "POST", token });
+  },
+  me() {
+    const token = getAccessToken();
+    return request("/auth/me", { token });
+  },
+  requestPasswordReset(email: string, redirect_to?: string) {
+    return request<MessageResponse>("/auth/password-reset/request", {
+      method: "POST",
+      body: { email, redirect_to },
+    });
+  },
+  confirmPasswordReset(new_password: string, access_token: string) {
+    return request<MessageResponse>("/auth/password-reset/confirm", {
+      method: "POST",
+      token: access_token,
+      body: { new_password },
+    });
   },
 };
 
 export function storeSession(session: AuthSessionResponse) {
-  // Prefer secure httpOnly cookies on the backend; only persist non-sensitive user metadata.
+  // Cache tokens when provided (for bearer fallback) and user profile
+  if (session.access_token) sessionStorage.setItem("access_token", session.access_token);
+  if (session.refresh_token) sessionStorage.setItem("refresh_token", session.refresh_token);
   sessionStorage.setItem("user", JSON.stringify(session.user));
 }
 
 export function clearSession() {
+  sessionStorage.removeItem("access_token");
+  sessionStorage.removeItem("refresh_token");
   sessionStorage.removeItem("user");
 }
+
+export function getAccessToken(): string | null {
+  return sessionStorage.getItem("access_token");
+}
+
+type MessageResponse = { message: string };

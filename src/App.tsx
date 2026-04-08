@@ -16,45 +16,45 @@ import SignUp from './pages/signup';
 import Intelligence from './pages/Intelligence';
 import ForgotPassword from './pages/ForgotPassword';
 import { RequireAuth, RequireOnboardingComplete, RequireAdmin } from './components/ProtectedRoute';
+import { AuthProvider } from './context/AuthContext';
+import ResetPassword from './pages/ResetPassword';
 
 export default function App() {
   return (
-    <Router>
-      <div className="min-h-screen flex flex-col">
-        <Routes>
-          {/* Standalone layouts (no global header/footer) */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
+    <AuthProvider>
+      <Router>
+        <div className="min-h-screen flex flex-col">
+          <Routes>
+            {/* Standalone layouts (no global header/footer) */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<SignUp />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
-          {/* Other pages share the main layout */}
-          <Route
-            path="*"
-            element={
-              <div className="flex flex-col min-h-screen">
-                <Header />
-                <main className="flex-grow pt-24 pb-16">
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/workspace" element={<RequireOnboardingComplete><Workspace /></RequireOnboardingComplete>} />
-                    <Route path="/network" element={<RequireOnboardingComplete><Network /></RequireOnboardingComplete>} />
-                    <Route path="/admin" element={<RequireAdmin><Admin /></RequireAdmin>} />
-                    <Route path="/about" element={<About />} />
-                    <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
-                    <Route path="/intelligence" element={<RequireOnboardingComplete><Intelligence /></RequireOnboardingComplete>} />
-                  </Routes>
-                </main>
-                <Footer />
-              </div>
-            }
-          />
-        </Routes>
-      </div>
-    </Router>
+            {/* Other pages share the main layout */}
+            <Route
+              path="*"
+              element={
+                <div className="flex flex-col min-h-screen">
+                  <Header />
+                  <main className="flex-grow pt-24 pb-16">
+                    <Routes>
+                      <Route path="/" element={<Home />} />
+                      <Route path="/workspace" element={<RequireOnboardingComplete><Workspace /></RequireOnboardingComplete>} />
+                      <Route path="/network" element={<RequireOnboardingComplete><Network /></RequireOnboardingComplete>} />
+                      <Route path="/admin" element={<RequireAdmin><Admin /></RequireAdmin>} />
+                      <Route path="/about" element={<About />} />
+                      <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
+                      <Route path="/intelligence" element={<RequireOnboardingComplete><Intelligence /></RequireOnboardingComplete>} />
+                    </Routes>
+                  </main>
+                  <Footer />
+                </div>
+              }
+            />
+          </Routes>
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }
-
-
-
-
-
