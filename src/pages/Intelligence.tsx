@@ -1,4 +1,4 @@
-import type { JSX, ElementType } from "react";
+import type { JSX } from "react";
 import {
   ArrowRight,
   Bell,
@@ -13,15 +13,11 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
+import DashboardShell from "../components/dashboard/DashboardShell";
+import PageHeader from "../components/dashboard/PageHeader";
+import SummaryGrid, { type SummaryItem } from "../components/dashboard/SummaryGrid";
 
 // Static data (kept colocated for easy extraction into components later)
-type StatCard = {
-  title: string;
-  value: string;
-  note: string;
-  icon: ElementType;
-};
-
 type PathwayStep = {
   id: number;
   title: string;
@@ -50,33 +46,11 @@ type ActivityItem = {
   status: "done" | "in-progress" | "upcoming";
 };
 
-const accent = "#1f0954";
-
-const stats: StatCard[] = [
-  {
-    title: "Pathway Progress",
-    value: "45%",
-    note: "You are moving steadily toward your goal",
-    icon: TrendingUp,
-  },
-  {
-    title: "Skills Identified",
-    value: "12",
-    note: "Technical and growth skills mapped",
-    icon: Target,
-  },
-  {
-    title: "Active Matches",
-    value: "8",
-    note: "Potential collaborators and mentors",
-    icon: Users,
-  },
-  {
-    title: "AI Insights",
-    value: "16",
-    note: "New recommendations generated this week",
-    icon: Lightbulb,
-  },
+const stats: SummaryItem[] = [
+  { title: "Pathway Progress", value: "45%", note: "Moving steadily toward your goal", icon: TrendingUp },
+  { title: "Skills Identified", value: "12", note: "Technical and growth skills mapped", icon: Target },
+  { title: "Active Matches", value: "8", note: "Potential collaborators and mentors", icon: Users },
+  { title: "AI Insights", value: "16", note: "New recommendations this week", icon: Lightbulb },
 ];
 
 const pathwaySteps: PathwayStep[] = [
@@ -188,168 +162,104 @@ function activityDot(status: ActivityItem["status"]) {
   return "bg-zinc-400";
 }
 
+const subtle = "text-[var(--color-on-surface-variant)]";
+
 export default function Intelligence(): JSX.Element {
   return (
-    <main className="min-h-screen bg-zinc-50 text-zinc-900">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {/* Top bar */}
-        <header className="mb-8 flex flex-col gap-4 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-zinc-500">VisionTech Dashboard</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Welcome back, Chidera</h1>
-            <p className="mt-2 max-w-2xl text-sm text-zinc-600">
-              Your growth journey is active. Track progress, discover intelligent recommendations, and connect with the right opportunities.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              className="inline-flex h-11 items-center justify-center rounded-2xl border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100"
-              style={{ color: accent }}
-            >
+    <DashboardShell>
+      <PageHeader
+        eyebrow="VisionTech Intelligence"
+        title="Your personalised guidance and growth direction"
+        description="Track pathway progress, understand next steps, and receive intelligent recommendations tailored to your goals."
+        actions={
+          <>
+            <button className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]">
               <Bell className="mr-2 h-4 w-4" />
               Notifications
             </button>
-
-            <button
-              className="inline-flex h-11 items-center justify-center rounded-2xl px-4 text-sm font-medium text-white transition"
-              style={{ backgroundColor: accent }}
-            >
+            <button className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90">
               <Sparkles className="mr-2 h-4 w-4" />
               Start New Pathway
             </button>
-          </div>
-        </header>
+          </>
+        }
+      />
 
-        {/* Hero summary */}
-        <section className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm lg:col-span-2">
-            <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-zinc-500">Current Focus</p>
-                <h2 className="mt-2 text-2xl font-bold" style={{ color: accent }}>
-                  Cloud Security Pathway
-                </h2>
-                <p className="mt-2 max-w-xl text-sm text-zinc-600">
-                  You are currently in the structured development stage. VisionTech is guiding you from skill awareness into practical readiness and stronger opportunity alignment.
-                </p>
-              </div>
+      <SummaryGrid items={stats} />
 
-              <div className="rounded-2xl bg-zinc-100 p-5">
-                <p className="text-sm text-zinc-500">Completion</p>
-                <p className="mt-1 text-3xl font-bold">45%</p>
-                <p className="mt-2 text-sm text-zinc-600">Keep building. Your next milestone is Cloud IAM.</p>
-              </div>
+      {/* Hero summary */}
+      <section className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm lg:col-span-2">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-[var(--color-on-surface-variant)]">Current Focus</p>
+              <h2 className="mt-2 text-2xl font-bold text-[var(--color-primary)]">Cloud Security Pathway</h2>
+              <p className="mt-2 max-w-xl text-sm text-[var(--color-on-surface-variant)]">
+                You are in the structured development stage. VisionTech is guiding you from skill awareness into practical readiness and stronger opportunity alignment.
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-5">
+              <p className="text-sm text-[var(--color-on-surface-variant)]">Completion</p>
+              <p className="mt-1 text-3xl font-bold text-[var(--color-on-surface)]">45%</p>
+              <p className="mt-2 text-sm text-[var(--color-on-surface-variant)]">Keep building. Your next milestone is Cloud IAM.</p>
             </div>
           </div>
+        </div>
 
-          <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <p className="text-sm font-semibold text-zinc-500">Quick Summary</p>
+        <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
+          <p className="text-sm font-semibold text-[var(--color-on-surface-variant)]">Quick Summary</p>
 
-            <div className="mt-4 space-y-4">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-zinc-400">Goal</p>
-                <p className="mt-1 font-semibold" style={{ color: accent }}>
-                  Become opportunity-ready in cloud security
-                </p>
-              </div>
+          <div className="mt-4 space-y-4">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-[var(--color-on-surface-variant)]">Goal</p>
+              <p className="mt-1 font-semibold text-[var(--color-primary)]">Become opportunity-ready in cloud security</p>
+            </div>
 
-              <div>
-                <p className="text-xs uppercase tracking-wide text-zinc-400">Next Task</p>
-                <p className="mt-1 font-semibold">Complete Cloud IAM practical exercise</p>
-              </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-[var(--color-on-surface-variant)]">Next Task</p>
+              <p className="mt-1 font-semibold text-[var(--color-on-surface)]">Complete Cloud IAM practical exercise</p>
+            </div>
 
-              <div>
-                <p className="text-xs uppercase tracking-wide text-zinc-400">Match Strength</p>
-                <p className="mt-1 font-semibold">High fit with technical collaborators</p>
-              </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-[var(--color-on-surface-variant)]">Match Strength</p>
+              <p className="mt-1 font-semibold text-[var(--color-on-surface)]">High fit with technical collaborators</p>
             </div>
           </div>
-        </section>
-
-        {/* Stats cards */}
-        <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-
-            return (
-              <div
-                key={stat.title}
-                className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-zinc-500">{stat.title}</p>
-                    <p className="mt-3 text-3xl font-bold" style={{ color: accent }}>
-                      {stat.value}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-zinc-100 p-3">
-                    <Icon className="h-5 w-5 text-zinc-700" />
-                  </div>
-                </div>
-
-                <p className="mt-4 text-sm text-zinc-600">{stat.note}</p>
-              </div>
-            );
-          })}
-        </section>
+        </div>
+      </section>
 
         {/* Main content grid */}
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           {/* Left and center content */}
           <div className="space-y-6 xl:col-span-2">
             {/* Pathway section */}
-            <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+            <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
               <div className="mb-6 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-zinc-500">Intelligent Pathway</p>
-                  <h3 className="mt-1 text-xl font-bold">Your guided journey</h3>
+                  <p className={`text-sm font-semibold ${subtle}`}>Intelligent Pathway</p>
+                  <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Your guided journey</h3>
                 </div>
-
-                <button
-                  className="inline-flex items-center text-sm font-medium text-zinc-700 hover:text-zinc-900"
-                  style={{ color: accent }}
-                >
+                <button className="inline-flex items-center text-sm font-medium text-[var(--color-on-surface)] hover:text-[var(--color-primary)]">
                   View full pathway
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
               </div>
-
               <div className="space-y-4">
                 {pathwaySteps.map((step, index) => (
-                  <div key={step.id} className="relative rounded-2xl border border-zinc-200 p-4">
-                    {index !== pathwaySteps.length - 1 && (
-                      <div className="absolute left-7 top-14 h-10 w-px bg-zinc-200" />
-                    )}
-
+                  <div key={step.id} className="relative rounded-2xl border border-[var(--color-outline-variant)] p-4">
+                    {index !== pathwaySteps.length - 1 && <div className="absolute left-7 top-14 h-10 w-px bg-[var(--color-outline-variant)]" />}
                     <div className="flex gap-4">
-                      <div
-                        className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white"
-                        style={{ backgroundColor: accent }}
-                      >
-                        {step.status === "completed" ? (
-                          <CheckCircle2 className="h-4 w-4" />
-                        ) : step.status === "active" ? (
-                          <Clock3 className="h-4 w-4" />
-                        ) : (
-                          <span className="text-xs font-bold">{step.id}</span>
-                        )}
+                      <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white bg-[var(--color-primary)]">
+                        {step.status === "completed" ? <CheckCircle2 className="h-4 w-4" /> : step.status === "active" ? <Clock3 className="h-4 w-4" /> : <span className="text-xs font-bold">{step.id}</span>}
                       </div>
-
                       <div className="flex-1">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
-                            <h4 className="font-semibold">{step.title}</h4>
-                            <p className="mt-1 text-sm text-zinc-600">{step.description}</p>
+                            <h4 className="font-semibold text-[var(--color-on-surface)]">{step.title}</h4>
+                            <p className={`mt-1 text-sm ${subtle}`}>{step.description}</p>
                           </div>
-
-                          <span
-                            className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold capitalize ${statusStyles(step.status)}`}
-                          >
-                            {step.status}
-                          </span>
+                          <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold capitalize ${statusStyles(step.status)}`}>{step.status}</span>
                         </div>
                       </div>
                     </div>
@@ -359,67 +269,50 @@ export default function Intelligence(): JSX.Element {
             </div>
 
             {/* AI insights */}
-            <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+            <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
               <div className="mb-6">
-                <p className="text-sm font-semibold text-zinc-500">AI Insights</p>
-                <h3 className="mt-1 text-xl font-bold">Personalised growth guidance</h3>
+                <p className={`text-sm font-semibold ${subtle}`}>AI Insights</p>
+                <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Personalised growth guidance</h3>
               </div>
-
               <div className="grid gap-4 md:grid-cols-3">
                 {insights.map((item) => (
-                  <div key={item.id} className="rounded-2xl bg-zinc-100 p-4">
-                    <div className="mb-3 inline-flex rounded-xl bg-white p-2">
-                      <Sparkles className="h-4 w-4 text-zinc-700" />
+                  <div key={item.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                    <div className="mb-3 inline-flex rounded-xl bg-[var(--color-surface-container-lowest)] p-2">
+                      <Sparkles className="h-4 w-4 text-[var(--color-on-surface)]" />
                     </div>
-                    <h4 className="font-semibold" style={{ color: accent }}>
-                      {item.title}
-                    </h4>
-                    <p className="mt-2 text-sm leading-6 text-zinc-600">{item.description}</p>
+                    <h4 className="font-semibold text-[var(--color-primary)]">{item.title}</h4>
+                    <p className={`mt-2 text-sm leading-6 ${subtle}`}>{item.description}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Match section */}
-            <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+            <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
               <div className="mb-6 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-zinc-500">Smart Matching</p>
-                  <h3 className="mt-1 text-xl font-bold">People and collaboration fits</h3>
+                  <p className={`text-sm font-semibold ${subtle}`}>Smart Matching</p>
+                  <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">People and collaboration fits</h3>
                 </div>
-
-                <button
-                  className="inline-flex items-center text-sm font-medium text-zinc-700 hover:text-zinc-900"
-                  style={{ color: accent }}
-                >
+                <button className="inline-flex items-center text-sm font-medium text-[var(--color-on-surface)] hover:text-[var(--color-primary)]">
                   Explore all matches
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
               </div>
-
               <div className="grid gap-4 md:grid-cols-3">
                 {matches.map((match) => (
-                  <div key={match.id} className="rounded-2xl border border-zinc-200 p-4">
+                  <div key={match.id} className="rounded-2xl border border-[var(--color-outline-variant)] p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <h4 className="font-semibold">{match.name}</h4>
-                        <p className="mt-1 text-sm text-zinc-500">{match.role}</p>
+                        <h4 className="font-semibold text-[var(--color-on-surface)]">{match.name}</h4>
+                        <p className={`mt-1 text-sm ${subtle}`}>{match.role}</p>
                       </div>
-
-                      <div
-                        className="rounded-xl px-3 py-2 text-sm font-bold"
-                        style={{ backgroundColor: `${accent}0D`, color: accent }}
-                      >
+                      <div className="rounded-xl px-3 py-2 text-sm font-bold bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
                         {match.matchScore}%
                       </div>
                     </div>
-
-                    <p className="mt-4 text-sm text-zinc-600">{match.reason}</p>
-
-                    <button
-                      className="mt-4 inline-flex h-10 items-center justify-center rounded-2xl px-4 text-sm font-medium text-white transition"
-                      style={{ backgroundColor: accent }}
-                    >
+                    <p className={`mt-4 text-sm ${subtle}`}>{match.reason}</p>
+                    <button className="mt-4 inline-flex h-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90">
                       Connect
                     </button>
                   </div>
@@ -431,52 +324,42 @@ export default function Intelligence(): JSX.Element {
           {/* Right sidebar content */}
           <aside className="space-y-6">
             {/* Quick actions */}
-            <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
-              <p className="text-sm font-semibold text-zinc-500">Quick Actions</p>
-              <h3 className="mt-1 text-xl font-bold">Move faster</h3>
-
+            <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
+              <p className={`text-sm font-semibold ${subtle}`}>Quick Actions</p>
+              <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Move faster</h3>
               <div className="mt-5 space-y-3">
-                <button className="flex w-full items-center justify-between rounded-2xl border border-zinc-200 px-4 py-3 text-left transition hover:bg-zinc-50">
-                  <span className="flex items-center gap-3" style={{ color: accent }}>
-                    <BookOpen className="h-4 w-4" />
-                    Start learning task
-                  </span>
-                  <ArrowRight className="h-4 w-4 text-zinc-500" />
-                </button>
-
-                <button className="flex w-full items-center justify-between rounded-2xl border border-zinc-200 px-4 py-3 text-left transition hover:bg-zinc-50">
-                  <span className="flex items-center gap-3" style={{ color: accent }}>
-                    <FolderKanban className="h-4 w-4" />
-                    Open project workspace
-                  </span>
-                  <ArrowRight className="h-4 w-4 text-zinc-500" />
-                </button>
-
-                <button className="flex w-full items-center justify-between rounded-2xl border border-zinc-200 px-4 py-3 text-left transition hover:bg-zinc-50">
-                  <span className="flex items-center gap-3" style={{ color: accent }}>
-                    <Briefcase className="h-4 w-4" />
-                    View opportunities
-                  </span>
-                  <ArrowRight className="h-4 w-4 text-zinc-500" />
-                </button>
+                {[
+                  { label: "Start learning task", icon: BookOpen },
+                  { label: "Open project workspace", icon: FolderKanban },
+                  { label: "View opportunities", icon: Briefcase },
+                ].map((action) => (
+                  <button
+                    key={action.label}
+                    className="flex w-full items-center justify-between rounded-2xl border border-[var(--color-outline-variant)] px-4 py-3 text-left transition hover:bg-[var(--color-surface-container-low)]"
+                  >
+                    <span className="flex items-center gap-3 text-[var(--color-primary)]">
+                      <action.icon className="h-4 w-4" />
+                      {action.label}
+                    </span>
+                    <ArrowRight className="h-4 w-4 text-[var(--color-on-surface-variant)]" />
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Activity timeline */}
-            <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
-              <p className="text-sm font-semibold text-zinc-500">Recent Activity</p>
-              <h3 className="mt-1 text-xl font-bold">Your momentum</h3>
-
+            <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
+              <p className={`text-sm font-semibold ${subtle}`}>Recent Activity</p>
+              <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Your momentum</h3>
               <div className="mt-5 space-y-4">
                 {activities.map((activity) => (
                   <div key={activity.id} className="flex gap-3">
                     <div className="pt-2">
                       <span className={`block h-3 w-3 rounded-full ${activityDot(activity.status)}`} />
                     </div>
-
                     <div>
-                      <p className="text-sm font-medium text-zinc-800">{activity.title}</p>
-                      <p className="mt-1 text-xs text-zinc-500">{activity.time}</p>
+                      <p className="text-sm font-medium text-[var(--color-on-surface)]">{activity.title}</p>
+                      <p className={`mt-1 text-xs ${subtle}`}>{activity.time}</p>
                     </div>
                   </div>
                 ))}
@@ -484,20 +367,18 @@ export default function Intelligence(): JSX.Element {
             </div>
 
             {/* Opportunity readiness box */}
-            <div className="rounded-3xl p-6 text-white shadow-sm" style={{ backgroundColor: accent }}>
+            <div className="rounded-3xl p-6 text-white shadow-sm bg-[var(--color-primary)]">
               <p className="text-sm font-semibold text-white/80">VisionTech Signal</p>
               <h3 className="mt-1 text-xl font-bold">Opportunity readiness is improving</h3>
               <p className="mt-3 text-sm leading-6 text-white/90">
                 Based on your current pathway activity and skills alignment, your profile is becoming more attractive for future collaboration and role-based opportunities.
               </p>
-
-              <button className="mt-5 inline-flex h-11 items-center justify-center rounded-2xl bg-white px-4 text-sm font-semibold text-zinc-900 transition hover:bg-zinc-100">
+              <button className="mt-5 inline-flex h-11 items-center justify-center rounded-2xl bg-white px-4 text-sm font-semibold text-[var(--color-primary)] transition hover:bg-[var(--color-surface-container-low)]">
                 View readiness details
               </button>
             </div>
           </aside>
         </section>
-      </div>
-    </main>
+    </DashboardShell>
   );
 }
