@@ -1,196 +1,295 @@
-import { motion } from 'motion/react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { TrendingUp, Users, Activity, Zap, ArrowUpRight, ArrowDownRight, MoreVertical, Search, Filter } from 'lucide-react';
-import { cn } from '../lib/utils';
+import type { ElementType, CSSProperties } from "react";
+import {
+  Shield,
+  Users,
+  UserCheck,
+  Activity,
+  ArrowRight,
+  AlertTriangle,
+  BarChart3,
+  Settings,
+  Search,
+  Sparkles,
+  FolderKanban,
+  Network,
+  CheckCircle2,
+  Handshake,
+} from "lucide-react";
 
-const data = [
-  { name: '01', value: 400 },
-  { name: '02', value: 300 },
-  { name: '03', value: 600 },
-  { name: '04', value: 800 },
-  { name: '05', value: 500 },
-  { name: '06', value: 900 },
-  { name: '07', value: 1100 },
+type SummaryCard = { title: string; value: string; note: string; icon: ElementType };
+type PlatformStat = { id: number; label: string; value: string; helper: string };
+type ActivityItem = { id: number; title: string; description: string; time: string; type: "user" | "system" | "warning" };
+type FlaggedItem = { id: number; title: string; category: string; reason: string; status: "Pending" | "Reviewing" | "Resolved" };
+type UserSegment = { id: number; name: string; count: number; progress: number };
+
+const summaryCards: SummaryCard[] = [
+  { title: "Total Users", value: "1,248", note: "All registered users", icon: Users },
+  { title: "Active This Week", value: "486", note: "Recent engaged users", icon: Activity },
+  { title: "Onboarding Completed", value: "73%", note: "Finished profile & pathway", icon: UserCheck },
+  { title: "Open Flags", value: "14", note: "Needs admin attention", icon: AlertTriangle },
 ];
 
-const activity = [
-  { id: 1, user: 'Dr. Aris Thorne', action: 'Synchronized Node', target: 'Quantum Bio-Logic', time: '2m ago', status: 'success' },
-  { id: 2, user: 'Sarah Chen', action: 'Proposed Synergy', target: 'Spatial Audio Mesh', time: '15m ago', status: 'pending' },
-  { id: 3, user: 'Marcus Vane', action: 'Deployed API', target: 'Global Ethics v2', time: '1h ago', status: 'success' },
-  { id: 4, user: 'Elena Rossi', action: 'Flagged Conflict', target: 'Neural Privacy', time: '3h ago', status: 'alert' },
+const platformStats: PlatformStat[] = [
+  { id: 1, label: "Intelligence Page Engagement", value: "68%", helper: "Strongest interaction this week" },
+  { id: 2, label: "Workspace Activity Rate", value: "54%", helper: "Users creating tasks/projects" },
+  { id: 3, label: "Network Connection Rate", value: "41%", helper: "Connections made/accepted" },
+  { id: 4, label: "Admin Response Efficiency", value: "89%", helper: "Avg completion rate for actions" },
 ];
+
+const recentActivity: ActivityItem[] = [
+  { id: 1, title: "Onboarding completions increased", description: "27 users completed onboarding in 24h.", time: "1 hour ago", type: "user" },
+  { id: 2, title: "Recommendation refresh complete", description: "Matching & pathway cache updated.", time: "3 hours ago", type: "system" },
+  { id: 3, title: "Flagged profile requires review", description: "Profile flagged for inconsistent data.", time: "Today", type: "warning" },
+  { id: 4, title: "Workspace spike detected", description: "Project creation above weekly average.", time: "Today", type: "system" },
+];
+
+const flaggedItems: FlaggedItem[] = [
+  { id: 1, title: "Profile mismatch review", category: "User Data", reason: "Goals and collaboration prefs conflict.", status: "Pending" },
+  { id: 2, title: "Inactive mentor listing", category: "Network", reason: "Listed mentor not engaging recently.", status: "Reviewing" },
+  { id: 3, title: "Duplicate workspace signal", category: "Workspace", reason: "Similar project created multiple times.", status: "Resolved" },
+];
+
+const userSegments: UserSegment[] = [
+  { id: 1, name: "New Users", count: 214, progress: 62 },
+  { id: 2, name: "Active Pathways", count: 533, progress: 78 },
+  { id: 3, name: "Collaboration-Ready", count: 289, progress: 55 },
+  { id: 4, name: "High Opportunity Readiness", count: 121, progress: 38 },
+];
+
+const themeOverride: CSSProperties = { "--color-primary": "#1f0954" } as CSSProperties;
+const surface = "bg-[var(--color-surface)] text-[var(--color-on-surface)]";
+const card = "rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] shadow-sm";
+const subtle = "text-[var(--color-on-surface-variant)]";
+const primaryButton = "inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90";
+const outlineButton = "inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]";
+
+function activityBadge(type: ActivityItem["type"]) {
+  if (type === "user") return "bg-blue-100 text-blue-700";
+  if (type === "system") return "bg-emerald-100 text-emerald-700";
+  return "bg-red-100 text-red-700";
+}
+
+function flagBadge(status: FlaggedItem["status"]) {
+  if (status === "Pending") return "bg-red-100 text-red-700 border-red-200";
+  if (status === "Reviewing") return "bg-amber-100 text-amber-700 border-amber-200";
+  return "bg-emerald-100 text-emerald-700 border-emerald-200";
+}
 
 export default function Admin() {
   return (
-    <main className="pt-28 pb-12 px-6 md:px-8 max-w-7xl mx-auto min-h-screen">
-      {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
-        <div>
-          <h1 className="text-4xl font-headline font-bold text-primary tracking-tight mb-2">Program Dashboard</h1>
-          <p className="text-on-surface-variant font-sans">Real-time oversight of VisionTech’s AI-powered collaboration network.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant/40" />
-            <input className="bg-surface-container-high border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-secondary/20 w-64" placeholder="Search pathways..." type="text" />
-          </div>
-          <button className="p-2 bg-surface-container-high rounded-lg text-on-surface-variant hover:text-primary transition-all">
-            <Filter className="w-5 h-5" />
-          </button>
-        </div>
-      </header>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-        {[
-          { label: 'Total Innovators', value: '12,482', change: '+12.5%', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Active Collaborations', value: '3,842', change: '+8.2%', icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50' },
-          { label: 'Engagement Velocity', value: '94.8%', change: '-2.1%', icon: Activity, color: 'text-emerald-600', bg: 'bg-emerald-50', down: true },
-          { label: 'Opportunity Score', value: '8.4/10', change: '+0.4', icon: TrendingUp, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-        ].map((stat, i) => (
-          <motion.div 
-            key={i}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className="bg-white p-6 rounded-2xl ambient-shadow border border-outline-variant/10"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div className={cn("p-3 rounded-xl", stat.bg)}>
-                <stat.icon className={cn("w-6 h-6", stat.color)} />
-              </div>
-              <div className={cn(
-                "flex items-center text-xs font-bold font-label px-2 py-1 rounded-full",
-                stat.down ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600"
-              )}>
-                {stat.down ? <ArrowDownRight className="w-3 h-3 mr-1" /> : <ArrowUpRight className="w-3 h-3 mr-1" />}
-                {stat.change}
-              </div>
+    <main className={`min-h-screen ${surface}`} style={themeOverride}>
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Header */}
+        <header className={`mb-8 flex flex-col gap-4 ${card} p-6 lg:flex-row lg:items-center lg:justify-between`}>
+          <div>
+            <div className="inline-flex items-center rounded-full bg-[var(--color-surface-container-low)] px-3 py-1 text-xs font-semibold text-[var(--color-on-surface)]">
+              <Shield className="mr-2 h-3.5 w-3.5" />
+              Admin Control Centre
             </div>
-            <p className="text-on-surface-variant/60 font-label text-[10px] uppercase tracking-widest mb-1">{stat.label}</p>
-            <h3 className="text-2xl font-headline font-bold text-primary">{stat.value}</h3>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Chart Section */}
-        <div className="lg:col-span-8 bg-white p-8 rounded-[2rem] ambient-shadow border border-outline-variant/10">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h3 className="font-headline text-xl font-bold text-primary">Innovation Growth</h3>
-              <p className="text-xs text-on-surface-variant">Progress across discovery, matching, and project delivery over the last 7 cycles.</p>
-            </div>
-            <div className="flex gap-2">
-              <button className="px-3 py-1 bg-surface-container-high rounded text-[10px] font-bold text-primary uppercase tracking-widest">7 Days</button>
-              <button className="px-3 py-1 text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest hover:text-primary transition-colors">30 Days</button>
-            </div>
+            <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl text-[var(--color-on-surface)]">
+              Monitor platform health and guide VisionTech operations
+            </h1>
+            <p className={`mt-2 max-w-3xl text-sm ${subtle}`}>
+              Review user activity, onboarding performance, matching quality, workspace signals, and items needing admin attention.
+            </p>
           </div>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data}>
-                <defs>
-                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#24389c" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#24389c" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#999'}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#999'}} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
-                  itemStyle={{ color: '#24389c', fontWeight: 'bold' }}
-                />
-                <Area type="monotone" dataKey="value" stroke="#24389c" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Activity Feed */}
-        <div className="lg:col-span-4 bg-surface-container-lowest p-8 rounded-[2rem] ambient-shadow border border-outline-variant/10">
-          <div className="flex justify-between items-center mb-8">
-            <h3 className="font-headline text-xl font-bold text-primary">Engagement Feed</h3>
-            <button className="text-on-surface-variant/40 hover:text-primary transition-all">
-              <MoreVertical className="w-5 h-5" />
+          <div className="flex flex-wrap gap-3">
+            <button className={outlineButton}>
+              <Search className="mr-2 h-4 w-4" />
+              Search Records
+            </button>
+            <button className={primaryButton}>
+              <Settings className="mr-2 h-4 w-4" />
+              Platform Settings
             </button>
           </div>
-          <div className="space-y-6">
-            {activity.map((item) => (
-              <div key={item.id} className="flex gap-4 group">
-                <div className="relative">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden">
-                    <img src={`https://picsum.photos/seed/user${item.id+20}/100/100`} alt={item.user} referrerPolicy="no-referrer" />
+        </header>
+
+        {/* Summary cards */}
+        <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {summaryCards.map((cardData) => {
+            const Icon = cardData.icon;
+            return (
+              <div key={cardData.title} className={`${card} p-5`}>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className={`text-sm font-medium ${subtle}`}>{cardData.title}</p>
+                    <p className="mt-3 text-3xl font-bold text-[var(--color-on-surface)]">{cardData.value}</p>
                   </div>
-                  <div className={cn(
-                    "absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white",
-                    item.status === 'success' ? 'bg-emerald-500' : 
-                    item.status === 'alert' ? 'bg-red-500' : 'bg-amber-500'
-                  )}></div>
+                  <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-3">
+                    <Icon className="h-5 w-5 text-[var(--color-on-surface)]" />
+                  </div>
                 </div>
-                <div className="flex-1 border-b border-outline-variant/10 pb-4 group-last:border-0">
-                  <div className="flex justify-between items-start mb-1">
-                    <p className="text-sm font-bold text-primary">{item.user}</p>
-                    <span className="text-[10px] text-on-surface-variant/40 font-label">{item.time}</span>
+                <p className={`mt-4 text-sm ${subtle}`}>{cardData.note}</p>
+              </div>
+            );
+          })}
+        </section>
+
+        {/* Main content */}
+        <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <div className="space-y-6 xl:col-span-2">
+            {/* Platform analytics */}
+            <div className={`${card} p-6`}>
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <p className={`text-sm font-semibold ${subtle}`}>Platform Analytics</p>
+                  <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Current operational signals</h2>
+                </div>
+                <button className="inline-flex items-center text-sm font-medium text-[var(--color-on-surface)] hover:text-[var(--color-primary)]">
+                  View detailed analytics
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </button>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                {platformStats.map((stat) => (
+                  <div key={stat.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-5">
+                    <div className="flex items-center justify-between">
+                      <p className="max-w-[75%] text-sm font-medium text-[var(--color-on-surface-variant)]">{stat.label}</p>
+                      <BarChart3 className="h-5 w-5 text-[var(--color-on-surface)]" />
+                    </div>
+                    <p className="mt-4 text-3xl font-bold text-[var(--color-on-surface)]">{stat.value}</p>
+                    <p className={`mt-2 text-sm leading-6 ${subtle}`}>{stat.helper}</p>
                   </div>
-                  <p className="text-xs text-on-surface-variant leading-relaxed">
-                    {item.action} <span className="font-bold text-secondary">{item.target}</span>
-                  </p>
+                ))}
+              </div>
+            </div>
+
+            {/* User segments */}
+            <div className={`${card} p-6`}>
+              <div className="mb-6">
+                <p className={`text-sm font-semibold ${subtle}`}>User Segments</p>
+                <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">How users are distributed</h2>
+              </div>
+              <div className="space-y-4">
+                {userSegments.map((segment) => (
+                  <div key={segment.id} className="rounded-2xl border border-[var(--color-outline-variant)] p-5">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h3 className="font-semibold text-[var(--color-on-surface)]">{segment.name}</h3>
+                        <p className={`mt-1 text-sm ${subtle}`}>{segment.count} users in this segment</p>
+                      </div>
+                      <div className="text-left sm:text-right">
+                        <p className="text-sm font-medium text-[var(--color-on-surface)]">Segment weight: {segment.progress}%</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 h-2 w-full rounded-full bg-[var(--color-surface-container-low)]">
+                      <div className="h-2 rounded-full bg-[var(--color-primary)]" style={{ width: `${segment.progress}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent activity */}
+            <div className={`${card} p-6`}>
+              <div className="mb-6">
+                <p className={`text-sm font-semibold ${subtle}`}>Recent Activity</p>
+                <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Latest platform events</h2>
+              </div>
+              <div className="space-y-4">
+                {recentActivity.map((item) => (
+                  <div key={item.id} className="rounded-2xl border border-[var(--color-outline-variant)] p-4 transition hover:border-[var(--color-primary)]">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <h3 className="font-semibold text-[var(--color-on-surface)]">{item.title}</h3>
+                          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${activityBadge(item.type)}`}>
+                            {item.type}
+                          </span>
+                        </div>
+                        <p className={`mt-2 text-sm leading-6 ${subtle}`}>{item.description}</p>
+                      </div>
+                      <p className={`text-sm ${subtle}`}>{item.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right sidebar */}
+          <aside className="space-y-6">
+            {/* Quick actions */}
+            <div className={`${card} p-6`}>
+              <p className={`text-sm font-semibold ${subtle}`}>Quick Actions</p>
+              <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Admin shortcuts</h2>
+              <div className="mt-5 space-y-3">
+                {[
+                  { label: "Review users", icon: Users },
+                  { label: "Check AI signals", icon: Sparkles },
+                  { label: "Audit workspaces", icon: FolderKanban },
+                  { label: "Review network activity", icon: Network },
+                ].map((action) => (
+                  <button
+                    key={action.label}
+                    className="flex w-full items-center justify-between rounded-2xl border border-[var(--color-outline-variant)] px-4 py-3 text-left transition hover:bg-[var(--color-surface-container-low)]"
+                  >
+                    <span className="flex items-center gap-3 text-[var(--color-on-surface)]">
+                      <action.icon className="h-4 w-4" />
+                      {action.label}
+                    </span>
+                    <ArrowRight className="h-4 w-4 text-[var(--color-on-surface-variant)]" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Flagged items */}
+            <div className={`${card} p-6`}>
+              <p className={`text-sm font-semibold ${subtle}`}>Flagged Items</p>
+              <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Needs attention</h2>
+              <div className="mt-5 space-y-4">
+                {flaggedItems.map((item) => (
+                  <div key={item.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-semibold text-[var(--color-on-surface)]">{item.title}</h3>
+                      <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${flagBadge(item.status)}`}>
+                        {item.status}
+                      </span>
+                    </div>
+                    <p className={`mt-2 text-sm font-medium ${subtle}`}>{item.category}</p>
+                    <p className={`mt-2 text-sm leading-6 ${subtle}`}>{item.reason}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Platform health */}
+            <div className="rounded-3xl bg-[var(--color-primary)] p-6 text-white shadow-sm">
+              <p className="text-sm font-semibold text-white/80">Platform Health</p>
+              <h2 className="mt-1 text-xl font-bold">VisionTech shows healthy engagement</h2>
+              <p className="mt-3 text-sm leading-6 text-white/80">
+                Onboarding completion is improving, user activity is stable, and core areas show traction for MVP.
+              </p>
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-white/10 p-4">
+                  <p className="text-xs uppercase tracking-wide text-white/70">Stability</p>
+                  <p className="mt-2 text-lg font-bold">Good</p>
+                </div>
+                <div className="rounded-2xl bg-white/10 p-4">
+                  <p className="text-xs uppercase tracking-wide text-white/70">Growth Signal</p>
+                  <p className="mt-2 text-lg font-bold">Positive</p>
                 </div>
               </div>
-            ))}
-          </div>
-          <button className="w-full mt-8 py-3 bg-surface-container-high rounded-xl text-xs font-bold text-primary uppercase tracking-widest hover:bg-primary hover:text-white transition-all">
-            View All Logs
-          </button>
-        </div>
-      </div>
+            </div>
 
-      {/* Node Table */}
-      <section className="mt-12 bg-white rounded-[2rem] ambient-shadow border border-outline-variant/10 overflow-hidden">
-        <div className="p-8 border-b border-outline-variant/10 flex justify-between items-center">
-          <h3 className="font-headline text-xl font-bold text-primary">Network Nodes</h3>
-          <button className="text-secondary font-bold text-xs font-label uppercase tracking-widest">Export Data</button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-surface-container-low/50">
-                <th className="px-8 py-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant/60">Project ID</th>
-                <th className="px-8 py-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant/60">Participant</th>
-                <th className="px-8 py-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant/60">Focus Area</th>
-                <th className="px-8 py-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant/60">Progress</th>
-                <th className="px-8 py-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant/60">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/10">
-              {[
-                { id: 'VT-4829', user: 'Dr. Aris Thorne', spec: 'Quantum Bio-Logic', uptime: '99.9%', status: 'Active' },
-                { id: 'VT-1024', user: 'Sarah Chen', spec: 'Spatial Audio', uptime: '98.4%', status: 'Active' },
-                { id: 'VT-7721', user: 'Marcus Vane', spec: 'Ethics API', uptime: '94.2%', status: 'Maintenance' },
-                { id: 'VT-3309', user: 'Elena Rossi', spec: 'Neural Privacy', uptime: '99.1%', status: 'Active' },
-              ].map((node, i) => (
-                <tr key={i} className="hover:bg-surface-container-low/30 transition-colors cursor-pointer">
-                  <td className="px-8 py-5 font-mono text-xs text-on-surface-variant">{node.id}</td>
-                  <td className="px-8 py-5 font-bold text-primary text-sm">{node.user}</td>
-                  <td className="px-8 py-5 text-sm text-on-surface-variant">{node.spec}</td>
-                  <td className="px-8 py-5 text-sm text-on-surface-variant">{node.uptime}</td>
-                  <td className="px-8 py-5">
-                    <span className={cn(
-                      "px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider",
-                      node.status === 'Active' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
-                    )}>
-                      {node.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+            {/* Admin efficiency */}
+            <div className={`${card} p-6`}>
+              <p className={`text-sm font-semibold ${subtle}`}>Admin Efficiency</p>
+              <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">This week’s review progress</h2>
+              <p className={`mt-3 text-sm leading-6 ${subtle}`}>23 of 29 pending admin checks have been completed.</p>
+              <div className="mt-4 h-2 w-full rounded-full bg-[var(--color-surface-container-low)]">
+                <div className="h-2 w-[79%] rounded-full bg-[var(--color-primary)]" />
+              </div>
+              <div className={`mt-4 flex items-center gap-2 text-sm ${subtle}`}>
+                <CheckCircle2 className="h-4 w-4" />
+                Review completion: 79%
+              </div>
+            </div>
+          </aside>
+        </section>
+      </div>
     </main>
   );
 }
