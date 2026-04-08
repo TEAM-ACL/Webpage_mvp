@@ -1,189 +1,353 @@
-import { motion } from 'motion/react';
-import { PlusCircle, Share2, Network, FlaskConical, Building2, Languages, MessageSquare, Send, ThumbsUp, Users, ArrowRight } from 'lucide-react';
+import type { ElementType, CSSProperties } from "react";
+import {
+  FolderKanban,
+  CheckCircle2,
+  Clock3,
+  Users,
+  Plus,
+  ArrowRight,
+  BookOpen,
+  FileText,
+  MessageSquare,
+  Sparkles,
+} from "lucide-react";
+
+type SummaryCard = {
+  title: string;
+  value: string;
+  note: string;
+  icon: ElementType;
+};
+
+type Project = {
+  id: number;
+  title: string;
+  description: string;
+  progress: number;
+  status: "Active" | "In Review" | "Completed";
+  members: number;
+};
+
+type Task = {
+  id: number;
+  title: string;
+  project: string;
+  priority: "Low" | "Medium" | "High";
+  due: string;
+  status: "To Do" | "In Progress" | "Done";
+};
+
+type Resource = {
+  id: number;
+  title: string;
+  type: "Guide" | "Document" | "Template" | "Note";
+  description: string;
+};
+
+type CollaborationItem = {
+  id: number;
+  name: string;
+  action: string;
+  time: string;
+};
+
+const summaryCards: SummaryCard[] = [
+  { title: "Active Projects", value: "3", note: "Projects currently being worked on", icon: FolderKanban },
+  { title: "Tasks Due", value: "7", note: "Action items that need attention", icon: Clock3 },
+  { title: "Completed Tasks", value: "18", note: "Finished tasks across your workspace", icon: CheckCircle2 },
+  { title: "Collaborators", value: "5", note: "People connected to your workspaces", icon: Users },
+];
+
+const projects: Project[] = [
+  { id: 1, title: "Cloud Security Mini Project", description: "Hands-on project focused on identity and access control practice in cloud environments.", progress: 68, status: "Active", members: 2 },
+  { id: 2, title: "VisionTech Pathway Research", description: "Organising ideas, notes, and opportunity signals that support pathway recommendations.", progress: 42, status: "In Review", members: 3 },
+  { id: 3, title: "Portfolio Readiness Tasks", description: "A structured effort to build practical evidence and project visibility for opportunity readiness.", progress: 90, status: "Completed", members: 1 },
+];
+
+const tasks: Task[] = [
+  { id: 1, title: "Complete IAM lab notes", project: "Cloud Security Mini Project", priority: "High", due: "Today", status: "In Progress" },
+  { id: 2, title: "Upload project documentation", project: "Portfolio Readiness Tasks", priority: "Medium", due: "Tomorrow", status: "To Do" },
+  { id: 3, title: "Review AI-generated pathway suggestions", project: "VisionTech Pathway Research", priority: "Medium", due: "This week", status: "To Do" },
+  { id: 4, title: "Finish workspace summary update", project: "Cloud Security Mini Project", priority: "Low", due: "This week", status: "Done" },
+];
+
+const resources: Resource[] = [
+  { id: 1, title: "Cloud IAM Best Practices", type: "Guide", description: "Reference material for access control and permission design." },
+  { id: 2, title: "Project Structure Template", type: "Template", description: "Reusable format for breaking projects into stages." },
+  { id: 3, title: "Workspace Planning Notes", type: "Note", description: "Personal notes and execution ideas saved from recent sessions." },
+  { id: 4, title: "VisionTech MVP Tasks", type: "Document", description: "Working document outlining practical deliverables for the MVP." },
+];
+
+const collaborationFeed: CollaborationItem[] = [
+  { id: 1, name: "Esther A.", action: "commented on Cloud Security Mini Project", time: "1 hour ago" },
+  { id: 2, name: "Daniel K.", action: "joined VisionTech Pathway Research workspace", time: "3 hours ago" },
+  { id: 3, name: "Miriam O.", action: "shared a new document in Portfolio Readiness Tasks", time: "Yesterday" },
+];
+
+const surface = "bg-[var(--color-surface)] text-[var(--color-on-surface)]";
+const card = "rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] shadow-sm";
+const subtle = "text-[var(--color-on-surface-variant)]";
+const primaryText = "text-[var(--color-primary)]";
+const primaryButton = "inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90";
+const outlineButton = "inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]";
+const primaryOverride: CSSProperties = { "--color-primary": "#1f0954" } as CSSProperties;
+
+function statusBadge(status: Project["status"]): string {
+  if (status === "Active") return "bg-[color:var(--color-primary)/0.1] text-[var(--color-primary)] border border-[color:var(--color-primary)/0.2]";
+  if (status === "In Review") return "bg-amber-100 text-amber-700 border border-amber-200";
+  return "bg-emerald-100 text-emerald-700 border border-emerald-200";
+}
+
+function priorityBadge(priority: Task["priority"]): string {
+  if (priority === "High") return "bg-red-100 text-red-700";
+  if (priority === "Medium") return "bg-amber-100 text-amber-700";
+  return "bg-slate-100 text-slate-700";
+}
+
+function taskStatusBadge(status: Task["status"]): string {
+  if (status === "Done") return "bg-emerald-100 text-emerald-700";
+  if (status === "In Progress") return "bg-[color:var(--color-primary)/0.12] text-[var(--color-primary)]";
+  return "bg-slate-100 text-slate-700";
+}
 
 export default function Workspace() {
   return (
-    <main className="pt-28 pb-12 px-6 md:px-8 max-w-7xl mx-auto min-h-screen">
-      {/* Hero Section */}
-      <header className="mb-16 grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
-        <div className="lg:col-span-8">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="px-3 py-1 bg-secondary/10 text-secondary rounded-full text-xs font-label font-bold uppercase tracking-widest">Active Labs</span>
-            <span className="h-[1px] w-12 bg-outline-variant/30"></span>
-            <span className="text-on-surface-variant/60 text-xs font-label uppercase tracking-widest">Innovation Hub v3.4</span>
-          </div>
-          <h1 className="text-5xl lg:text-7xl font-headline font-bold tracking-tighter leading-none text-primary mb-6">
-            Project <br/><span className="text-secondary italic">Collaboration</span>
-          </h1>
-          <p className="text-on-surface-variant text-lg max-w-xl font-sans leading-relaxed">
-            A dedicated neural space for early-stage project ideation. Connect with elite curators, join specialized groups, and evolve raw concepts into structured intelligence.
-          </p>
-        </div>
-        <div className="lg:col-span-4 flex justify-end">
-          <button className="group relative flex items-center gap-3 hero-gradient text-white px-8 py-5 rounded-xl font-headline font-bold text-lg shadow-xl hover:scale-[1.02] transition-all">
-            <PlusCircle className="w-6 h-6" />
-            Create New Group
-          </button>
-        </div>
-      </header>
-
-      {/* Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {/* Main Featured Card */}
-        <div className="md:col-span-2 lg:col-span-2 row-span-2 bg-surface-container-lowest rounded-xl overflow-hidden ambient-shadow relative group">
-          <div className="h-64 overflow-hidden relative">
-            <img 
-              alt="Cybersecurity Hub" 
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkzbWTh0zcb90mVb268p0Db10z6FNCrtYW7eWW29v0vEK1mNxlsWy2r5Fb-xmMsv8SZZ8_hNZ41BPAz9y3E7XlSmRFLyxAGxQaHQDCe1kX35B70m99iLgMqgiPZ8pPG1Cv3yoiFxwFmxtX7CMnGk6HXRc8o3KUlrUivqBqPE3TkE8Ivc0twWQSciq7wYQKAjZCKhIV8R5IXLM1Anqmn6xVPrFgQIGaUX5JJ6t1GSi3RuHED8fgW9ulw1XHJ0fMnPuHTmshXWlGBa9k"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-transparent"></div>
-          </div>
-          <div className="p-8 relative">
-            <div className="flex justify-between items-start mb-6">
-              <span className="text-secondary font-label text-xs font-bold uppercase tracking-widest">Active Discussion</span>
-              <div className="flex -space-x-2">
-                {[1, 2].map(i => (
-                  <img key={i} className="w-8 h-8 rounded-full border-2 border-white" src={`https://picsum.photos/seed/user${i+10}/100/100`} alt="User" referrerPolicy="no-referrer" />
-                ))}
-                <div className="w-8 h-8 rounded-full border-2 border-white bg-surface-container-highest flex items-center justify-center text-[10px] font-bold">+12</div>
-              </div>
-            </div>
-            <h3 className="text-2xl font-headline font-bold text-primary mb-4 tracking-tight">Quantum-Safe Encryption Standards for Neural Networks</h3>
-            <p className="text-on-surface-variant font-sans mb-8 line-clamp-3">Collaborative deep-dive into implementing lattice-based cryptography for distributed AI model training. We're looking for security architects and crypto-enthusiasts.</p>
-            <div className="flex items-center gap-4">
-              <button className="flex-1 bg-secondary text-white py-3 rounded-lg font-headline font-semibold text-sm hover:opacity-90 transition-all">Join Discussion</button>
-              <button className="p-3 bg-surface-container-low text-primary rounded-lg hover:bg-surface-container-high transition-all">
-                <Share2 className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Module */}
-        <div className="bg-primary text-white p-8 rounded-xl flex flex-col justify-between">
+    <main className={`min-h-screen ${surface}`} style={primaryOverride}>
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Page header */}
+        <header className={`mb-8 flex flex-col gap-4 ${card} p-6 lg:flex-row lg:items-center lg:justify-between`}>
           <div>
-            <Network className="text-secondary-container w-10 h-10 mb-4" />
-            <h4 className="font-headline text-3xl font-bold tracking-tight">42</h4>
-            <p className="font-label text-[10px] uppercase tracking-[0.2em] opacity-70">Cross-Node Synergies</p>
+            <p className={`text-sm font-medium ${subtle}`}>VisionTech Workspace</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl text-[var(--color-on-surface)]">
+              Build, organise, and execute your work
+            </h1>
+            <p className={`mt-2 max-w-2xl text-sm ${subtle}`}>
+              Manage projects, track tasks, save resources, and collaborate with people aligned to your pathway.
+            </p>
           </div>
-          <div className="pt-4 border-t border-white/10">
-            <p className="text-sm font-sans opacity-80 leading-snug">Projects are currently accelerating at 12% above quarterly projection.</p>
-          </div>
-        </div>
-
-        {/* Small Project Card 1 */}
-        <div className="bg-white p-6 rounded-xl ambient-shadow border border-outline-variant/10 group hover:border-secondary/30 transition-all">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-tertiary/10 flex items-center justify-center text-tertiary">
-              <FlaskConical className="w-6 h-6" />
-            </div>
-            <div>
-              <h5 className="font-headline font-bold text-primary leading-none">Bio-Logic v2</h5>
-              <span className="text-[10px] font-label text-on-surface-variant/60 uppercase tracking-wider">3 Days ago</span>
-            </div>
-          </div>
-          <p className="text-sm text-on-surface-variant mb-6 line-clamp-2">Synthetic biology interfaces for organic computing clusters.</p>
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-secondary flex items-center gap-1">
-              <MessageSquare className="w-3 h-3" /> 8
-            </span>
-            <button className="text-xs font-bold text-primary flex items-center gap-1 group-hover:gap-2 transition-all">
-              View <ArrowRight className="w-3 h-3" />
+          <div className="flex flex-wrap gap-3">
+            <button className={outlineButton}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              AI Suggestions
+            </button>
+            <button className={primaryButton}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Workspace
             </button>
           </div>
-        </div>
+        </header>
 
-        {/* Idea Stream */}
-        <div className="md:col-span-2 lg:col-span-2 bg-surface-container-low/50 backdrop-blur-xl p-8 rounded-xl border border-white/20">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="font-headline font-bold text-xl text-primary tracking-tight">Idea Stream</h3>
-            <div className="flex gap-2">
-              <span className="w-2 h-2 rounded-full bg-secondary"></span>
-              <span className="w-2 h-2 rounded-full bg-secondary/30"></span>
-              <span className="w-2 h-2 rounded-full bg-secondary/30"></span>
+        {/* Summary cards */}
+        <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {summaryCards.map((cardData) => {
+            const Icon = cardData.icon;
+            return (
+              <div key={cardData.title} className={card + " p-5"}>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className={`text-sm font-medium ${subtle}`}>{cardData.title}</p>
+                    <p className="mt-3 text-3xl font-bold">{cardData.value}</p>
+                  </div>
+                  <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-3">
+                    <Icon className="h-5 w-5 text-[var(--color-on-surface)]" />
+                  </div>
+                </div>
+                <p className={`mt-4 text-sm ${subtle}`}>{cardData.note}</p>
+              </div>
+            );
+          })}
+        </section>
+
+        {/* Main content */}
+        <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          {/* Left column */}
+          <div className="space-y-6 xl:col-span-2">
+            {/* Active projects */}
+            <div className={`${card} p-6`}>
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <p className={`text-sm font-semibold ${subtle}`}>Active Projects</p>
+                  <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Your current workspaces</h2>
+                </div>
+                <button className="inline-flex items-center text-sm font-medium text-[var(--color-on-surface)] hover:text-[var(--color-primary)]">
+                  View all
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {projects.map((project) => (
+                  <div key={project.id} className="rounded-2xl border border-[var(--color-outline-variant)] p-5 transition hover:border-[var(--color-primary)]">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <h3 className="text-lg font-semibold text-[var(--color-on-surface)]">{project.title}</h3>
+                          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusBadge(project.status)}`}>
+                            {project.status}
+                          </span>
+                        </div>
+                        <p className={`mt-2 max-w-2xl text-sm leading-6 ${subtle}`}>{project.description}</p>
+                        <div className={`mt-4 flex flex-wrap gap-4 text-sm ${subtle}`}>
+                          <span>{project.members} member(s)</span>
+                          <span>{project.progress}% complete</span>
+                        </div>
+                      </div>
+                      <button className="inline-flex h-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90">
+                        Open
+                      </button>
+                    </div>
+                    <div className="mt-4">
+                      <div className="h-2 w-full rounded-full bg-[var(--color-surface-container-low)]">
+                        <div className="h-2 rounded-full bg-[var(--color-primary)]" style={{ width: `${project.progress}%` }} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-          <div className="space-y-6">
-            <div className="flex gap-4 p-4 rounded-lg bg-white/40 hover:bg-white/60 transition-all cursor-pointer">
-              <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center font-bold text-indigo-600 font-headline">JS</div>
-              <div className="flex-1">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="font-bold text-primary text-sm">Julian Sterling</span>
-                  <span className="text-[10px] font-label text-on-surface-variant/60">Just now</span>
+
+            {/* Task board */}
+            <div className={`${card} p-6`}>
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <p className={`text-sm font-semibold ${subtle}`}>Task Board</p>
+                  <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Tasks that need your attention</h2>
                 </div>
-                <p className="text-sm text-on-surface-variant">What if we used LLMs to translate ancient hieroglyphs in real-time during AR museum tours?</p>
-                <div className="mt-3 flex gap-4">
-                  <button className="text-[11px] font-bold text-secondary flex items-center gap-1"><ThumbsUp className="w-3 h-3" /> Upvote</button>
-                  <button className="text-[11px] font-bold text-on-surface-variant/60 flex items-center gap-1"><MessageSquare className="w-3 h-3" /> 3 Comments</button>
+                <button className="inline-flex items-center text-sm font-medium text-[var(--color-on-surface)] hover:text-[var(--color-primary)]">
+                  Manage tasks
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full border-separate border-spacing-y-3">
+                  <thead>
+                    <tr className={`text-left text-sm ${subtle}`}>
+                      <th className="pb-2 pr-4 font-medium">Task</th>
+                      <th className="pb-2 pr-4 font-medium">Project</th>
+                      <th className="pb-2 pr-4 font-medium">Priority</th>
+                      <th className="pb-2 pr-4 font-medium">Due</th>
+                      <th className="pb-2 pr-4 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tasks.map((task) => (
+                      <tr key={task.id} className="rounded-2xl bg-[var(--color-surface-container-low)]">
+                        <td className="rounded-l-2xl px-4 py-4 text-sm font-medium text-[var(--color-on-surface)]">{task.title}</td>
+                        <td className={`px-4 py-4 text-sm ${subtle}`}>{task.project}</td>
+                        <td className="px-4 py-4">
+                          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${priorityBadge(task.priority)}`}>
+                            {task.priority}
+                          </span>
+                        </td>
+                        <td className={`px-4 py-4 text-sm ${subtle}`}>{task.due}</td>
+                        <td className="rounded-r-2xl px-4 py-4">
+                          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${taskStatusBadge(task.status)}`}>
+                            {task.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Saved resources */}
+            <div className={`${card} p-6`}>
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <p className={`text-sm font-semibold ${subtle}`}>Saved Resources</p>
+                  <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Helpful items in your workspace</h2>
                 </div>
+                <button className="inline-flex items-center text-sm font-medium text-[var(--color-on-surface)] hover:text-[var(--color-primary)]">
+                  Open library
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {resources.map((resource) => (
+                  <div key={resource.id} className="rounded-2xl border border-[var(--color-outline-variant)] p-4 transition hover:border-[var(--color-primary)]">
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-3">
+                        {resource.type === "Guide" && <BookOpen className="h-5 w-5 text-[var(--color-on-surface)]" />}
+                        {resource.type === "Document" && <FileText className="h-5 w-5 text-[var(--color-on-surface)]" />}
+                        {resource.type === "Template" && <FolderKanban className="h-5 w-5 text-[var(--color-on-surface)]" />}
+                        {resource.type === "Note" && <MessageSquare className="h-5 w-5 text-[var(--color-on-surface)]" />}
+                      </div>
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-semibold text-[var(--color-on-surface)]">{resource.title}</h3>
+                          <span className="rounded-full bg-[var(--color-surface-container-low)] px-2.5 py-1 text-xs font-medium text-[var(--color-on-surface-variant)]">
+                            {resource.type}
+                          </span>
+                        </div>
+                        <p className={`mt-2 text-sm leading-6 ${subtle}`}>{resource.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
-          <div className="mt-6 flex items-center gap-3">
-            <img className="w-8 h-8 rounded-full" src="https://picsum.photos/seed/me/100/100" alt="Me" referrerPolicy="no-referrer" />
-            <input className="flex-1 bg-white/80 border-none rounded-lg text-sm focus:ring-2 focus:ring-secondary/20" placeholder="Share a raw concept..." type="text"/>
-            <button className="bg-primary text-white p-2 rounded-lg"><Send className="w-4 h-4" /></button>
-          </div>
-        </div>
 
-        {/* Small Project Card 2 */}
-        <div className="bg-white p-6 rounded-xl ambient-shadow border border-outline-variant/10 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <span className="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary">
-                <Building2 className="w-5 h-5" />
-              </span>
-              <span className="bg-surface-container-high px-2 py-1 rounded text-[10px] font-label font-bold text-on-surface-variant/60 uppercase tracking-wider">Concept</span>
+          {/* Right column */}
+          <aside className="space-y-6">
+            {/* Collaboration activity */}
+            <div className={`${card} p-6`}>
+              <p className={`text-sm font-semibold ${subtle}`}>Collaboration Feed</p>
+              <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Recent team activity</h2>
+              <div className="mt-5 space-y-4">
+                {collaborationFeed.map((item) => (
+                  <div key={item.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                    <p className="text-sm leading-6 text-[var(--color-on-surface)]">
+                      <span className="font-semibold text-[var(--color-on-surface)]">{item.name}</span> {item.action}
+                    </p>
+                    <p className={`mt-2 text-xs ${subtle}`}>{item.time}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <h5 className="font-headline font-bold text-primary text-lg mb-2">Spatial Audio Mesh</h5>
-            <p className="text-xs text-on-surface-variant font-sans">Decentralized network for immersive audio streaming in virtual landscapes.</p>
-          </div>
-          <div className="mt-6 pt-4 border-t border-outline-variant/10 flex justify-between items-center">
-            <div className="flex -space-x-1">
-              <div className="w-6 h-6 rounded-full bg-slate-200 border border-white"></div>
-              <div className="w-6 h-6 rounded-full bg-slate-300 border border-white"></div>
-            </div>
-            <button className="text-[11px] font-bold text-secondary uppercase tracking-widest">Connect</button>
-          </div>
-        </div>
 
-        {/* Small Project Card 3 */}
-        <div className="bg-white p-6 rounded-xl ambient-shadow border border-outline-variant/10 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <span className="w-8 h-8 rounded-lg bg-tertiary/10 flex items-center justify-center text-tertiary">
-                <Languages className="w-5 h-5" />
-              </span>
-              <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-label font-bold uppercase tracking-wider">Joinable</span>
+            {/* Quick actions */}
+            <div className={`${card} p-6`}>
+              <p className={`text-sm font-semibold ${subtle}`}>Quick Actions</p>
+              <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Keep moving</h2>
+              <div className="mt-5 space-y-3">
+                {[
+                  { label: "Create project", icon: Plus },
+                  { label: "Add task", icon: CheckCircle2 },
+                  { label: "Invite collaborator", icon: Users },
+                ].map((action) => (
+                  <button
+                    key={action.label}
+                    className="flex w-full items-center justify-between rounded-2xl border border-[var(--color-outline-variant)] px-4 py-3 text-left transition hover:bg-[var(--color-surface-container-low)]"
+                  >
+                    <span className="flex items-center gap-3 text-[var(--color-on-surface)]">
+                      <action.icon className="h-4 w-4" />
+                      {action.label}
+                    </span>
+                    <ArrowRight className="h-4 w-4 text-[var(--color-on-surface-variant)]" />
+                  </button>
+                ))}
+              </div>
             </div>
-            <h5 className="font-headline font-bold text-primary text-lg mb-2">Global Ethics API</h5>
-            <p className="text-xs text-on-surface-variant font-sans">Standardized ethical verification layers for LLM deployments.</p>
-          </div>
-          <div className="mt-6 pt-4 border-t border-outline-variant/10 flex justify-between items-center">
-            <div className="flex -space-x-1">
-              <div className="w-6 h-6 rounded-full bg-slate-100 border border-white"></div>
+
+            {/* Workspace insight */}
+            <div className="rounded-3xl bg-[var(--color-primary)] text-white p-6 shadow-sm">
+              <p className="text-sm font-semibold text-white/80">Workspace Insight</p>
+              <h2 className="mt-1 text-xl font-bold">Your execution rhythm is improving</h2>
+              <p className="mt-3 text-sm leading-6 text-white/80">
+                You are making stronger progress when tasks are linked directly to your pathway goals. Keep projects small, practical, and outcome-focused.
+              </p>
+              <button className="mt-5 inline-flex h-11 items-center justify-center rounded-2xl bg-white px-4 text-sm font-semibold text-[var(--color-primary)] transition hover:bg-[var(--color-surface-container-low)]">
+                View recommendations
+              </button>
             </div>
-            <button className="text-[11px] font-bold text-secondary uppercase tracking-widest">Connect</button>
-          </div>
-        </div>
+          </aside>
+        </section>
       </div>
-
-      {/* CTA Section */}
-      <section className="mt-20 bg-surface-container-high rounded-3xl p-12 lg:p-20 relative overflow-hidden">
-        <div className="relative z-10 max-w-2xl">
-          <h2 className="text-4xl font-headline font-bold text-primary mb-6 leading-tight">Collaborate on the next paradigm shift.</h2>
-          <p className="text-on-surface-variant text-lg font-sans mb-10">Our community values curiosity over certainty. Join a project or start your own workspace to invite the brightest minds in the network.</p>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <button className="bg-primary text-white px-8 py-4 rounded-xl font-headline font-bold hover:scale-105 transition-transform">Explore All Groups</button>
-            <button className="bg-transparent border-2 border-primary/20 text-primary px-8 py-4 rounded-xl font-headline font-bold hover:bg-primary/5 transition-colors">Documentation</button>
-          </div>
-        </div>
-        <div className="absolute right-0 top-0 w-1/3 h-full hidden lg:block opacity-10 pointer-events-none">
-          <Users className="w-full h-full text-primary" />
-        </div>
-      </section>
     </main>
   );
 }
