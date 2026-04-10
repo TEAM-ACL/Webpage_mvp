@@ -48,11 +48,7 @@ export default function SignUp(): JSX.Element {
       storeSession(session);
       setUser(session.user);
       setOnboardingComplete(false);
-<<<<<<< HEAD
-      // Redirect to onboarding for new user flow
-=======
       // Redirect new users into onboarding flow
->>>>>>> d74f8dd (Fix auth flow and onboarding redirect)
       navigate("/onboarding");
     } catch (err) {
       setError(friendlyError((err as Error).message));
