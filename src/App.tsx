@@ -17,6 +17,7 @@ import Intelligence from './pages/Intelligence';
 import ForgotPassword from './pages/ForgotPassword';
 import { AuthProvider } from './context/AuthContext';
 import ResetPassword from './pages/ResetPassword';
+import { RequireAdmin, RequireAuth, RequireOnboardingComplete, RedirectIfOnboarded } from './components/ProtectedRoute';
 
 export default function App() {
   return (
@@ -25,16 +26,44 @@ export default function App() {
         <div className="min-h-screen flex flex-col">
           <Routes>
             {/* Standalone layouts (no global header/footer) */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<SignUp />} />
+            <Route path="/login" element={<RedirectIfOnboarded><Login /></RedirectIfOnboarded>} />
+            <Route path="/signup" element={<RedirectIfOnboarded><SignUp /></RedirectIfOnboarded>} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Dashboard pages use shared shell internally */}
-            <Route path="/intelligence" element={<Intelligence />} />
-            <Route path="/workspace" element={<Workspace />} />
-            <Route path="/network" element={<Network />} />
-            <Route path="/admin" element={<Admin />} />
+            <Route
+              path="/intelligence"
+              element={
+                <RequireOnboardingComplete>
+                  <Intelligence />
+                </RequireOnboardingComplete>
+              }
+            />
+            <Route
+              path="/workspace"
+              element={
+                <RequireAuth>
+                  <Workspace />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/network"
+              element={
+                <RequireAuth>
+                  <Network />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <RequireAdmin>
+                  <Admin />
+                </RequireAdmin>
+              }
+            />
 
             {/* Other pages share the main layout */}
             <Route
@@ -46,7 +75,14 @@ export default function App() {
                     <Routes>
                       <Route path="/" element={<Home />} />
                       <Route path="/about" element={<About />} />
-                      <Route path="/onboarding" element={<Onboarding />} />
+                      <Route
+                        path="/onboarding"
+                        element={
+                          <RequireAuth>
+                            <Onboarding />
+                          </RequireAuth>
+                        }
+                      />
                     </Routes>
                   </main>
                   <Footer />

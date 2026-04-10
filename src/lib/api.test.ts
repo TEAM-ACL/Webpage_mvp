@@ -23,8 +23,8 @@ describe("session storage helpers", () => {
 
   it("stores tokens and user when present", () => {
     storeSession(mockSession);
-    expect(sessionStorage.getItem("access_token")).toBeNull();
-    expect(sessionStorage.getItem("refresh_token")).toBeNull();
+    expect(sessionStorage.getItem("access_token")).toBe("access");
+    expect(sessionStorage.getItem("refresh_token")).toBe("refresh");
     expect(sessionStorage.getItem("user")).toContain("user@example.com");
   });
 

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
-import { api } from "../lib/api";
+import { api, storeSession } from "../lib/api";
 import { getOnboardingComplete, signOut } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
 
@@ -40,6 +40,7 @@ export default function Login(): JSX.Element {
     setLoading(true);
     try {
       const session = await api.login(email, password);
+      storeSession(session);
       setUser(session.user);
       // If onboarding already complete, go straight to intelligence; else go to onboarding.
       const done = getOnboardingComplete();
@@ -223,4 +224,3 @@ function SocialButton({ label, icon }: { label: string; icon: string }) {
     </button>
   );
 }
-

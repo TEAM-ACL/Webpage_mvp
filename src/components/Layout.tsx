@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Settings, Search, Linkedin, Instagram, Youtube, Menu, X } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { api, clearSession } from '../lib/api';
+import { api } from '../lib/api';
+import { signOut } from '../lib/auth';
 
 export function Header() {
   const location = useLocation();
@@ -37,7 +38,7 @@ export function Header() {
     } catch {
       // best-effort
     } finally {
-      clearSession();
+      signOut();
       navigate("/login");
     }
   };
