@@ -48,7 +48,7 @@ export default function SignUp(): JSX.Element {
       storeSession(session);
       setUser(session.user);
       setOnboardingComplete(false);
-      // Redirect to onboarding for new user flow
+      // Redirect new users into onboarding flow
       navigate("/onboarding");
     } catch (err) {
       setError(friendlyError((err as Error).message));
