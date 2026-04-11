@@ -52,6 +52,9 @@ export function Header() {
     { name: 'About', path: '/about' },
   ];
 
+  // Hide auth CTA buttons on onboarding (user just signed up/logged in) to reduce redundancy.
+  const hideAuthCtas = location.pathname.startsWith("/onboarding");
+
   return (
     <header className="fixed top-0 w-full z-50 shadow-[0_12px_40px_rgba(25,28,29,0.08)]" style={{ backgroundColor: '#1f0954' }}>
       <nav className="flex justify-between items-center px-6 md:px-8 h-20 w-full max-w-7xl mx-auto">
@@ -141,20 +144,22 @@ export function Header() {
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-3">
-            <Link
-              to="/login"
-              className="text-white hover:text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-white/30"
-            >
-              Log in
-            </Link>
-            <Link
-              to="/signup"
-              className="bg-white/15 hover:bg-white/30 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors border border-white/30"
-            >
-              Sign up
-            </Link>
-          </div>
+          {!hideAuthCtas && (
+            <div className="hidden md:flex items-center gap-3">
+              <Link
+                to="/login"
+                className="text-white hover:text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-white/30"
+              >
+                Log in
+              </Link>
+              <Link
+                to="/signup"
+                className="bg-white/15 hover:bg-white/30 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors border border-white/30"
+              >
+                Sign up
+              </Link>
+            </div>
+          )}
 
           {/* Mobile menu toggle */}
           <button
@@ -185,29 +190,31 @@ export function Header() {
                 {item.name}
               </Link>
             ))}
-            <div className="flex gap-3 pt-2">
-              <Link
-                to="/login"
-                className="flex-1 text-center text-white bg-white/10 hover:bg-white/20 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
-                onClick={() => setMobileOpen(false)}
-              >
-                Log in
-              </Link>
-              <Link
-                to="/signup"
-                className="flex-1 text-center text-[#1f0954] bg-white hover:bg-slate-100 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
-                onClick={() => setMobileOpen(false)}
-              >
-                Sign up
-              </Link>
-              <button
-                type="button"
-                onClick={() => { setMobileOpen(false); handleLogout(); }}
-                className="flex-1 text-center text-white/80 border border-white/20 hover:border-white/40 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
-              >
-                Log out
-              </button>
-            </div>
+            {!hideAuthCtas && (
+              <div className="flex gap-3 pt-2">
+                <Link
+                  to="/login"
+                  className="flex-1 text-center text-white bg-white/10 hover:bg-white/20 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Log in
+                </Link>
+                <Link
+                  to="/signup"
+                  className="flex-1 text-center text-[#1f0954] bg-white hover:bg-slate-100 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Sign up
+                </Link>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => { setMobileOpen(false); handleLogout(); }}
+              className="flex-1 text-center text-white/80 border border-white/20 hover:border-white/40 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+            >
+              Log out
+            </button>
           </div>
         </div>
       )}
