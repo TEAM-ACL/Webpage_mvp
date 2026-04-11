@@ -1,178 +1,1069 @@
-import { motion } from 'motion/react';
-import { ArrowRight, Brain, Code, Network, FlaskConical, Lock } from 'lucide-react';
-import { cn } from '../lib/utils';
-import { setOnboardingComplete } from '../lib/auth';
-import { useNavigate } from 'react-router-dom';
+﻿import { useMemo, useState, type JSX } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import {
+  Sparkles,
+  ArrowRight,
+  Check,
+  Plus,
+  X,
+  UserRound,
+  Goal,
+  Lightbulb,
+  Wrench,
+  Briefcase,
+  GraduationCap,
+  Globe,
+  Layers3,
+} from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { setOnboardingComplete } from "../lib/auth";
 
-export default function Onboarding() {
-  const navigate = useNavigate();
-  const complete = () => {
-    setOnboardingComplete(true);
-    navigate('/intelligence');
-  };
+
+type OptionGroup = {
+  label: string;
+  items: string[];
+};
+
+type FormState = {
+  preferredNickname: string;
+  fullName: string;
+  fieldOfInterest: string;
+  experienceLevel: string;
+  preferredWorkStyle: string;
+  region: string;
+  goals: string[];
+  interests: string[];
+  skills: string[];
+};
+
+const FIELD_OPTIONS = [
+  "Technology and IT",
+  "Business and Entrepreneurship",
+  "Creative and Design",
+  "Engineering",
+  "Healthcare and Life Sciences",
+  "Education and Training",
+  "Finance and Accounting",
+  "Media and Communication",
+  "Law and Public Service",
+  "Sales and Marketing",
+  "Operations and Logistics",
+  "Construction and Trades",
+  "Energy and Environment",
+  "Hospitality and Tourism",
+  "Agriculture and Food Systems",
+  "Research and Academia",
+  "Nonprofit and Social Impact",
+  "Other",
+];
+
+const EXPERIENCE_LEVELS = [
+  "Beginner",
+  "Early stage",
+  "Intermediate",
+  "Advanced",
+  "Career switcher",
+  "Student",
+];
+
+const WORK_STYLE_OPTIONS = [
+  "Hands-on practical",
+  "Research-based",
+  "Creative exploration",
+  "Structured learning",
+  "Team collaboration",
+  "Independent execution",
+  "Mentorship-led",
+  "Project-based",
+];
+
+const REGION_OPTIONS = [
+  "United Kingdom",
+  "Nigeria",
+  "Europe",
+  "Africa",
+  "North America",
+  "Asia",
+  "Remote / Global",
+  "Other",
+];
+
+const GOAL_GROUPS: OptionGroup[] = [
+  {
+    label: "Career Growth",
+    items: [
+      "Get career direction",
+      "Build job readiness",
+      "Prepare for role transition",
+      "Develop a promotion pathway",
+      "Strengthen professional confidence",
+      "Improve employability",
+    ],
+  },
+  {
+    label: "Learning and Skills",
+    items: [
+      "Learn a new skill",
+      "Build practical experience",
+      "Close skill gaps",
+      "Create a structured growth pathway",
+      "Find the best learning resources",
+      "Gain confidence in a field",
+    ],
+  },
+  {
+    label: "Projects and Innovation",
+    items: [
+      "Build a project",
+      "Turn an idea into execution",
+      "Find project collaborators",
+      "Validate a solution idea",
+      "Join innovation challenges",
+      "Create proof of work",
+    ],
+  },
+  {
+    label: "Network and Opportunity",
+    items: [
+      "Find mentors",
+      "Meet like-minded people",
+      "Expand professional network",
+      "Discover opportunities",
+      "Find collaborators",
+      "Access industry guidance",
+    ],
+  },
+];
+
+const INTEREST_GROUPS: OptionGroup[] = [
+  {
+    label: "Technology and Digital",
+    items: [
+      "Cloud computing",
+      "Cybersecurity",
+      "Software development",
+      "Data analysis",
+      "Artificial intelligence",
+      "UI/UX design",
+      "Web development",
+      "Networking",
+      "Automation",
+      "Product management",
+    ],
+  },
+  {
+    label: "Business and Growth",
+    items: [
+      "Entrepreneurship",
+      "Business operations",
+      "Project management",
+      "Marketing",
+      "Sales",
+      "Customer success",
+      "Strategy",
+      "Innovation management",
+    ],
+  },
+  {
+    label: "Creative and Media",
+    items: [
+      "Graphic design",
+      "Content creation",
+      "Writing",
+      "Video production",
+      "Branding",
+      "Photography",
+      "Public speaking",
+      "Social media",
+    ],
+  },
+  {
+    label: "People and Impact",
+    items: [
+      "Teaching",
+      "Coaching",
+      "Community development",
+      "Healthcare support",
+      "Leadership",
+      "Public service",
+      "Youth development",
+      "Social impact",
+    ],
+  },
+  {
+    label: "Technical and Industry",
+    items: [
+      "Engineering systems",
+      "Manufacturing",
+      "Logistics",
+      "Renewable energy",
+      "Construction",
+      "Food systems",
+      "Agriculture",
+      "Research",
+    ],
+  },
+];
+
+const SKILL_GROUPS: OptionGroup[] = [
+  {
+    label: "Transferable Skills",
+    items: [
+      "Communication",
+      "Problem solving",
+      "Critical thinking",
+      "Teamwork",
+      "Leadership",
+      "Time management",
+      "Adaptability",
+      "Organisation",
+      "Documentation",
+      "Attention to detail",
+    ],
+  },
+  {
+    label: "Digital Skills",
+    items: [
+      "Microsoft Office",
+      "Google Workspace",
+      "Data entry",
+      "Presentation design",
+      "Spreadsheet analysis",
+      "Digital research",
+      "Basic coding",
+      "Technical troubleshooting",
+    ],
+  },
+  {
+    label: "Business and Delivery",
+    items: [
+      "Project coordination",
+      "Process improvement",
+      "Stakeholder communication",
+      "Customer support",
+      "Reporting",
+      "Planning",
+      "Task management",
+      "Operations support",
+    ],
+  },
+  {
+    label: "Creative Skills",
+    items: [
+      "Writing",
+      "Graphic design",
+      "Content planning",
+      "Video editing",
+      "Brand communication",
+      "Storytelling",
+    ],
+  },
+  {
+    label: "Specialist Skills",
+    items: [
+      "Cloud fundamentals",
+      "Networking",
+      "Cybersecurity basics",
+      "Teaching support",
+      "Research methods",
+      "Sales communication",
+      "Machine operation",
+      "Health and safety awareness",
+    ],
+  },
+];
+
+const FIELD_AUTOFILL: Record<string, { goals: string[]; interests: string[]; skills: string[] }> = {
+  "Technology and IT": {
+    goals: ["Learn a new skill", "Build practical experience", "Build job readiness"],
+    interests: ["Cloud computing", "Cybersecurity", "Software development"],
+    skills: ["Problem solving", "Technical troubleshooting", "Documentation"],
+  },
+  "Business and Entrepreneurship": {
+    goals: ["Get career direction", "Turn an idea into execution", "Discover opportunities"],
+    interests: ["Entrepreneurship", "Strategy", "Project management"],
+    skills: ["Communication", "Leadership", "Planning"],
+  },
+  "Creative and Design": {
+    goals: ["Build a project", "Create proof of work", "Expand professional network"],
+    interests: ["Graphic design", "Content creation", "Branding"],
+    skills: ["Writing", "Storytelling", "Communication"],
+  },
+  Engineering: {
+    goals: ["Build practical experience", "Create a structured growth pathway", "Improve employability"],
+    interests: ["Engineering systems", "Manufacturing", "Research"],
+    skills: ["Problem solving", "Attention to detail", "Organisation"],
+  },
+  "Healthcare and Life Sciences": {
+    goals: ["Get career direction", "Strengthen professional confidence", "Access industry guidance"],
+    interests: ["Healthcare support", "Research", "Community development"],
+    skills: ["Communication", "Attention to detail", "Teamwork"],
+  },
+  "Education and Training": {
+    goals: ["Develop a promotion pathway", "Find mentors", "Close skill gaps"],
+    interests: ["Teaching", "Coaching", "Leadership"],
+    skills: ["Communication", "Organisation", "Leadership"],
+  },
+  "Finance and Accounting": {
+    goals: ["Improve employability", "Build job readiness", "Gain confidence in a field"],
+    interests: ["Strategy", "Business operations", "Data analysis"],
+    skills: ["Attention to detail", "Reporting", "Critical thinking"],
+  },
+  "Media and Communication": {
+    goals: ["Build a project", "Expand professional network", "Find collaborators"],
+    interests: ["Writing", "Public speaking", "Social media"],
+    skills: ["Communication", "Storytelling", "Presentation design"],
+  },
+  "Law and Public Service": {
+    goals: ["Get career direction", "Strengthen professional confidence", "Access industry guidance"],
+    interests: ["Public service", "Leadership", "Community development"],
+    skills: ["Critical thinking", "Communication", "Documentation"],
+  },
+  "Sales and Marketing": {
+    goals: ["Discover opportunities", "Build job readiness", "Develop a promotion pathway"],
+    interests: ["Marketing", "Sales", "Branding"],
+    skills: ["Communication", "Customer support", "Planning"],
+  },
+  "Operations and Logistics": {
+    goals: ["Improve employability", "Build practical experience", "Close skill gaps"],
+    interests: ["Logistics", "Business operations", "Process improvement"],
+    skills: ["Organisation", "Time management", "Operations support"],
+  },
+  "Construction and Trades": {
+    goals: ["Build practical experience", "Improve employability", "Create proof of work"],
+    interests: ["Construction", "Engineering systems", "Health and safety"],
+    skills: ["Attention to detail", "Problem solving", "Adaptability"],
+  },
+  "Energy and Environment": {
+    goals: ["Get career direction", "Build a project", "Join innovation challenges"],
+    interests: ["Renewable energy", "Research", "Social impact"],
+    skills: ["Problem solving", "Documentation", "Critical thinking"],
+  },
+  "Hospitality and Tourism": {
+    goals: ["Improve employability", "Develop a promotion pathway", "Expand professional network"],
+    interests: ["Customer experience", "Leadership", "Operations"],
+    skills: ["Communication", "Teamwork", "Adaptability"],
+  },
+  "Agriculture and Food Systems": {
+    goals: ["Build practical experience", "Create proof of work", "Find collaborators"],
+    interests: ["Agriculture", "Food systems", "Research"],
+    skills: ["Organisation", "Problem solving", "Attention to detail"],
+  },
+  "Research and Academia": {
+    goals: ["Gain confidence in a field", "Find the best learning resources", "Access industry guidance"],
+    interests: ["Research", "Teaching", "Data analysis"],
+    skills: ["Critical thinking", "Documentation", "Writing"],
+  },
+  "Nonprofit and Social Impact": {
+    goals: ["Find collaborators", "Discover opportunities", "Turn an idea into execution"],
+    interests: ["Social impact", "Community development", "Leadership"],
+    skills: ["Communication", "Leadership", "Project coordination"],
+  },
+};
+
+function flattenGroups(groups: OptionGroup[]): string[] {
+  return groups.flatMap((group) => group.items);
+}
+
+function uniquePush(list: string[], value: string) {
+  const v = value.trim();
+  if (!v) return list;
+  if (list.includes(v)) return list;
+  return [...list, v];
+}
+
+function SelectionBlock({
+  title,
+  subtitle,
+  groups,
+  selectedItems,
+  onAdd,
+  onRemove,
+  customValue,
+  onCustomChange,
+  onAddCustom,
+  minHint = "Select at least 3",
+}: {
+  title: string;
+  subtitle: string;
+  groups: OptionGroup[];
+  selectedItems: string[];
+  onAdd: (value: string) => void;
+  onRemove: (value: string) => void;
+  customValue: string;
+  onCustomChange: (value: string) => void;
+  onAddCustom: () => void;
+  minHint?: string;
+}): JSX.Element {
+  const [selectedDropdownValue, setSelectedDropdownValue] = useState("");
 
   return (
-    <main className="min-h-screen flex flex-col md:flex-row overflow-hidden">
-      {/* Left Side: Editorial Context */}
-      <section className="hidden md:flex w-2/5 hero-gradient p-16 flex-col justify-between text-white">
-        <div>
-          <h1 className="font-headline text-3xl font-bold tracking-tighter text-white mb-2">VisionTech</h1>
-          <p className="font-label text-xs uppercase tracking-[0.2em] opacity-70">Youth Empowerment Platform</p>
+    <motion.section
+      layout
+      className="rounded-3xl border border-[var(--color-outline-variant)]/60 bg-white p-6 shadow-sm"
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+    >
+      <div className="mb-5 flex flex-col gap-2">
+        <h3 className="text-xl font-bold text-[var(--color-on-surface)]">{title}</h3>
+        <p className="text-sm text-[var(--color-on-surface-variant)]">{subtitle}</p>
+        <p className="text-xs font-medium text-[var(--color-on-surface-variant)]/80">{minHint}</p>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
+        <div className="space-y-4">
+          {groups.map((group) => (
+            <div key={group.label}>
+              <label className="mb-2 block text-sm font-semibold text-[var(--color-on-surface)]/80">
+                {group.label}
+              </label>
+
+              <div className="flex gap-2">
+                <select
+                  value={selectedDropdownValue}
+                  onChange={(e) => setSelectedDropdownValue(e.target.value)}
+                  className="h-11 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm outline-none transition focus:border-[var(--color-primary)]/70"
+                >
+                  <option value="">Choose an option</option>
+                  {group.items.map((item) => (
+                    <option key={`${group.label}-${item}`} value={item} disabled={selectedItems.includes(item)}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!selectedDropdownValue) return;
+                    onAdd(selectedDropdownValue);
+                    setSelectedDropdownValue("");
+                  }}
+                  className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:bg-black"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
-        
-        <div className="space-y-8">
-          <div className="relative">
-            <span className="absolute -left-8 top-0 font-headline text-6xl opacity-20 select-none">“</span>
-            <h2 className="font-headline text-4xl font-light leading-tight tracking-tight">
-              Guiding young talent from self-discovery to real innovation.
-            </h2>
+
+        <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+          <label className="mb-2 block text-sm font-semibold text-[var(--color-on-surface)]/80">Add custom field</label>
+
+          <div className="flex gap-2">
+            <input
+              value={customValue}
+              onChange={(e) => onCustomChange(e.target.value)}
+              placeholder={`Custom ${title.toLowerCase().slice(0, -1)}`}
+              className="h-11 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm outline-none transition focus:border-[var(--color-primary)]/70"
+            />
+
+            <button
+              type="button"
+              onClick={onAddCustom}
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface-variant)] transition hover:bg-[var(--color-surface-container-low)]"
+            >
+              Add
+            </button>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20">
-              <img 
-                className="w-full h-full object-cover" 
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuChQCwW5WfCOzjr6GhhTDhouB0nl5FzwxmsHct8UGRQWdOE4LoA-uvEL-lqdkUXgHuizAmyL61qQGa5lQzxlwO66j_aFPeXnG7H5gMjh62Fzrtne7pK3319izCyaWCOWaXxO9nvyxewETZlpf1qfubrwiKDflyA3CbER9hbdlg3vxshoKlzV0yNMJScmuesM38svyb_kJ0XGURUhp-K7dedaa0BXom66JlK2s_PwQiwtD3CumvqVCKpxQ-Zlsyz89Hr2vb8d7pRBsZc"
-                alt="Neural Network"
-                referrerPolicy="no-referrer"
+
+          <div className="mt-4">
+            <p className="mb-2 text-sm font-semibold text-[var(--color-on-surface)]/80">Selected</p>
+
+            <div className="flex flex-wrap gap-2">
+              <AnimatePresence>
+                {selectedItems.map((item) => (
+                  <motion.div
+                    key={item}
+                    layout
+                    initial={{ opacity: 0, scale: 0.92 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.92 }}
+                    className="inline-flex items-center gap-2 rounded-full bg-[var(--color-primary)] px-3 py-2 text-xs font-medium text-white"
+                  >
+                    <span>{item}</span>
+                    <button type="button" onClick={() => onRemove(item)}>
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.section>
+  );
+}
+
+export default function OnboardingPage(): JSX.Element {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const reminder = (location.state as { reminder?: string } | null)?.reminder;
+  const [form, setForm] = useState<FormState>({
+    preferredNickname: "",
+    fullName: "",
+    fieldOfInterest: "",
+    experienceLevel: "",
+    preferredWorkStyle: "",
+    region: "",
+    goals: [],
+    interests: [],
+    skills: [],
+  });
+
+  const [customGoal, setCustomGoal] = useState("");
+  const [customInterest, setCustomInterest] = useState("");
+  const [customSkill, setCustomSkill] = useState("");
+
+  const totalRequiredChecks = [
+    form.preferredNickname,
+    form.fieldOfInterest,
+    form.experienceLevel,
+    form.preferredWorkStyle,
+    form.region,
+    form.goals.length >= 3 ? "ok" : "",
+    form.interests.length >= 3 ? "ok" : "",
+    form.skills.length >= 3 ? "ok" : "",
+  ];
+
+  const completion = Math.round((totalRequiredChecks.filter(Boolean).length / totalRequiredChecks.length) * 100);
+
+  const recommendedPack = useMemo(() => {
+    if (!form.fieldOfInterest || !FIELD_AUTOFILL[form.fieldOfInterest]) {
+      return null;
+    }
+    return FIELD_AUTOFILL[form.fieldOfInterest];
+  }, [form.fieldOfInterest]);
+
+  const suggestedInterestSkills = useMemo(() => {
+    const allSkills = flattenGroups(SKILL_GROUPS);
+    const allGoals = flattenGroups(GOAL_GROUPS);
+
+    const smartSkills = form.interests
+      .flatMap((interest) => {
+        const map: Record<string, string[]> = {
+          "Cloud computing": ["Cloud fundamentals", "Technical troubleshooting"],
+          Cybersecurity: ["Cybersecurity basics", "Documentation"],
+          "Software development": ["Basic coding", "Problem solving"],
+          "Data analysis": ["Spreadsheet analysis", "Critical thinking"],
+          Entrepreneurship: ["Leadership", "Planning"],
+          Marketing: ["Communication", "Presentation design"],
+          Teaching: ["Communication", "Leadership"],
+          Research: ["Research methods", "Writing"],
+          "Graphic design": ["Graphic design", "Storytelling"],
+          Logistics: ["Organisation", "Operations support"],
+          Manufacturing: ["Attention to detail", "Time management"],
+          "Community development": ["Leadership", "Project coordination"],
+        };
+        return map[interest] || [];
+      })
+      .filter((item) => allSkills.includes(item));
+
+    const smartGoals = form.interests
+      .flatMap((interest) => {
+        const map: Record<string, string[]> = {
+          "Cloud computing": ["Build practical experience"],
+          Cybersecurity: ["Close skill gaps"],
+          Entrepreneurship: ["Turn an idea into execution"],
+          Research: ["Find the best learning resources"],
+          Teaching: ["Find mentors"],
+          Marketing: ["Improve employability"],
+          "Graphic design": ["Create proof of work"],
+          Logistics: ["Develop a promotion pathway"],
+          "Community development": ["Find collaborators"],
+        };
+        return map[interest] || [];
+      })
+      .filter((item) => allGoals.includes(item));
+
+    return {
+      skills: [...new Set(smartSkills)].slice(0, 4),
+      goals: [...new Set(smartGoals)].slice(0, 3),
+    };
+  }, [form.interests]);
+
+  function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function addToList(key: "goals" | "interests" | "skills", value: string) {
+    setForm((prev) => ({
+      ...prev,
+      [key]: uniquePush(prev[key], value),
+    }));
+  }
+
+  function removeFromList(key: "goals" | "interests" | "skills", value: string) {
+    setForm((prev) => ({
+      ...prev,
+      [key]: prev[key].filter((item) => item !== value),
+    }));
+  }
+
+  function applyAutofillPack() {
+    if (!recommendedPack) return;
+
+    setForm((prev) => ({
+      ...prev,
+      goals: [...new Set([...prev.goals, ...recommendedPack.goals])].slice(0, 6),
+      interests: [...new Set([...prev.interests, ...recommendedPack.interests])].slice(0, 8),
+      skills: [...new Set([...prev.skills, ...recommendedPack.skills])].slice(0, 8),
+    }));
+  }
+
+  function applyInterestSuggestions() {
+    setForm((prev) => ({
+      ...prev,
+      goals: [...new Set([...prev.goals, ...suggestedInterestSkills.goals])],
+      skills: [...new Set([...prev.skills, ...suggestedInterestSkills.skills])],
+    }));
+  }
+
+  function handleSubmit() {
+    const payload = {
+      ...form,
+      onboardingCompletedAt: new Date().toISOString(),
+      systemNote:
+        "This onboarding payload is the foundational user context for VisionTech AI guidance, pathway generation, matching, and opportunity recommendations.",
+    };
+
+    // TODO: send payload to backend when endpoint is ready.
+    console.log("VisionTech onboarding payload", payload);
+    setOnboardingComplete(true);
+    navigate("/intelligence");
+  }
+
+  return (
+    <main className="min-h-screen bg-gradient-to-b from-[var(--color-surface)] via-white to-[var(--color-surface-container-low)] text-[var(--color-on-surface)]">
+      <header className="sticky top-0 z-30 border-b border-[var(--color-outline-variant)]/80 bg-white/85 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+          <div>
+            <p className="text-sm font-semibold text-[var(--color-on-surface)]">VisionTech</p>
+            <p className="text-xs text-[var(--color-on-surface-variant)]">Personalise your intelligent journey</p>
+          </div>
+
+          <div className="hidden items-center gap-3 md:flex">
+            <div className="rounded-full bg-[var(--color-surface-container-low)] px-4 py-2 text-sm font-medium text-[var(--color-on-surface-variant)]">
+              Setup progress: {completion}%
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {reminder && (
+          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 shadow-sm">
+            <strong className="font-semibold">Heads up:</strong> {reminder} 👋
+          </div>
+        )}
+
+        <section className="mb-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <motion.div
+            className="rounded-3xl border border-[var(--color-outline-variant)] bg-white p-7 shadow-sm"
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+          >
+            <div className="inline-flex items-center rounded-full bg-[var(--color-surface-container-low)] px-3 py-1 text-xs font-semibold text-[var(--color-on-surface-variant)]">
+              <Sparkles className="mr-2 h-3.5 w-3.5" />
+              Foundational onboarding
+            </div>
+
+            <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">Let VisionTech understand you properly</h1>
+
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--color-on-surface-variant)]">
+              The information you provide here helps VisionTech shape your pathways, skill guidance, network matches,
+              workspace suggestions, and relevant opportunities.
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                <p className="text-sm font-semibold text-[var(--color-on-surface)]">Direction</p>
+                <p className="mt-1 text-xs leading-6 text-[var(--color-on-surface-variant)]">Understand your goals and field focus.</p>
+              </div>
+
+              <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                <p className="text-sm font-semibold text-[var(--color-on-surface)]">Capability</p>
+                <p className="mt-1 text-xs leading-6 text-[var(--color-on-surface-variant)]">Capture current skills and experience.</p>
+              </div>
+
+              <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                <p className="text-sm font-semibold text-[var(--color-on-surface)]">Fit</p>
+                <p className="mt-1 text-xs leading-6 text-[var(--color-on-surface-variant)]">Improve matching, guidance, and recommendations.</p>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            className="relative overflow-hidden rounded-3xl bg-[var(--color-primary)] p-7 text-white shadow-sm"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.35 }}
+          >
+            <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+            <div className="absolute bottom-0 left-0 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+
+            <div className="relative">
+              <p className="text-sm font-semibold text-white/80">Interactive profile signal</p>
+
+              <div className="mt-6 grid grid-cols-3 gap-3">
+                <motion.div whileHover={{ y: -4 }} className="rounded-2xl bg-white/10 p-4">
+                  <UserRound className="h-5 w-5" />
+                  <p className="mt-3 text-sm font-semibold">Identity</p>
+                </motion.div>
+
+                <motion.div whileHover={{ y: -4 }} className="rounded-2xl bg-white/10 p-4">
+                  <Goal className="h-5 w-5" />
+                  <p className="mt-3 text-sm font-semibold">Goals</p>
+                </motion.div>
+
+                <motion.div whileHover={{ y: -4 }} className="rounded-2xl bg-white/10 p-4">
+                  <Wrench className="h-5 w-5" />
+                  <p className="mt-3 text-sm font-semibold">Skills</p>
+                </motion.div>
+
+                <motion.div whileHover={{ y: -4 }} className="rounded-2xl bg-white/10 p-4">
+                  <Lightbulb className="h-5 w-5" />
+                  <p className="mt-3 text-sm font-semibold">Interests</p>
+                </motion.div>
+
+                <motion.div whileHover={{ y: -4 }} className="rounded-2xl bg-white/10 p-4">
+                  <Briefcase className="h-5 w-5" />
+                  <p className="mt-3 text-sm font-semibold">Pathway fit</p>
+                </motion.div>
+
+                <motion.div whileHover={{ y: -4 }} className="rounded-2xl bg-white/10 p-4">
+                  <Layers3 className="h-5 w-5" />
+                  <p className="mt-3 text-sm font-semibold">AI context</p>
+                </motion.div>
+              </div>
+
+              <div className="mt-6">
+                <div className="mb-2 flex items-center justify-between text-sm">
+                  <span className="text-white/80">Completion</span>
+                  <span className="font-semibold">{completion}%</span>
+                </div>
+
+                <div className="h-2 w-full rounded-full bg-white/20">
+                  <motion.div className="h-2 rounded-full bg-white" animate={{ width: `${completion}%` }} transition={{ duration: 0.35 }} />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </section>
+
+        <motion.section
+          className="mb-8 rounded-3xl border border-[var(--color-outline-variant)] bg-white p-6 shadow-sm"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+        >
+          <div className="mb-5">
+            <h2 className="text-xl font-bold text-[var(--color-on-surface)]">Basic profile context</h2>
+            <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">
+              Start with the most important details VisionTech needs to identify and introduce you to the system.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[var(--color-on-surface)]/80">Preferred nickname</label>
+              <input
+                value={form.preferredNickname}
+                onChange={(e) => updateField("preferredNickname", e.target.value)}
+                placeholder="What should VisionTech call you?"
+                className="h-11 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm outline-none transition focus:border-[var(--color-primary)]/70"
               />
             </div>
+
             <div>
-              <p className="font-label text-sm font-bold">Guided Discovery</p>
-              <p className="font-sans text-xs opacity-60">Step 1 of 3: Discover, Match, Create</p>
+              <label className="mb-2 block text-sm font-semibold text-[var(--color-on-surface)]/80">Full name</label>
+              <input
+                value={form.fullName}
+                onChange={(e) => updateField("fullName", e.target.value)}
+                placeholder="Your full name"
+                className="h-11 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm outline-none transition focus:border-[var(--color-primary)]/70"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[var(--color-on-surface)]/80">Primary field / career direction</label>
+              <select
+                value={form.fieldOfInterest}
+                onChange={(e) => updateField("fieldOfInterest", e.target.value)}
+                className="h-11 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm outline-none transition focus:border-[var(--color-primary)]/70"
+              >
+                <option value="">Select primary field</option>
+                {FIELD_OPTIONS.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[var(--color-on-surface)]/80">Current level</label>
+              <select
+                value={form.experienceLevel}
+                onChange={(e) => updateField("experienceLevel", e.target.value)}
+                className="h-11 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm outline-none transition focus:border-[var(--color-primary)]/70"
+              >
+                <option value="">Select level</option>
+                {EXPERIENCE_LEVELS.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[var(--color-on-surface)]/80">Preferred learning / work style</label>
+              <select
+                value={form.preferredWorkStyle}
+                onChange={(e) => updateField("preferredWorkStyle", e.target.value)}
+                className="h-11 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm outline-none transition focus:border-[var(--color-primary)]/70"
+              >
+                <option value="">Select work style</option>
+                {WORK_STYLE_OPTIONS.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[var(--color-on-surface)]/80">Region</label>
+              <select
+                value={form.region}
+                onChange={(e) => updateField("region", e.target.value)}
+                className="h-11 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm outline-none transition focus:border-[var(--color-primary)]/70"
+              >
+                <option value="">Select region</option>
+                {REGION_OPTIONS.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
-        </div>
-        
-        <div className="text-xs opacity-40 font-label">
-          © 2026 VISIONTECH AI. ALL RIGHTS RESERVED.
-        </div>
-      </section>
 
-      {/* Right Side: Interaction Canvas */}
-      <section className="flex-1 bg-surface-container-low px-6 py-12 md:px-24 md:py-20 overflow-y-auto">
-        <div className="max-w-2xl mx-auto">
-          {/* Mobile Branding */}
-          <div className="md:hidden mb-12">
-            <h1 className="font-headline text-2xl font-bold tracking-tighter text-primary">VisionTech</h1>
-          </div>
+          {recommendedPack && (
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mt-6 rounded-2xl bg-[var(--color-surface-container-low)] p-5">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-[var(--color-on-surface)]">Smart starter pack available</p>
+                  <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">
+                    Based on your selected field, VisionTech can autofill a strong starting set of goals, interests, and skills to reduce repeated input.
+                  </p>
+                </div>
 
-          {/* Progress Stepper */}
-          <nav className="flex items-center space-x-8 mb-16">
-            <div className="flex items-center group cursor-pointer">
-              <span className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-headline text-sm font-bold mr-3">1</span>
-              <span className="font-label text-xs uppercase tracking-widest font-bold text-primary">Discover</span>
-            </div>
-            <div className="h-[1px] flex-1 bg-outline-variant/30"></div>
-            <div className="flex items-center opacity-40">
-              <span className="w-8 h-8 rounded-full bg-outline-variant flex items-center justify-center text-on-surface font-headline text-sm font-bold mr-3">2</span>
-              <span className="font-label text-xs uppercase tracking-widest">Match</span>
-            </div>
-            <div className="h-[1px] flex-1 bg-outline-variant/30"></div>
-            <div className="flex items-center opacity-40">
-              <span className="w-8 h-8 rounded-full bg-outline-variant flex items-center justify-center text-on-surface font-headline text-sm font-bold mr-3">3</span>
-              <span className="font-label text-xs uppercase tracking-widest">Create</span>
-            </div>
-          </nav>
-
-          <header className="mb-12">
-            <h3 className="font-headline text-4xl font-bold tracking-tight text-on-surface mb-3">Start your innovation journey.</h3>
-            <p className="text-on-surface-variant font-sans leading-relaxed">Answer a few questions so VisionTech can recommend your strongest skills, collaborators, and practical innovation pathways.</p>
-          </header>
-
-          <form className="space-y-10" onSubmit={(e) => e.preventDefault()}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="font-label text-[11px] uppercase tracking-widest text-on-surface-variant/60 font-bold ml-1">Email Address</label>
-                <input className="w-full bg-surface-container-lowest border-none rounded-xl h-14 px-5 font-sans focus:ring-2 focus:ring-secondary/20 transition-all outline-none" placeholder="name@innovation.lab" type="email"/>
+                <button
+                  type="button"
+                  onClick={applyAutofillPack}
+                  className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:bg-black"
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Use suggested starter set
+                </button>
               </div>
-              <div className="space-y-2">
-                <label className="font-label text-[11px] uppercase tracking-widest text-on-surface-variant/60 font-bold ml-1">Learning Stage</label>
-                <select className="w-full bg-surface-container-lowest border-none rounded-xl h-14 px-5 font-sans focus:ring-2 focus:ring-secondary/20 transition-all outline-none appearance-none">
-                  <option>Secondary / College</option>
-                  <option>Undergraduate / Graduate</option>
-                  <option>Apprentice / Bootcamp</option>
-                  <option>Early Career</option>
-                </select>
-              </div>
-            </div>
+            </motion.div>
+          )}
+        </motion.section>
 
-            <div className="space-y-6">
+        <SelectionBlock
+          title="Goals"
+          subtitle="Choose the main outcomes you want VisionTech to help you achieve. Select at least 3."
+          groups={GOAL_GROUPS}
+          selectedItems={form.goals}
+          onAdd={(value) => addToList("goals", value)}
+          onRemove={(value) => removeFromList("goals", value)}
+          customValue={customGoal}
+          onCustomChange={setCustomGoal}
+          onAddCustom={() => {
+            addToList("goals", customGoal);
+            setCustomGoal("");
+          }}
+        />
+
+        <div className="my-8" />
+
+        <SelectionBlock
+          title="Interests"
+          subtitle="Choose the major areas you are curious about, already exploring, or want to grow into. Select at least 3."
+          groups={INTEREST_GROUPS}
+          selectedItems={form.interests}
+          onAdd={(value) => addToList("interests", value)}
+          onRemove={(value) => removeFromList("interests", value)}
+          customValue={customInterest}
+          onCustomChange={setCustomInterest}
+          onAddCustom={() => {
+            addToList("interests", customInterest);
+            setCustomInterest("");
+          }}
+        />
+
+        <div className="my-8" />
+
+        <SelectionBlock
+          title="Skills"
+          subtitle="Choose your current strengths or skills you already have. This helps VisionTech avoid asking for the same things repeatedly and improve pathway accuracy. Select at least 3."
+          groups={SKILL_GROUPS}
+          selectedItems={form.skills}
+          onAdd={(value) => addToList("skills", value)}
+          onRemove={(value) => removeFromList("skills", value)}
+          customValue={customSkill}
+          onCustomChange={setCustomSkill}
+          onAddCustom={() => {
+            addToList("skills", customSkill);
+            setCustomSkill("");
+          }}
+        />
+
+        {(suggestedInterestSkills.skills.length > 0 || suggestedInterestSkills.goals.length > 0) && (
+          <motion.section
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="mt-8 rounded-3xl border border-[var(--color-outline-variant)] bg-white p-6 shadow-sm"
+          >
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <h4 className="font-headline text-xl font-bold mb-1">Technical Proficiency</h4>
-                <p className="text-sm text-on-surface-variant">Select the nodes that define your expertise.</p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <button className="flex items-center px-5 py-3 rounded-full bg-primary text-white font-sans text-sm font-medium transition-transform active:scale-95">
-                  <Brain className="w-4 h-4 mr-2" /> Machine Learning
-                </button>
-                <button className="flex items-center px-5 py-3 rounded-full bg-surface-container-lowest text-on-surface-variant font-sans text-sm font-medium hover:bg-surface-container-high transition-all active:scale-95">
-                  <Code className="w-4 h-4 mr-2" /> Python Architecture
-                </button>
-                <button className="flex items-center px-5 py-3 rounded-full bg-surface-container-lowest text-on-surface-variant font-sans text-sm font-medium hover:bg-surface-container-high transition-all active:scale-95">
-                  <Network className="w-4 h-4 mr-2" /> Distributed Systems
-                </button>
-                <button className="flex items-center px-5 py-3 rounded-full bg-surface-container-lowest text-on-surface-variant font-sans text-sm font-medium hover:bg-surface-container-high transition-all active:scale-95">
-                  <FlaskConical className="w-4 h-4 mr-2" /> Bio-Computing
-                </button>
-                <button className="flex items-center px-5 py-3 rounded-full bg-surface-container-lowest text-on-surface-variant font-sans text-sm font-medium hover:bg-surface-container-high transition-all active:scale-95">
-                  <Lock className="w-4 h-4 mr-2" /> Quantum Crypto
-                </button>
-                <button className="px-5 py-3 rounded-full border border-dashed border-outline-variant text-on-surface-variant/60 font-label text-xs uppercase tracking-widest hover:border-secondary hover:text-secondary transition-colors">
-                  + Add Custom Node
-                </button>
-              </div>
-            </div>
+                <h3 className="text-xl font-bold text-[var(--color-on-surface)]">VisionTech smart suggestions</h3>
+                <p className="mt-2 text-sm text-[var(--color-on-surface-variant)]">
+                  Based on the interests you selected, these are useful related goals and skills you may want to add.
+                </p>
 
-            <div className="space-y-6">
-              <div>
-                <h4 className="font-headline text-xl font-bold mb-1">Innovation Vertical</h4>
-                <p className="text-sm text-on-surface-variant">Where does your curiosity focus?</p>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {[
-                  { title: 'Generative Art', sub: 'Design & AI', img: 'https://picsum.photos/seed/art/300/300' },
-                  { title: 'Health-Tech', sub: 'Bio-Innovation', img: 'https://picsum.photos/seed/health/300/300', active: true },
-                  { title: 'Web 4.0', sub: 'Spatial Compute', img: 'https://picsum.photos/seed/web/300/300' },
-                ].map((item) => (
-                  <div 
-                    key={item.title}
-                    className={cn(
-                      "group relative overflow-hidden rounded-2xl aspect-square cursor-pointer transition-all",
-                      item.active ? "ring-4 ring-secondary/10 border-2 border-secondary" : "hover:ring-2 hover:ring-secondary/50"
-                    )}
-                  >
-                    <img className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src={item.img} alt={item.title} referrerPolicy="no-referrer" />
-                    <div className={cn(
-                      "absolute inset-0 flex flex-col justify-end p-6",
-                      item.active ? "bg-gradient-to-t from-secondary/90 to-transparent" : "bg-gradient-to-t from-on-surface/90 to-transparent"
-                    )}>
-                      <div className="flex justify-between items-center">
-                        <p className="font-headline text-white font-bold">{item.title}</p>
-                        {item.active && <div className="w-4 h-4 bg-white rounded-full flex items-center justify-center"><div className="w-2 h-2 bg-secondary rounded-full"></div></div>}
-                      </div>
-                      <p className="text-[10px] text-white/60 font-label uppercase tracking-widest mt-1">{item.sub}</p>
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                    <p className="text-sm font-semibold text-[var(--color-on-surface)]">Suggested goals</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {suggestedInterestSkills.goals.map((item) => (
+                        <span key={item} className="rounded-full bg-white px-3 py-2 text-xs font-medium text-[var(--color-on-surface-variant)]">
+                          {item}
+                        </span>
+                      ))}
                     </div>
                   </div>
-                ))}
+
+                  <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                    <p className="text-sm font-semibold text-[var(--color-on-surface)]">Suggested skills</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {suggestedInterestSkills.skills.map((item) => (
+                        <span key={item} className="rounded-full bg-white px-3 py-2 text-xs font-medium text-[var(--color-on-surface-variant)]">
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={applyInterestSuggestions}
+                className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:bg-black"
+              >
+                <Check className="mr-2 h-4 w-4" />
+                Apply suggestions
+              </button>
+            </div>
+          </motion.section>
+        )}
+
+        <motion.section
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="mt-8 rounded-3xl border border-[var(--color-outline-variant)] bg-white p-6 shadow-sm"
+        >
+          <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
+            <div>
+              <h3 className="text-xl font-bold text-[var(--color-on-surface)]">Review your onboarding profile</h3>
+              <p className="mt-2 text-sm text-[var(--color-on-surface-variant)]">
+                This is the foundation VisionTech uses to personalise your system experience from day one.
+              </p>
+
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                  <p className="text-xs uppercase tracking-wide text-[var(--color-on-surface-variant)]">Nickname</p>
+                  <p className="mt-2 text-sm font-semibold text-[var(--color-on-surface)]">
+                    {form.preferredNickname || "Not set yet"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                  <p className="text-xs uppercase tracking-wide text-[var(--color-on-surface-variant)]">Field</p>
+                  <p className="mt-2 text-sm font-semibold text-[var(--color-on-surface)]">
+                    {form.fieldOfInterest || "Not set yet"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                  <p className="text-xs uppercase tracking-wide text-[var(--color-on-surface-variant)]">Level</p>
+                  <p className="mt-2 text-sm font-semibold text-[var(--color-on-surface)]">
+                    {form.experienceLevel || "Not set yet"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                  <p className="text-xs uppercase tracking-wide text-[var(--color-on-surface-variant)]">Work style</p>
+                  <p className="mt-2 text-sm font-semibold text-[var(--color-on-surface)]">
+                    {form.preferredWorkStyle || "Not set yet"}
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="pt-10 flex items-center justify-between">
-              <button className="text-on-surface-variant/60 font-label text-xs uppercase tracking-widest hover:text-on-surface transition-colors">
-                Save Progress & Exit
-              </button>
-              <button
-                type="button"
-                onClick={complete}
-                className="hero-gradient px-12 py-5 rounded-xl text-white font-headline font-bold tracking-tight shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center"
-              >
-                Continue to Collaboration
-                <ArrowRight className="ml-3 w-5 h-5" />
-              </button>
+            <div className="rounded-3xl bg-[var(--color-primary)] p-6 text-white">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5" />
+                <p className="text-sm font-semibold text-white/80">Ready to continue</p>
+              </div>
+
+              <p className="mt-4 text-sm leading-7 text-white/80">
+                After this step, the next page takes you into Intelligence, where VisionTech begins generating tailored guidance, pathway logic, and recommendation signals.
+              </p>
+
+              <div className="mt-5 rounded-2xl bg-white/10 p-4">
+                <div className="mb-2 flex items-center justify-between text-sm">
+                  <span className="text-white/80">Completion</span>
+                  <span className="font-semibold">{completion}%</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-white/20">
+                  <motion.div className="h-2 rounded-full bg-white" animate={{ width: `${completion}%` }} transition={{ duration: 0.35 }} />
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  className="inline-flex h-11 items-center justify-center rounded-2xl bg-white px-4 text-sm font-semibold text-[var(--color-primary)] transition hover:bg-[var(--color-surface-container-low)]"
+                >
+                  Complete onboarding
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </button>
+
+                <button
+                  type="button"
+                  className="inline-flex h-11 items-center justify-center rounded-2xl border border-white/30 px-4 text-sm font-medium text-white transition hover:bg-white/10"
+                >
+                  <Globe className="mr-2 h-4 w-4" />
+                  Save and continue later
+                </button>
+              </div>
             </div>
-          </form>
-        </div>
-      </section>
+          </div>
+        </motion.section>
+      </div>
     </main>
   );
 }

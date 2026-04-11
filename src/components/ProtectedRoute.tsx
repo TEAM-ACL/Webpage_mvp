@@ -16,7 +16,15 @@ export function RequireOnboardingComplete({ children }: Props): JSX.Element {
   const { user, loading } = useAuth();
   if (loading) return <></>;
   if (!user) return <Navigate to="/login" replace />;
-  if (!getOnboardingComplete()) return <Navigate to="/onboarding" replace />;
+  if (!getOnboardingComplete()) {
+    return (
+      <Navigate
+        to="/onboarding"
+        replace
+        state={{ reminder: "Please finish onboarding to access Intelligence." }}
+      />
+    );
+  }
   return children;
 }
 
