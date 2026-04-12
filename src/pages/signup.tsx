@@ -148,7 +148,7 @@ export default function SignUp(): JSX.Element {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="font-label text-sm font-semibold text-on-surface-variant ml-1">Work Email</label>
+              <label className="font-label text-sm font-semibold text-on-surface-variant ml-1">Enter Email Address</label>
               <div className="relative">
                 <input
                   className="w-full px-5 py-4 bg-surface-container-high rounded-xl border-none focus:ring-2 focus:ring-secondary/20 focus:bg-white text-on-surface placeholder:text-on-surface-variant/40 transition-all"
