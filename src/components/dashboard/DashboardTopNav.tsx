@@ -1,16 +1,12 @@
 "use client";
 
+import { useMemo } from "react";
 import { Bell, ChevronDown } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { getOnboardingProfile, isAdmin as checkAdmin } from "../../lib/auth";
 
 type NavItem = { label: string; href: string };
-
-const navItems: NavItem[] = [
-  { label: "Intelligence", href: "/intelligence" },
-  { label: "Workspace", href: "/workspace" },
-  { label: "Network", href: "/network" },
-  { label: "Admin", href: "/admin" },
-];
 
 function isActive(pathname: string, href: string) {
   return pathname === href;
@@ -18,6 +14,21 @@ function isActive(pathname: string, href: string) {
 
 export default function DashboardTopNav() {
   const { pathname } = useLocation();
+  const { user } = useAuth();
+  const onboardingProfile = useMemo(() => getOnboardingProfile<{ preferredNickname?: string }>(), []);
+
+  const navItems: NavItem[] = [
+    { label: "Intelligence", href: "/intelligence" },
+    { label: "Workspace", href: "/workspace" },
+    { label: "Network", href: "/network" },
+  ];
+
+  if (user && checkAdmin()) {
+    navItems.push({ label: "Admin", href: "/admin" });
+  }
+
+  const displayName = onboardingProfile?.preferredNickname || user?.display_name || user?.email || "User";
+  const initials = getInitials(displayName);
 
   return (
     <header className="sticky top-0 z-30 border-b border-[var(--color-outline-variant)] bg-[color:rgba(255,255,255,0.9)] backdrop-blur">
@@ -58,18 +69,31 @@ export default function DashboardTopNav() {
             <Bell className="h-4 w-4" />
           </button>
 
-          <button className="inline-flex items-center gap-3 rounded-2xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 transition hover:bg-[var(--color-surface-container-low)]">
+          <Link
+            to="/profile"
+            className="inline-flex items-center gap-3 rounded-2xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 transition hover:bg-[var(--color-surface-container-low)]"
+          >
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-primary)] text-xs font-bold text-white">
-              CL
+              {initials}
             </div>
             <div className="hidden text-left sm:block">
-              <p className="text-sm font-semibold text-[var(--color-on-surface)]">Chidera</p>
+              <p className="text-sm font-semibold text-[var(--color-on-surface)]">{displayName}</p>
               <p className="text-xs text-[var(--color-on-surface-variant)]">User Profile</p>
             </div>
             <ChevronDown className="h-4 w-4 text-[var(--color-on-surface-variant)]" />
-          </button>
+          </Link>
         </div>
       </div>
     </header>
   );
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((part) => part.trim()[0])
+    .filter(Boolean)
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "U";
 }

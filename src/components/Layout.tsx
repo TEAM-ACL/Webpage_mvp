@@ -54,8 +54,8 @@ export function Header() {
     { name: 'About', path: '/about' },
   ];
 
-  // Hide auth CTA buttons on onboarding and profile (user is already engaged / logged in).
-  const hideAuthCtas = location.pathname.startsWith("/onboarding") || location.pathname.startsWith("/profile");
+  // Hide auth CTAs when user is logged in, or on onboarding/profile pages.
+  const hideAuthCtas = !!user || location.pathname.startsWith("/onboarding") || location.pathname.startsWith("/profile");
 
   return (
     <header className="fixed top-0 w-full z-50 shadow-[0_12px_40px_rgba(25,28,29,0.08)]" style={{ backgroundColor: '#1f0954' }}>
