@@ -1,4 +1,5 @@
 import type { JSX } from "react";
+import { useMemo } from "react";
 import {
   ArrowRight,
   Bell,
@@ -16,6 +17,7 @@ import {
 import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
 import SummaryGrid, { type SummaryItem } from "../components/dashboard/SummaryGrid";
+import { getOnboardingProfile } from "../lib/auth";
 
 // Static data (kept colocated for easy extraction into components later)
 type PathwayStep = {
@@ -46,12 +48,19 @@ type ActivityItem = {
   status: "done" | "in-progress" | "upcoming";
 };
 
-const stats: SummaryItem[] = [
-  { title: "Pathway Progress", value: "45%", note: "Moving steadily toward your goal", icon: TrendingUp },
-  { title: "Skills Identified", value: "12", note: "Technical and growth skills mapped", icon: Target },
-  { title: "Active Matches", value: "8", note: "Potential collaborators and mentors", icon: Users },
-  { title: "AI Insights", value: "16", note: "New recommendations this week", icon: Lightbulb },
-];
+function buildStats(skillsCount: number | null): SummaryItem[] {
+  return [
+    { title: "Pathway Progress", value: "45%", note: "Moving steadily toward your goal", icon: TrendingUp },
+    {
+      title: "Skills Identified",
+      value: skillsCount !== null ? String(skillsCount) : "—",
+      note: skillsCount !== null ? "Captured from onboarding" : "Add skills in onboarding to unlock precision",
+      icon: Target,
+    },
+    { title: "Active Matches", value: "8", note: "Potential collaborators and mentors", icon: Users },
+    { title: "AI Insights", value: "16", note: "New recommendations this week", icon: Lightbulb },
+  ];
+}
 
 const pathwaySteps: PathwayStep[] = [
   {
@@ -165,12 +174,42 @@ function activityDot(status: ActivityItem["status"]) {
 const subtle = "text-[var(--color-on-surface-variant)]";
 
 export default function Intelligence(): JSX.Element {
+  const profile = useMemo(() => getOnboardingProfile<{
+    preferredNickname?: string;
+    fieldOfInterest?: string;
+    experienceLevel?: string;
+    preferredWorkStyle?: string;
+    region?: string;
+    goals?: string[];
+    interests?: string[];
+    skills?: string[];
+  }>(), []);
+
+  const field = profile?.fieldOfInterest || "Cloud Security Pathway";
+  const headlineGoal = profile?.goals?.[0] || "Become opportunity-ready in cloud security";
+  const skillsCount = profile?.skills ? profile.skills.length : null;
+  const summaryGoal = profile?.goals?.[0] || "Grow in your chosen pathway";
+  const summaryTask = profile?.interests?.[0]
+    ? `Explore: ${profile.interests[0]}`
+    : "Complete your next pathway task";
+  const matchStrength = profile?.preferredWorkStyle
+    ? `Strong fit for ${profile.preferredWorkStyle.toLowerCase()} work`
+    : "High fit with technical collaborators";
+
+  const stats = useMemo(() => buildStats(skillsCount), [skillsCount]);
+
+  const missingProfile = !profile;
+
   return (
     <DashboardShell>
       <PageHeader
         eyebrow="VisionTech Intelligence"
         title="Your personalised guidance and growth direction"
-        description="Track pathway progress, understand next steps, and receive intelligent recommendations tailored to your goals."
+        description={
+          missingProfile
+            ? "Finish onboarding to fully personalise your dashboard."
+            : "Track pathway progress, understand next steps, and receive intelligent recommendations tailored to your goals."
+        }
         actions={
           <>
             <button className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]">
@@ -193,7 +232,7 @@ export default function Intelligence(): JSX.Element {
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-sm font-semibold text-[var(--color-on-surface-variant)]">Current Focus</p>
-              <h2 className="mt-2 text-2xl font-bold text-[var(--color-primary)]">Cloud Security Pathway</h2>
+              <h2 className="mt-2 text-2xl font-bold text-[var(--color-primary)]">{field}</h2>
               <p className="mt-2 max-w-xl text-sm text-[var(--color-on-surface-variant)]">
                 You are in the structured development stage. VisionTech is guiding you from skill awareness into practical readiness and stronger opportunity alignment.
               </p>
@@ -213,17 +252,17 @@ export default function Intelligence(): JSX.Element {
           <div className="mt-4 space-y-4">
             <div>
               <p className="text-xs uppercase tracking-wide text-[var(--color-on-surface-variant)]">Goal</p>
-              <p className="mt-1 font-semibold text-[var(--color-primary)]">Become opportunity-ready in cloud security</p>
+              <p className="mt-1 font-semibold text-[var(--color-primary)]">{summaryGoal}</p>
             </div>
 
             <div>
               <p className="text-xs uppercase tracking-wide text-[var(--color-on-surface-variant)]">Next Task</p>
-              <p className="mt-1 font-semibold text-[var(--color-on-surface)]">Complete Cloud IAM practical exercise</p>
+              <p className="mt-1 font-semibold text-[var(--color-on-surface)]">{summaryTask}</p>
             </div>
 
             <div>
               <p className="text-xs uppercase tracking-wide text-[var(--color-on-surface-variant)]">Match Strength</p>
-              <p className="mt-1 font-semibold text-[var(--color-on-surface)]">High fit with technical collaborators</p>
+              <p className="mt-1 font-semibold text-[var(--color-on-surface)]">{matchStrength}</p>
             </div>
           </div>
         </div>

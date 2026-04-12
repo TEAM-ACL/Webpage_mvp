@@ -4,10 +4,12 @@ import { Settings, Search, Linkedin, Instagram, Youtube, Menu, X } from 'lucide-
 import { cn } from '../lib/utils';
 import { api } from '../lib/api';
 import { signOut } from '../lib/auth';
+import { useAuth } from '../context/AuthContext';
 
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
@@ -52,8 +54,8 @@ export function Header() {
     { name: 'About', path: '/about' },
   ];
 
-  // Hide auth CTA buttons on onboarding (user just signed up/logged in) to reduce redundancy.
-  const hideAuthCtas = location.pathname.startsWith("/onboarding");
+  // Hide auth CTA buttons on onboarding and profile (user is already engaged / logged in).
+  const hideAuthCtas = location.pathname.startsWith("/onboarding") || location.pathname.startsWith("/profile");
 
   return (
     <header className="fixed top-0 w-full z-50 shadow-[0_12px_40px_rgba(25,28,29,0.08)]" style={{ backgroundColor: '#1f0954' }}>
@@ -90,59 +92,61 @@ export function Header() {
             <Search className="absolute right-4 top-2.5 w-4 h-4 text-white/60" />
           </div>
           
-          <div className="flex items-center space-x-2 md:space-x-4">
-            <button className="p-2 text-white/70 hover:text-white transition-all">
-              <Settings className="w-5 h-5" />
-            </button>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setProfileOpen((o) => !o)}
-                className="w-10 h-10 rounded-full border-2 border-white/30 overflow-hidden focus:outline-none focus:ring-2 focus:ring-white/60"
-              >
-                <img
-                  alt="User Profile"
-                  className="w-full h-full object-cover"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIYUDHKTNyKPp5XA4Df-fOlyFdKT21sSrQgrYXMHP3BuQrSm8ZjheScD3S2RRJS04yvBS5aRzE2YKpX6Z1ToqzY2ZLFZ7hJ6BPvDsWBRthykOwNqu475mHb55jS727aghKuWrZ__-uhl0l5apmuWd98XUZpde1oMSGORsiudoGelr-nCJ_FzWzIDNT3scdUBR9NZzZkR6ejwSq11BYlQWsLf8t4fqOq0fjychvEgX1yBZGLF2aPCCfyW7q792utoL53e7bxiWZXX_y"
-                  referrerPolicy="no-referrer"
-                />
+          {user && (
+            <div className="flex items-center space-x-2 md:space-x-4">
+              <button className="p-2 text-white/70 hover:text-white transition-all">
+                <Settings className="w-5 h-5" />
               </button>
-              {profileOpen && (
-                <div className="absolute right-0 mt-3 w-56 rounded-2xl bg-white/95 text-on-surface shadow-2xl border border-white/40 backdrop-blur-lg py-2 z-50">
-                  <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to="/profile" onClick={() => setProfileOpen(false)}>
-                    Profile
-                  </Link>
-                  <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to="/settings" onClick={() => setProfileOpen(false)}>
-                    Settings
-                  </Link>
-                  <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to="/onboarding" onClick={() => setProfileOpen(false)}>
-                    My Pathway
-                  </Link>
-                  <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to="/workspace" onClick={() => setProfileOpen(false)}>
-                    Workspace
-                  </Link>
-                  <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to="/network" onClick={() => setProfileOpen(false)}>
-                    Network
-                  </Link>
-                  <button
-                    className="flex w-full items-center justify-between px-4 py-2 hover:bg-surface-container-high rounded-xl"
-                    onClick={() => { toggleTheme(); }}
-                    type="button"
-                  >
-                    <span>Theme</span>
-                    <span className="text-xs font-semibold">{darkMode ? "Dark" : "Light"}</span>
-                  </button>
-                  <button
-                    className="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded-xl"
-                    onClick={() => { setProfileOpen(false); handleLogout(); }}
-                    type="button"
-                  >
-                    Log out
-                  </button>
-                </div>
-              )}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setProfileOpen((o) => !o)}
+                  className="w-10 h-10 rounded-full border-2 border-white/30 overflow-hidden focus:outline-none focus:ring-2 focus:ring-white/60"
+                >
+                  <img
+                    alt="User Profile"
+                    className="w-full h-full object-cover"
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIYUDHKTNyKPp5XA4Df-fOlyFdKT21sSrQgrYXMHP3BuQrSm8ZjheScD3S2RRJS04yvBS5aRzE2YKpX6Z1ToqzY2ZLFZ7hJ6BPvDsWBRthykOwNqu475mHb55jS727aghKuWrZ__-uhl0l5apmuWd98XUZpde1oMSGORsiudoGelr-nCJ_FzWzIDNT3scdUBR9NZzZkR6ejwSq11BYlQWsLf8t4fqOq0fjychvEgX1yBZGLF2aPCCfyW7q792utoL53e7bxiWZXX_y"
+                    referrerPolicy="no-referrer"
+                  />
+                </button>
+                {profileOpen && (
+                  <div className="absolute right-0 mt-3 w-56 rounded-2xl bg-white/95 text-on-surface shadow-2xl border border-white/40 backdrop-blur-lg py-2 z-50">
+                    <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to="/profile" onClick={() => setProfileOpen(false)}>
+                      Profile
+                    </Link>
+                    <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to="/settings" onClick={() => setProfileOpen(false)}>
+                      Settings
+                    </Link>
+                    <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to="/onboarding" onClick={() => setProfileOpen(false)}>
+                      My Pathway
+                    </Link>
+                    <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to="/workspace" onClick={() => setProfileOpen(false)}>
+                      Workspace
+                    </Link>
+                    <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to="/network" onClick={() => setProfileOpen(false)}>
+                      Network
+                    </Link>
+                    <button
+                      className="flex w-full items-center justify-between px-4 py-2 hover:bg-surface-container-high rounded-xl"
+                      onClick={() => { toggleTheme(); }}
+                      type="button"
+                    >
+                      <span>Theme</span>
+                      <span className="text-xs font-semibold">{darkMode ? "Dark" : "Light"}</span>
+                    </button>
+                    <button
+                      className="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded-xl"
+                      onClick={() => { setProfileOpen(false); handleLogout(); }}
+                      type="button"
+                    >
+                      Log out
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {!hideAuthCtas && (
             <div className="hidden md:flex items-center gap-3">
@@ -208,13 +212,15 @@ export function Header() {
                 </Link>
               </div>
             )}
-            <button
-              type="button"
-              onClick={() => { setMobileOpen(false); handleLogout(); }}
-              className="flex-1 text-center text-white/80 border border-white/20 hover:border-white/40 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
-            >
-              Log out
-            </button>
+            {user && (
+              <button
+                type="button"
+                onClick={() => { setMobileOpen(false); handleLogout(); }}
+                className="flex-1 text-center text-white/80 border border-white/20 hover:border-white/40 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+              >
+                Log out
+              </button>
+            )}
           </div>
         </div>
       )}
