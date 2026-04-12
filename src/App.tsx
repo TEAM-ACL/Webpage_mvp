@@ -14,6 +14,7 @@ import About from './pages/About';
 import Login from './pages/login';
 import SignUp from './pages/signup';
 import Intelligence from './pages/Intelligence';
+import Profile from './pages/Profile';
 import ForgotPassword from './pages/ForgotPassword';
 import { AuthProvider } from './context/AuthContext';
 import ResetPassword from './pages/ResetPassword';
@@ -80,6 +81,14 @@ export default function App() {
                         element={
                           <RequireAuth>
                             <Onboarding />
+                          </RequireAuth>
+                        }
+                      />
+                      <Route
+                        path="/profile"
+                        element={
+                          <RequireAuth>
+                            <Profile />
                           </RequireAuth>
                         }
                       />

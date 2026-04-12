@@ -3,6 +3,7 @@ import { clearSession } from "./api";
 const USER_KEY = "user";
 const ONBOARDING_KEY = "onboarding_complete";
 const ADMIN_KEY = "is_admin";
+const ONBOARDING_PROFILE_KEY = "onboarding_profile";
 
 type StoredUser = {
   id: string;
@@ -48,4 +49,23 @@ export function signOut(): void {
   clearSession();
   setOnboardingComplete(false);
   setAdminFlag(false);
+  sessionStorage.removeItem(ONBOARDING_PROFILE_KEY);
+}
+
+export function setOnboardingProfile(profile: unknown): void {
+  try {
+    sessionStorage.setItem(ONBOARDING_PROFILE_KEY, JSON.stringify(profile));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function getOnboardingProfile<T = unknown>(): T | null {
+  const raw = sessionStorage.getItem(ONBOARDING_PROFILE_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
 }

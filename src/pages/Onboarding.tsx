@@ -16,7 +16,7 @@ import {
   Layers3,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { setOnboardingComplete } from "../lib/auth";
+import { setOnboardingComplete, setOnboardingProfile } from "../lib/auth";
 
 
 type OptionGroup = {
@@ -632,6 +632,7 @@ export default function OnboardingPage(): JSX.Element {
     };
 
     // TODO: send payload to backend when endpoint is ready.
+    setOnboardingProfile(payload);
     console.log("VisionTech onboarding payload", payload);
     setOnboardingComplete(true);
     navigate("/intelligence");
