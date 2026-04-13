@@ -1,4 +1,4 @@
-﻿import { useMemo, useState, type JSX } from "react";
+import { useEffect, useMemo, useState, type JSX } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Sparkles,
@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { setOnboardingComplete, setOnboardingProfile } from "../lib/auth";
+import { useAuth } from "../context/AuthContext";
 
 
 type OptionGroup = {
@@ -31,6 +32,9 @@ type FormState = {
   experienceLevel: string;
   preferredWorkStyle: string;
   region: string;
+  country: string;
+  otherFieldDetail: string;
+  otherRegionDetail: string;
   goals: string[];
   interests: string[];
   skills: string[];
@@ -78,15 +82,218 @@ const WORK_STYLE_OPTIONS = [
 ];
 
 const REGION_OPTIONS = [
-  "United Kingdom",
-  "Nigeria",
-  "Europe",
   "Africa",
-  "North America",
   "Asia",
+  "Europe",
+  "Latin America / Caribbean",
+  "Oceania",
+  "Northern America",
   "Remote / Global",
   "Other",
 ];
+
+const COUNTRIES_BY_REGION: Record<string, string[]> = {
+  Africa: [
+    "Algeria",
+    "Angola",
+    "Benin",
+    "Botswana",
+    "Burkina Faso",
+    "Burundi",
+    "Cameroon",
+    "Cape Verde",
+    "Central African Republic",
+    "Chad",
+    "Comoros",
+    "Congo (Democratic Republic)",
+    "Congo (Republic)",
+    "Djibouti",
+    "Egypt",
+    "Equatorial Guinea",
+    "Eritrea",
+    "Eswatini",
+    "Ethiopia",
+    "Gabon",
+    "Gambia",
+    "Ghana",
+    "Guinea",
+    "Guinea-Bissau",
+    "Ivory Coast",
+    "Kenya",
+    "Lesotho",
+    "Liberia",
+    "Libya",
+    "Madagascar",
+    "Malawi",
+    "Mali",
+    "Mauritania",
+    "Mauritius",
+    "Morocco",
+    "Mozambique",
+    "Namibia",
+    "Niger",
+    "Nigeria",
+    "Rwanda",
+    "Sao Tome and Principe",
+    "Senegal",
+    "Seychelles",
+    "Sierra Leone",
+    "Somalia",
+    "South Africa",
+    "South Sudan",
+    "Sudan",
+    "Tanzania",
+    "Togo",
+    "Tunisia",
+    "Uganda",
+    "Zambia",
+    "Zimbabwe",
+  ],
+  Asia: [
+    "Afghanistan",
+    "Armenia",
+    "Azerbaijan",
+    "Bahrain",
+    "Bangladesh",
+    "Bhutan",
+    "Brunei",
+    "Cambodia",
+    "China",
+    "Cyprus",
+    "Georgia",
+    "India",
+    "Indonesia",
+    "Iran",
+    "Iraq",
+    "Israel",
+    "Japan",
+    "Jordan",
+    "Kazakhstan",
+    "Kuwait",
+    "Kyrgyzstan",
+    "Laos",
+    "Lebanon",
+    "Malaysia",
+    "Maldives",
+    "Mongolia",
+    "Myanmar",
+    "Nepal",
+    "North Korea",
+    "Oman",
+    "Pakistan",
+    "Philippines",
+    "Qatar",
+    "Saudi Arabia",
+    "Singapore",
+    "South Korea",
+    "Sri Lanka",
+    "Syria",
+    "Taiwan",
+    "Tajikistan",
+    "Thailand",
+    "Timor-Leste",
+    "Turkey",
+    "Turkmenistan",
+    "United Arab Emirates",
+    "Uzbekistan",
+    "Vietnam",
+    "Yemen",
+  ],
+  Europe: [
+    "Albania",
+    "Andorra",
+    "Austria",
+    "Belarus",
+    "Belgium",
+    "Bosnia and Herzegovina",
+    "Bulgaria",
+    "Croatia",
+    "Czechia",
+    "Denmark",
+    "Estonia",
+    "Finland",
+    "France",
+    "Germany",
+    "Greece",
+    "Hungary",
+    "Iceland",
+    "Ireland",
+    "Italy",
+    "Latvia",
+    "Liechtenstein",
+    "Lithuania",
+    "Luxembourg",
+    "Malta",
+    "Moldova",
+    "Monaco",
+    "Montenegro",
+    "Netherlands",
+    "North Macedonia",
+    "Norway",
+    "Poland",
+    "Portugal",
+    "Romania",
+    "Serbia",
+    "Slovakia",
+    "Slovenia",
+    "Spain",
+    "Sweden",
+    "Switzerland",
+    "Ukraine",
+    "United Kingdom",
+  ],
+  "Latin America / Caribbean": [
+    "Argentina",
+    "Aruba",
+    "Bahamas",
+    "Barbados",
+    "Belize",
+    "Bolivia",
+    "Brazil",
+    "Chile",
+    "Colombia",
+    "Costa Rica",
+    "Cuba",
+    "Dominican Republic",
+    "Ecuador",
+    "El Salvador",
+    "Guatemala",
+    "Guyana",
+    "Haiti",
+    "Honduras",
+    "Jamaica",
+    "Mexico",
+    "Nicaragua",
+    "Panama",
+    "Paraguay",
+    "Peru",
+    "Puerto Rico",
+    "Saint Lucia",
+    "Suriname",
+    "Trinidad and Tobago",
+    "Uruguay",
+    "Venezuela",
+  ],
+  Oceania: [
+    "Australia",
+    "Fiji",
+    "Kiribati",
+    "Marshall Islands",
+    "Micronesia",
+    "Nauru",
+    "New Zealand",
+    "Palau",
+    "Papua New Guinea",
+    "Samoa",
+    "Solomon Islands",
+    "Tonga",
+    "Tuvalu",
+    "Vanuatu",
+  ],
+  "Northern America": ["Canada", "United States"],
+  "Remote / Global": ["Remote / Global"],
+  Other: ["Other"],
+};
 
 const GOAL_GROUPS: OptionGroup[] = [
   {
@@ -383,17 +590,19 @@ function SelectionBlock({
   onCustomChange,
   onAddCustom,
   minHint = "Select at least 3",
+  limitMessage,
 }: {
   title: string;
   subtitle: string;
   groups: OptionGroup[];
   selectedItems: string[];
-  onAdd: (value: string) => void;
+  onAdd: (value: string, groupLabel: string) => void;
   onRemove: (value: string) => void;
   customValue: string;
   onCustomChange: (value: string) => void;
   onAddCustom: () => void;
   minHint?: string;
+  limitMessage?: string;
 }): JSX.Element {
   const [selectedDropdownValue, setSelectedDropdownValue] = useState("");
 
@@ -409,6 +618,7 @@ function SelectionBlock({
         <h3 className="text-xl font-bold text-[var(--color-on-surface)]">{title}</h3>
         <p className="text-sm text-[var(--color-on-surface-variant)]">{subtitle}</p>
         <p className="text-xs font-medium text-[var(--color-on-surface-variant)]/80">{minHint}</p>
+        {limitMessage && <p className="text-xs font-semibold text-red-600">{limitMessage}</p>}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
@@ -437,7 +647,7 @@ function SelectionBlock({
                   type="button"
                   onClick={() => {
                     if (!selectedDropdownValue) return;
-                    onAdd(selectedDropdownValue);
+                    onAdd(selectedDropdownValue, group.label);
                     setSelectedDropdownValue("");
                   }}
                   className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:bg-black"
@@ -502,6 +712,7 @@ function SelectionBlock({
 export default function OnboardingPage(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const reminder = (location.state as { reminder?: string } | null)?.reminder;
   const [form, setForm] = useState<FormState>({
     preferredNickname: "",
@@ -510,6 +721,9 @@ export default function OnboardingPage(): JSX.Element {
     experienceLevel: "",
     preferredWorkStyle: "",
     region: "",
+    country: "",
+    otherFieldDetail: "",
+    otherRegionDetail: "",
     goals: [],
     interests: [],
     skills: [],
@@ -518,6 +732,8 @@ export default function OnboardingPage(): JSX.Element {
   const [customGoal, setCustomGoal] = useState("");
   const [customInterest, setCustomInterest] = useState("");
   const [customSkill, setCustomSkill] = useState("");
+  const [goalLimitMessage, setGoalLimitMessage] = useState("");
+  const [interestLimitMessage, setInterestLimitMessage] = useState("");
 
   const totalRequiredChecks = [
     form.preferredNickname,
@@ -525,12 +741,40 @@ export default function OnboardingPage(): JSX.Element {
     form.experienceLevel,
     form.preferredWorkStyle,
     form.region,
+    form.country,
     form.goals.length >= 3 ? "ok" : "",
     form.interests.length >= 3 ? "ok" : "",
     form.skills.length >= 3 ? "ok" : "",
   ];
 
   const completion = Math.round((totalRequiredChecks.filter(Boolean).length / totalRequiredChecks.length) * 100);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const inferredFullName = (user.display_name || `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim()).trim();
+    const inferredNickname = user.first_name || "";
+
+    setForm((prev) => ({
+      ...prev,
+      fullName: prev.fullName || inferredFullName,
+      preferredNickname: prev.preferredNickname || inferredNickname,
+    }));
+  }, [user]);
+
+  useEffect(() => {
+    setGoalLimitMessage("");
+  }, [form.goals]);
+
+  useEffect(() => {
+    setInterestLimitMessage("");
+  }, [form.interests]);
+
+  const availableCountries = useMemo(() => {
+    if (!form.region) return [];
+    const list = COUNTRIES_BY_REGION[form.region] || [];
+    return [...list].sort((a, b) => a.localeCompare(b));
+  }, [form.region]);
 
   const recommendedPack = useMemo(() => {
     if (!form.fieldOfInterest || !FIELD_AUTOFILL[form.fieldOfInterest]) {
@@ -597,6 +841,58 @@ export default function OnboardingPage(): JSX.Element {
     }));
   }
 
+  function applyGroupLimitedAdditions(current: string[], additions: string[], groups: OptionGroup[]): string[] {
+    let next = [...current];
+
+    additions.forEach((item) => {
+      const group = groups.find((g) => g.items.includes(item));
+      const groupCount = group ? next.filter((val) => group.items.includes(val)).length : 0;
+      if (group && groupCount >= 2) return;
+      next = uniquePush(next, item);
+    });
+
+    return next;
+  }
+
+  function addGoal(value: string, groupLabel: string) {
+    const targetGroup = GOAL_GROUPS.find((g) => g.label === groupLabel);
+    const currentCount = targetGroup ? form.goals.filter((item) => targetGroup.items.includes(item)).length : 0;
+    if (targetGroup && currentCount >= 2 && !form.goals.includes(value)) {
+      setGoalLimitMessage(`Max 2 selections in ${groupLabel}. Remove one to add another.`);
+      return;
+    }
+    setGoalLimitMessage("");
+    addToList("goals", value);
+  }
+
+  function addInterest(value: string, groupLabel: string) {
+    const targetGroup = INTEREST_GROUPS.find((g) => g.label === groupLabel);
+    const currentCount = targetGroup ? form.interests.filter((item) => targetGroup.items.includes(item)).length : 0;
+    if (targetGroup && currentCount >= 2 && !form.interests.includes(value)) {
+      setInterestLimitMessage(`Max 2 selections in ${groupLabel}. Remove one to add another.`);
+      return;
+    }
+    setInterestLimitMessage("");
+    addToList("interests", value);
+  }
+
+  function handleFieldChange(value: string) {
+    setForm((prev) => ({
+      ...prev,
+      fieldOfInterest: value,
+      otherFieldDetail: value === "Other" ? prev.otherFieldDetail : "",
+    }));
+  }
+
+  function handleRegionChange(value: string) {
+    setForm((prev) => ({
+      ...prev,
+      region: value,
+      country: "",
+      otherRegionDetail: value === "Other" ? prev.otherRegionDetail : "",
+    }));
+  }
+
   function removeFromList(key: "goals" | "interests" | "skills", value: string) {
     setForm((prev) => ({
       ...prev,
@@ -609,8 +905,8 @@ export default function OnboardingPage(): JSX.Element {
 
     setForm((prev) => ({
       ...prev,
-      goals: [...new Set([...prev.goals, ...recommendedPack.goals])].slice(0, 6),
-      interests: [...new Set([...prev.interests, ...recommendedPack.interests])].slice(0, 8),
+      goals: applyGroupLimitedAdditions(prev.goals, recommendedPack.goals, GOAL_GROUPS).slice(0, 6),
+      interests: applyGroupLimitedAdditions(prev.interests, recommendedPack.interests, INTEREST_GROUPS).slice(0, 8),
       skills: [...new Set([...prev.skills, ...recommendedPack.skills])].slice(0, 8),
     }));
   }
@@ -618,7 +914,7 @@ export default function OnboardingPage(): JSX.Element {
   function applyInterestSuggestions() {
     setForm((prev) => ({
       ...prev,
-      goals: [...new Set([...prev.goals, ...suggestedInterestSkills.goals])],
+      goals: applyGroupLimitedAdditions(prev.goals, suggestedInterestSkills.goals, GOAL_GROUPS),
       skills: [...new Set([...prev.skills, ...suggestedInterestSkills.skills])],
     }));
   }
@@ -795,7 +1091,7 @@ export default function OnboardingPage(): JSX.Element {
               <label className="mb-2 block text-sm font-semibold text-[var(--color-on-surface)]/80">Primary field / career direction</label>
               <select
                 value={form.fieldOfInterest}
-                onChange={(e) => updateField("fieldOfInterest", e.target.value)}
+                onChange={(e) => handleFieldChange(e.target.value)}
                 className="h-11 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm outline-none transition focus:border-[var(--color-primary)]/70"
               >
                 <option value="">Select primary field</option>
@@ -806,6 +1102,18 @@ export default function OnboardingPage(): JSX.Element {
                 ))}
               </select>
             </div>
+
+            {form.fieldOfInterest === "Other" && (
+              <div className="md:col-span-2 xl:col-span-3">
+                <label className="mb-2 block text-sm font-semibold text-[var(--color-on-surface)]/80">Describe your field / career direction</label>
+                <input
+                  value={form.otherFieldDetail}
+                  onChange={(e) => updateField("otherFieldDetail", e.target.value)}
+                  placeholder="Tell us more about your field"
+                  className="h-11 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm outline-none transition focus:border-[var(--color-primary)]/70"
+                />
+              </div>
+            )}
 
             <div>
               <label className="mb-2 block text-sm font-semibold text-[var(--color-on-surface)]/80">Current level</label>
@@ -843,7 +1151,7 @@ export default function OnboardingPage(): JSX.Element {
               <label className="mb-2 block text-sm font-semibold text-[var(--color-on-surface)]/80">Region</label>
               <select
                 value={form.region}
-                onChange={(e) => updateField("region", e.target.value)}
+                onChange={(e) => handleRegionChange(e.target.value)}
                 className="h-11 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm outline-none transition focus:border-[var(--color-primary)]/70"
               >
                 <option value="">Select region</option>
@@ -854,6 +1162,35 @@ export default function OnboardingPage(): JSX.Element {
                 ))}
               </select>
             </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[var(--color-on-surface)]/80">Country</label>
+              <select
+                value={form.country}
+                onChange={(e) => updateField("country", e.target.value)}
+                className="h-11 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm outline-none transition focus:border-[var(--color-primary)]/70 disabled:text-[var(--color-on-surface-variant)]/60"
+                disabled={!availableCountries.length}
+              >
+                <option value="">{form.region ? "Select country" : "Select a region first"}</option>
+                {availableCountries.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {form.region === "Other" && (
+              <div className="md:col-span-2 xl:col-span-3">
+                <label className="mb-2 block text-sm font-semibold text-[var(--color-on-surface)]/80">Describe your region</label>
+                <input
+                  value={form.otherRegionDetail}
+                  onChange={(e) => updateField("otherRegionDetail", e.target.value)}
+                  placeholder="Tell us about your region or location"
+                  className="h-11 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm outline-none transition focus:border-[var(--color-primary)]/70"
+                />
+              </div>
+            )}
           </div>
 
           {recommendedPack && (
@@ -884,7 +1221,7 @@ export default function OnboardingPage(): JSX.Element {
           subtitle="Choose the main outcomes you want VisionTech to help you achieve. Select at least 3."
           groups={GOAL_GROUPS}
           selectedItems={form.goals}
-          onAdd={(value) => addToList("goals", value)}
+          onAdd={(value, groupLabel) => addGoal(value, groupLabel)}
           onRemove={(value) => removeFromList("goals", value)}
           customValue={customGoal}
           onCustomChange={setCustomGoal}
@@ -892,6 +1229,8 @@ export default function OnboardingPage(): JSX.Element {
             addToList("goals", customGoal);
             setCustomGoal("");
           }}
+          limitMessage={goalLimitMessage}
+          minHint="Select at least 3 (max 2 per category)"
         />
 
         <div className="my-8" />
@@ -901,7 +1240,7 @@ export default function OnboardingPage(): JSX.Element {
           subtitle="Choose the major areas you are curious about, already exploring, or want to grow into. Select at least 3."
           groups={INTEREST_GROUPS}
           selectedItems={form.interests}
-          onAdd={(value) => addToList("interests", value)}
+          onAdd={(value, groupLabel) => addInterest(value, groupLabel)}
           onRemove={(value) => removeFromList("interests", value)}
           customValue={customInterest}
           onCustomChange={setCustomInterest}
@@ -909,6 +1248,8 @@ export default function OnboardingPage(): JSX.Element {
             addToList("interests", customInterest);
             setCustomInterest("");
           }}
+          limitMessage={interestLimitMessage}
+          minHint="Select at least 3 (max 2 per category)"
         />
 
         <div className="my-8" />
@@ -918,7 +1259,7 @@ export default function OnboardingPage(): JSX.Element {
           subtitle="Choose your current strengths or skills you already have. This helps VisionTech avoid asking for the same things repeatedly and improve pathway accuracy. Select at least 3."
           groups={SKILL_GROUPS}
           selectedItems={form.skills}
-          onAdd={(value) => addToList("skills", value)}
+          onAdd={(value, _groupLabel) => addToList("skills", value)}
           onRemove={(value) => removeFromList("skills", value)}
           customValue={customSkill}
           onCustomChange={setCustomSkill}
