@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState, type JSX, type ReactNode } from "react";
 import { api } from "../lib/api";
 import type { AuthSessionResponse, ProfileState } from "../lib/api";
-import type { AIInsightResponse } from "../types/ai";
+import type { AIInsightResponse, OnboardingData } from "../types/ai";
+import { generateAIInsight } from "../services/aiService";
 
 type AuthContextValue = {
   user: AuthSessionResponse["user"] | null;
@@ -9,12 +10,15 @@ type AuthContextValue = {
   onboardingStage: string | null;
   onboardingComplete: boolean | null;
   aiInsight: AIInsightResponse | null;
+  aiInsightLoading: boolean;
+  aiInsightError: string | null;
   loading: boolean;
   profileLoading: boolean;
   error: string | null;
   profileError: string | null;
   bootstrap: () => Promise<void>;
   refreshProfile: () => Promise<ProfileState | null>;
+  refreshAIInsight: (payload?: OnboardingData) => Promise<AIInsightResponse | null>;
   setAIInsight: (insight: AIInsightResponse | null) => void;
   setUser: (user: AuthSessionResponse["user"] | null) => void;
   logout: () => Promise<void>;
@@ -30,6 +34,8 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const [onboardingStage, setOnboardingStage] = useState<string | null>(null);
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
   const [aiInsight, setAIInsight] = useState<AIInsightResponse | null>(null);
+  const [aiInsightLoading, setAIInsightLoading] = useState(false);
+  const [aiInsightError, setAIInsightError] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
 
@@ -72,6 +78,22 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     }
   };
 
+  const refreshAIInsight = async (payload?: OnboardingData): Promise<AIInsightResponse | null> => {
+    setAIInsightLoading(true);
+    setAIInsightError(null);
+    try {
+      const insight = await generateAIInsight(payload);
+      setAIInsight(insight);
+      return insight;
+    } catch (err) {
+      setAIInsight(null);
+      setAIInsightError((err as Error).message);
+      return null;
+    } finally {
+      setAIInsightLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       await api.logout();
@@ -83,6 +105,8 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setOnboardingStage(null);
       setOnboardingComplete(null);
       setAIInsight(null);
+      setAIInsightError(null);
+      setAIInsightLoading(false);
     }
   };
 
@@ -98,12 +122,15 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
         onboardingStage,
         onboardingComplete,
         aiInsight,
+        aiInsightLoading,
+        aiInsightError,
         loading,
         profileLoading,
         error,
         profileError,
         bootstrap,
         refreshProfile: fetchProfile,
+        refreshAIInsight,
         setAIInsight,
         setUser,
         logout,

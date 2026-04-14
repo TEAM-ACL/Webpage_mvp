@@ -180,7 +180,7 @@ function activityDot(status: ActivityItem["status"]) {
 const subtle = "text-[var(--color-on-surface-variant)]";
 
 export default function Intelligence(): JSX.Element {
-  const { profile, profileLoading, aiInsight } = useAuth();
+  const { profile, profileLoading, aiInsight, aiInsightLoading, aiInsightError } = useAuth();
 
   const field = profile?.fieldOfInterest || "Cloud Security Pathway";
   const headlineGoal = profile?.goals?.[0] || "Become opportunity-ready in cloud security";
@@ -325,15 +325,23 @@ export default function Intelligence(): JSX.Element {
                   <p className={`mt-2 text-sm ${subtle}`}>
                     {aiInsight
                       ? "Generated from your latest onboarding profile."
-                      : "Complete onboarding to unlock personalised recommendations."}
+                      : aiInsightLoading
+                        ? "Generating AI insight from your saved profile."
+                        : aiInsightError
+                          ? "AI insight unavailable right now."
+                          : "Complete onboarding to unlock personalised recommendations."}
                   </p>
                 </div>
                 <div className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--color-primary)]">
-                  {aiInsight ? "Live" : "Sample"}
+                  {aiInsight ? "Live" : aiInsightLoading ? "Loading" : aiInsightError ? "Unavailable" : "Sample"}
                 </div>
               </div>
 
-              {aiInsight ? (
+              {aiInsightLoading ? (
+                <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
+                  Generating your profile insight...
+                </div>
+              ) : aiInsight ? (
                 <div className="space-y-5">
                   <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
                     <div className="mb-2 inline-flex rounded-xl bg-[var(--color-surface-container-lowest)] p-2">
@@ -371,6 +379,10 @@ export default function Intelligence(): JSX.Element {
                       </ul>
                     </div>
                   </div>
+                </div>
+              ) : aiInsightError ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                  AI insight unavailable right now. Your profile data is still loaded and usable.
                 </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-3">

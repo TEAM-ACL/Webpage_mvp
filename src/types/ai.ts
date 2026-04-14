@@ -1,11 +1,12 @@
 // ACL: Types for VisionTech AI flow
 
 export type OnboardingData = {
-  nickname: string;
-  skills: string[];
-  interests: string[];
-  goals: string[];
-  level: string;
+  nickname?: string;
+  skills?: string[];
+  interests?: string[];
+  goals?: string[];
+  level?: string;
+  force_refresh?: boolean;
 };
 
 export type AIInsightResponse = {

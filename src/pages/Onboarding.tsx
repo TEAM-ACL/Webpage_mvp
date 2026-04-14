@@ -1,5 +1,3 @@
-import { generateAIInsight } from "../services/aiService";
-import type { OnboardingData } from "../types/ai";
 import { api } from "../lib/api";
 import { useEffect, useMemo, useState, type JSX } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -714,7 +712,7 @@ function SelectionBlock({
 export default function OnboardingPage(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, refreshProfile, setAIInsight } = useAuth();
+  const { user, refreshProfile, refreshAIInsight } = useAuth();
   const reminder = (location.state as { reminder?: string } | null)?.reminder;
   const [form, setForm] = useState<FormState>({
     preferredNickname: "",
@@ -929,26 +927,11 @@ export default function OnboardingPage(): JSX.Element {
     setSubmitError(null);
 
     try {
-      const aiPayload: OnboardingData = {
-        nickname: form.preferredNickname || form.fullName || "User",
-        skills: form.skills,
-        interests: form.interests,
-        goals: form.goals,
-        level: form.experienceLevel || "Unspecified",
-      };
-
       // Persist onboarding to backend (source of truth)
       await api.saveOnboardingProfile(form);
 
-      // Optionally generate AI insight (non-blocking for persistence)
-      try {
-        const aiInsight = await generateAIInsight(aiPayload);
-        setAIInsight(aiInsight);
-        console.log("VisionTech AI insight", aiInsight);
-      } catch (aiErr) {
-        setAIInsight(null);
-        console.warn("AI insight generation failed (non-blocking):", aiErr);
-      }
+      // Optionally generate AI insight after persistence; backend profile remains the source of truth.
+      await refreshAIInsight();
 
       // Refresh backend-backed profile state
       await refreshProfile();
