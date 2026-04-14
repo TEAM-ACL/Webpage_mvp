@@ -18,7 +18,6 @@ import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
 import SummaryGrid, { type SummaryItem } from "../components/dashboard/SummaryGrid";
 import { useAuth } from "../context/AuthContext";
-import type { AIInsightResponse } from "../types/ai";
 
 // Static data (kept colocated for easy extraction into components later)
 type PathwayStep = {
@@ -181,12 +180,11 @@ function activityDot(status: ActivityItem["status"]) {
 const subtle = "text-[var(--color-on-surface-variant)]";
 
 export default function Intelligence(): JSX.Element {
-  const { profile, profileLoading } = useAuth();
+  const { profile, profileLoading, aiInsight } = useAuth();
 
   const field = profile?.fieldOfInterest || "Cloud Security Pathway";
   const headlineGoal = profile?.goals?.[0] || "Become opportunity-ready in cloud security";
   const skillsCount = profile?.skills ? profile.skills.length : null;
-  const aiInsight = (profile as unknown as { aiInsight?: AIInsightResponse })?.aiInsight;
   const summaryGoal = profile?.goals?.[0] || "Grow in your chosen pathway";
   const summaryTask = profile?.interests?.[0]
     ? `Explore: ${profile.interests[0]}`

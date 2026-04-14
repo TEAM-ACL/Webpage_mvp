@@ -714,7 +714,7 @@ function SelectionBlock({
 export default function OnboardingPage(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, refreshProfile } = useAuth();
+  const { user, refreshProfile, setAIInsight } = useAuth();
   const reminder = (location.state as { reminder?: string } | null)?.reminder;
   const [form, setForm] = useState<FormState>({
     preferredNickname: "",
@@ -943,8 +943,10 @@ export default function OnboardingPage(): JSX.Element {
       // Optionally generate AI insight (non-blocking for persistence)
       try {
         const aiInsight = await generateAIInsight(aiPayload);
+        setAIInsight(aiInsight);
         console.log("VisionTech AI insight", aiInsight);
       } catch (aiErr) {
+        setAIInsight(null);
         console.warn("AI insight generation failed (non-blocking):", aiErr);
       }
 

@@ -1,17 +1,21 @@
 import { createContext, useContext, useEffect, useState, type JSX, type ReactNode } from "react";
 import { api } from "../lib/api";
 import type { AuthSessionResponse, ProfileState } from "../lib/api";
+import type { AIInsightResponse } from "../types/ai";
 
 type AuthContextValue = {
   user: AuthSessionResponse["user"] | null;
   profile: ProfileState["profile"] | null;
+  onboardingStage: string | null;
   onboardingComplete: boolean | null;
+  aiInsight: AIInsightResponse | null;
   loading: boolean;
   profileLoading: boolean;
   error: string | null;
   profileError: string | null;
   bootstrap: () => Promise<void>;
   refreshProfile: () => Promise<ProfileState | null>;
+  setAIInsight: (insight: AIInsightResponse | null) => void;
   setUser: (user: AuthSessionResponse["user"] | null) => void;
   logout: () => Promise<void>;
 };
@@ -23,7 +27,9 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<ProfileState["profile"] | null>(null);
+  const [onboardingStage, setOnboardingStage] = useState<string | null>(null);
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
+  const [aiInsight, setAIInsight] = useState<AIInsightResponse | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
 
@@ -33,10 +39,12 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     try {
       const prof = await api.getMyProfile();
       setProfile(prof.profile);
+      setOnboardingStage(prof.onboardingStage);
       setOnboardingComplete(prof.isOnboardingComplete);
       return prof;
     } catch (err) {
       setProfile(null);
+      setOnboardingStage(null);
       setOnboardingComplete(null);
       setProfileError((err as Error).message);
       return null;
@@ -56,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setUser(null);
       setError((err as Error).message);
       setProfile(null);
+      setOnboardingStage(null);
       setOnboardingComplete(null);
       setProfileLoading(false);
     } finally {
@@ -71,7 +80,9 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     } finally {
       setUser(null);
       setProfile(null);
+      setOnboardingStage(null);
       setOnboardingComplete(null);
+      setAIInsight(null);
     }
   };
 
@@ -84,13 +95,16 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       value={{
         user,
         profile,
+        onboardingStage,
         onboardingComplete,
+        aiInsight,
         loading,
         profileLoading,
         error,
         profileError,
         bootstrap,
         refreshProfile: fetchProfile,
+        setAIInsight,
         setUser,
         logout,
       }}

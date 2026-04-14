@@ -13,6 +13,7 @@ export async function generateAIInsight(
 ): Promise<AIInsightResponse> {
   const response = await fetch(`${API_BASE_URL}/ai/profile`, {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
