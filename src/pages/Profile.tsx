@@ -1,7 +1,7 @@
 import { useEffect, useState, type JSX } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getOnboardingProfile, setOnboardingProfile } from "../lib/auth";
+import { api } from "../lib/api";
 
 type ProfileForm = {
   preferredNickname: string;
@@ -16,21 +16,21 @@ type ProfileForm = {
 };
 
 export default function Profile(): JSX.Element {
-  const { user } = useAuth();
+  const { user, profile, profileLoading, refreshProfile } = useAuth();
   const navigate = useNavigate();
-  const stored = getOnboardingProfile<Partial<ProfileForm & { goals: string[]; interests: string[]; skills: string[] }>>() || {};
-
   const [form, setForm] = useState<ProfileForm>({
-    preferredNickname: stored.preferredNickname || "",
-    fullName: stored.fullName || "",
-    fieldOfInterest: stored.fieldOfInterest || "",
-    experienceLevel: stored.experienceLevel || "",
-    preferredWorkStyle: stored.preferredWorkStyle || "",
-    region: stored.region || "",
-    goals: Array.isArray(stored.goals) ? stored.goals.join(", ") : "",
-    interests: Array.isArray(stored.interests) ? stored.interests.join(", ") : "",
-    skills: Array.isArray(stored.skills) ? stored.skills.join(", ") : "",
+    preferredNickname: "",
+    fullName: "",
+    fieldOfInterest: "",
+    experienceLevel: "",
+    preferredWorkStyle: "",
+    region: "",
+    goals: "",
+    interests: "",
+    skills: "",
   });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -38,20 +38,48 @@ export default function Profile(): JSX.Element {
     }
   }, [user, navigate]);
 
+  useEffect(() => {
+    if (!profile) return;
+    setForm({
+      preferredNickname: profile.preferredNickname || "",
+      fullName: profile.fullName || "",
+      fieldOfInterest: profile.fieldOfInterest || "",
+      experienceLevel: profile.experienceLevel || "",
+      preferredWorkStyle: profile.preferredWorkStyle || "",
+      region: profile.region || "",
+      goals: Array.isArray(profile.goals) ? profile.goals.join(", ") : "",
+      interests: Array.isArray(profile.interests) ? profile.interests.join(", ") : "",
+      skills: Array.isArray(profile.skills) ? profile.skills.join(", ") : "",
+    });
+  }, [profile]);
+
   const handleChange = (key: keyof ProfileForm, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSave = () => {
-    const payload = {
-      ...form,
-      goals: splitCsv(form.goals),
-      interests: splitCsv(form.interests),
-      skills: splitCsv(form.skills),
-      updatedAt: new Date().toISOString(),
-    };
-    setOnboardingProfile(payload);
-    alert("Profile saved");
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const payload = {
+        preferred_nickname: form.preferredNickname,
+        full_name: form.fullName,
+        field_of_interest: form.fieldOfInterest,
+        experience_level: form.experienceLevel,
+        preferred_work_style: form.preferredWorkStyle,
+        region: form.region,
+        goals: splitCsv(form.goals),
+        interests: splitCsv(form.interests),
+        skills: splitCsv(form.skills),
+      };
+      await api.saveOnboardingProfile(payload);
+      await refreshProfile();
+      alert("Profile saved");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -63,16 +91,21 @@ export default function Profile(): JSX.Element {
             <h1 className="text-3xl font-headline font-bold text-[var(--color-on-surface)]">Your account & identity</h1>
             <p className="text-sm text-[var(--color-on-surface-variant)]">Review and update your core details and onboarding signals.</p>
           </div>
-          <button
-            onClick={handleSave}
-            className="h-11 px-5 rounded-2xl bg-[var(--color-primary)] text-white font-semibold text-sm hover:opacity-90 transition"
-          >
-            Save changes
-          </button>
+          <div className="flex flex-col items-end gap-2">
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="h-11 px-5 rounded-2xl bg-[var(--color-primary)] text-white font-semibold text-sm hover:opacity-90 transition disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {saving ? "Saving..." : "Save changes"}
+            </button>
+          </div>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-10 space-y-8">
+        {profileLoading && <p className="text-sm text-[var(--color-on-surface-variant)]">Loading profile...</p>}
         <section className="rounded-3xl bg-white border border-[var(--color-outline-variant)] p-6 shadow-sm">
           <h2 className="text-xl font-bold text-[var(--color-on-surface)] mb-4">Account</h2>
           <div className="grid gap-4 md:grid-cols-2">

@@ -1,5 +1,6 @@
 import { generateAIInsight } from "../services/aiService";
 import type { OnboardingData } from "../types/ai";
+import { api } from "../lib/api";
 import { useEffect, useMemo, useState, type JSX } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -18,7 +19,6 @@ import {
   Layers3,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { setOnboardingComplete, setOnboardingProfile } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
 
 
@@ -714,7 +714,7 @@ function SelectionBlock({
 export default function OnboardingPage(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const reminder = (location.state as { reminder?: string } | null)?.reminder;
   const [form, setForm] = useState<FormState>({
     preferredNickname: "",
@@ -928,13 +928,6 @@ export default function OnboardingPage(): JSX.Element {
     setSubmitting(true);
     setSubmitError(null);
 
-    const payload = {
-      ...form,
-      onboardingCompletedAt: new Date().toISOString(),
-      systemNote:
-        "This onboarding payload is the foundational user context for VisionTech AI guidance, pathway generation, matching, and opportunity recommendations.",
-    };
-
     try {
       const aiPayload: OnboardingData = {
         nickname: form.preferredNickname || form.fullName || "User",
@@ -944,13 +937,20 @@ export default function OnboardingPage(): JSX.Element {
         level: form.experienceLevel || "Unspecified",
       };
 
-      const aiInsight = await generateAIInsight(aiPayload);
+      // Persist onboarding to backend (source of truth)
+      await api.saveOnboardingProfile(form);
 
-      const profileWithAI = { ...payload, aiInsight };
+      // Optionally generate AI insight (non-blocking for persistence)
+      try {
+        const aiInsight = await generateAIInsight(aiPayload);
+        console.log("VisionTech AI insight", aiInsight);
+      } catch (aiErr) {
+        console.warn("AI insight generation failed (non-blocking):", aiErr);
+      }
 
-      setOnboardingProfile(profileWithAI);
-      console.log("VisionTech onboarding payload with AI insight", profileWithAI);
-      setOnboardingComplete(true);
+      // Refresh backend-backed profile state
+      await refreshProfile();
+
       navigate("/intelligence");
     } catch (error) {
       console.error("Failed to complete onboarding", error);

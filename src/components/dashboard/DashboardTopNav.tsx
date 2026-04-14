@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { Bell, ChevronDown } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { getOnboardingProfile, isAdmin as checkAdmin } from "../../lib/auth";
+import { isAdmin as checkAdmin } from "../../lib/auth";
 
 type NavItem = { label: string; href: string };
 
@@ -14,8 +14,7 @@ function isActive(pathname: string, href: string) {
 
 export default function DashboardTopNav() {
   const { pathname } = useLocation();
-  const { user } = useAuth();
-  const onboardingProfile = useMemo(() => getOnboardingProfile<{ preferredNickname?: string }>(), []);
+  const { user, profile } = useAuth();
 
   const navItems: NavItem[] = [
     { label: "Intelligence", href: "/intelligence" },
@@ -27,7 +26,7 @@ export default function DashboardTopNav() {
     navItems.push({ label: "Admin", href: "/admin" });
   }
 
-  const displayName = onboardingProfile?.preferredNickname || user?.display_name || user?.email || "User";
+  const displayName = profile?.preferredNickname || user?.display_name || user?.email || "User";
   const initials = getInitials(displayName);
 
   return (

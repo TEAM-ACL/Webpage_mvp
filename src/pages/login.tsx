@@ -4,13 +4,13 @@ import { Mail, Lock, ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
 import { api, storeSession } from "../lib/api";
-import { getOnboardingComplete, signOut } from "../lib/auth";
+import { signOut } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
 
 export default function Login(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setUser } = useAuth();
+  const { setUser, refreshProfile, onboardingComplete } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -42,8 +42,8 @@ export default function Login(): JSX.Element {
       const session = await api.login(email, password);
       storeSession(session);
       setUser(session.user);
-      // If onboarding already complete, go straight to intelligence; else go to onboarding.
-      const done = getOnboardingComplete();
+      const prof = await refreshProfile();
+      const done = prof?.isOnboardingComplete ?? onboardingComplete ?? false;
       navigate(done ? "/intelligence" : "/onboarding");
     } catch (err) {
       setError(friendlyError((err as Error).message));

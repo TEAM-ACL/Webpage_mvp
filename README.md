@@ -37,7 +37,17 @@ Notes:
 3) Lint/typecheck: `npm run lint` (tsc --noEmit)
 4) Tests: `npm test` (Vitest + jsdom)
 
-## Auth Flow (current)
+## Auth & Profile Flow (current)
+The backend is the source of truth for auth and onboarding/profile state.
+
+- Login / Signup: `/auth/login`, `/auth/register`
+- Profile fetch: `GET /me/profile`
+- Onboarding upsert: `PUT /me/profile/onboarding`
+
+Frontend behaviour:
+- `AuthContext` bootstraps `/auth/me` then `/me/profile`
+- Route guards, login redirects, and dashboard personalization all rely on backend `is_onboarding_complete`
+- `sessionStorage` is now cache-only (not the source of truth) for onboarding/profile
 - Signup: POST `/auth/register` with email/password/display_name/etc. Success stores `access_token` (if returned) and redirects to `/workspace`.
 - Login: POST `/auth/login` with email/password. Success stores `access_token` (if returned) and redirects to `/dashboard`.
 - Tokens are **not** persisted client-side; the client assumes secure httpOnly cookies are set by the backend. Only the user profile is cached in `sessionStorage`. All requests send `credentials: include` for cookie-based sessions.
