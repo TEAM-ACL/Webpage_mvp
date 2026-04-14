@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { Navigate } from "react-router-dom";
-import { getOnboardingComplete, isAdmin } from "../lib/auth";
+import { isAdmin } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
 
 type Props = { children: JSX.Element };
@@ -13,10 +13,10 @@ export function RequireAuth({ children }: Props): JSX.Element {
 }
 
 export function RequireOnboardingComplete({ children }: Props): JSX.Element {
-  const { user, loading } = useAuth();
-  if (loading) return <></>;
+  const { user, loading, profileLoading, onboardingComplete } = useAuth();
+  if (loading || profileLoading) return <></>;
   if (!user) return <Navigate to="/login" replace />;
-  if (!getOnboardingComplete()) {
+  if (!onboardingComplete) {
     return (
       <Navigate
         to="/onboarding"
@@ -37,8 +37,8 @@ export function RequireAdmin({ children }: Props): JSX.Element {
 }
 
 export function RedirectIfOnboarded({ children }: Props): JSX.Element {
-  const { user, loading } = useAuth();
-  if (loading) return <></>;
-  if (user && getOnboardingComplete()) return <Navigate to="/intelligence" replace />;
+  const { user, loading, profileLoading, onboardingComplete } = useAuth();
+  if (loading || profileLoading) return <></>;
+  if (user && onboardingComplete) return <Navigate to="/intelligence" replace />;
   return children;
 }

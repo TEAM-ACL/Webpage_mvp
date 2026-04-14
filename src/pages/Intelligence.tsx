@@ -17,7 +17,7 @@ import {
 import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
 import SummaryGrid, { type SummaryItem } from "../components/dashboard/SummaryGrid";
-import { getOnboardingProfile } from "../lib/auth";
+import { useAuth } from "../context/AuthContext";
 import type { AIInsightResponse } from "../types/ai";
 
 // Static data (kept colocated for easy extraction into components later)
@@ -181,22 +181,12 @@ function activityDot(status: ActivityItem["status"]) {
 const subtle = "text-[var(--color-on-surface-variant)]";
 
 export default function Intelligence(): JSX.Element {
-  const profile = useMemo(() => getOnboardingProfile<{
-    preferredNickname?: string;
-    fieldOfInterest?: string;
-    experienceLevel?: string;
-    preferredWorkStyle?: string;
-    region?: string;
-    goals?: string[];
-    interests?: string[];
-    skills?: string[];
-    aiInsight?: AIInsightResponse;
-  }>(), []);
+  const { profile, profileLoading } = useAuth();
 
   const field = profile?.fieldOfInterest || "Cloud Security Pathway";
   const headlineGoal = profile?.goals?.[0] || "Become opportunity-ready in cloud security";
   const skillsCount = profile?.skills ? profile.skills.length : null;
-  const aiInsight = profile?.aiInsight;
+  const aiInsight = (profile as unknown as { aiInsight?: AIInsightResponse })?.aiInsight;
   const summaryGoal = profile?.goals?.[0] || "Grow in your chosen pathway";
   const summaryTask = profile?.interests?.[0]
     ? `Explore: ${profile.interests[0]}`
@@ -208,6 +198,18 @@ export default function Intelligence(): JSX.Element {
   const stats = useMemo(() => buildStats(skillsCount, aiInsight ? aiInsight.next_steps.length : null), [skillsCount, aiInsight]);
 
   const missingProfile = !profile;
+
+  if (profileLoading) {
+    return (
+      <DashboardShell>
+        <PageHeader
+          eyebrow="VisionTech Intelligence"
+          title="Loading your personalised guidance"
+          description="Fetching your profile and recommendations."
+        />
+      </DashboardShell>
+    );
+  }
 
   return (
     <DashboardShell>

@@ -2,6 +2,33 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
+export type BackendProfileResponse = {
+  profile?: Record<string, unknown>;
+  onboarding_stage?: string | null;
+  is_onboarding_complete?: boolean | null;
+};
+
+export type Profile = {
+  preferredNickname?: string | null;
+  fullName?: string | null;
+  fieldOfInterest?: string | null;
+  experienceLevel?: string | null;
+  preferredWorkStyle?: string | null;
+  region?: string | null;
+  country?: string | null;
+  otherFieldDetail?: string | null;
+  otherRegionDetail?: string | null;
+  goals: string[];
+  interests: string[];
+  skills: string[];
+};
+
+export type ProfileState = {
+  profile: Profile | null;
+  onboardingStage: string | null;
+  isOnboardingComplete: boolean | null;
+};
+
 async function request<T>(
   path: string,
   {
@@ -56,6 +83,33 @@ export type AuthSessionResponse = {
   };
 };
 
+function mapBackendProfile(resp: BackendProfileResponse): ProfileState {
+  const src = resp.profile ?? {};
+  const snake = (key: string) => (src as Record<string, unknown>)[key];
+  const coerceStrArr = (val: unknown): string[] => (Array.isArray(val) ? val.map((v) => String(v)) : []);
+
+  const profile: Profile = {
+    preferredNickname: (snake("preferred_nickname") as string) ?? (snake("preferredNickname") as string) ?? null,
+    fullName: (snake("full_name") as string) ?? (snake("fullName") as string) ?? null,
+    fieldOfInterest: (snake("field_of_interest") as string) ?? (snake("fieldOfInterest") as string) ?? null,
+    experienceLevel: (snake("experience_level") as string) ?? (snake("experienceLevel") as string) ?? null,
+    preferredWorkStyle: (snake("preferred_work_style") as string) ?? (snake("preferredWorkStyle") as string) ?? null,
+    region: (snake("region") as string) ?? null,
+    country: (snake("country") as string) ?? null,
+    otherFieldDetail: (snake("other_field_detail") as string) ?? null,
+    otherRegionDetail: (snake("other_region_detail") as string) ?? null,
+    goals: coerceStrArr(snake("goals") ?? []),
+    interests: coerceStrArr(snake("interests") ?? []),
+    skills: coerceStrArr(snake("skills") ?? []),
+  };
+
+  return {
+    profile,
+    onboardingStage: resp.onboarding_stage ?? null,
+    isOnboardingComplete: resp.is_onboarding_complete ?? null,
+  };
+}
+
 export const api = {
   login(email: string, password: string) {
     return request<AuthSessionResponse>("/auth/login", {
@@ -76,6 +130,15 @@ export const api = {
   me() {
     const token = getAccessToken();
     return request("/auth/me", { token });
+  },
+  getMyProfile() {
+    return request<BackendProfileResponse>("/me/profile").then(mapBackendProfile);
+  },
+  saveOnboardingProfile(payload: unknown) {
+    return request<BackendProfileResponse>("/me/profile/onboarding", {
+      method: "PUT",
+      body: payload,
+    }).then(mapBackendProfile);
   },
   requestPasswordReset(email: string, redirect_to?: string) {
     return request<MessageResponse>("/auth/password-reset/request", {
