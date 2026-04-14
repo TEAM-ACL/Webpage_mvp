@@ -1,3 +1,5 @@
+import { generateAIInsight } from "../services/aiService";
+import type { OnboardingData } from "../types/ai";
 import { useEffect, useMemo, useState, type JSX } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -734,6 +736,8 @@ export default function OnboardingPage(): JSX.Element {
   const [customSkill, setCustomSkill] = useState("");
   const [goalLimitMessage, setGoalLimitMessage] = useState("");
   const [interestLimitMessage, setInterestLimitMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const totalRequiredChecks = [
     form.preferredNickname,
@@ -919,7 +923,11 @@ export default function OnboardingPage(): JSX.Element {
     }));
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
+    if (submitting) return;
+    setSubmitting(true);
+    setSubmitError(null);
+
     const payload = {
       ...form,
       onboardingCompletedAt: new Date().toISOString(),
@@ -927,11 +935,29 @@ export default function OnboardingPage(): JSX.Element {
         "This onboarding payload is the foundational user context for VisionTech AI guidance, pathway generation, matching, and opportunity recommendations.",
     };
 
-    // TODO: send payload to backend when endpoint is ready.
-    setOnboardingProfile(payload);
-    console.log("VisionTech onboarding payload", payload);
-    setOnboardingComplete(true);
-    navigate("/intelligence");
+    try {
+      const aiPayload: OnboardingData = {
+        nickname: form.preferredNickname || form.fullName || "User",
+        skills: form.skills,
+        interests: form.interests,
+        goals: form.goals,
+        level: form.experienceLevel || "Unspecified",
+      };
+
+      const aiInsight = await generateAIInsight(aiPayload);
+
+      const profileWithAI = { ...payload, aiInsight };
+
+      setOnboardingProfile(profileWithAI);
+      console.log("VisionTech onboarding payload with AI insight", profileWithAI);
+      setOnboardingComplete(true);
+      navigate("/intelligence");
+    } catch (error) {
+      console.error("Failed to complete onboarding", error);
+      setSubmitError((error as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -1385,12 +1411,18 @@ export default function OnboardingPage(): JSX.Element {
               </div>
 
               <div className="mt-6 flex flex-wrap gap-3">
+                {submitError && (
+                  <p className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {submitError}
+                  </p>
+                )}
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  className="inline-flex h-11 items-center justify-center rounded-2xl bg-white px-4 text-sm font-semibold text-[var(--color-primary)] transition hover:bg-[var(--color-surface-container-low)]"
+                  disabled={submitting}
+                  className="inline-flex h-11 items-center justify-center rounded-2xl bg-white px-4 text-sm font-semibold text-[var(--color-primary)] transition hover:bg-[var(--color-surface-container-low)] disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  Complete onboarding
+                  {submitting ? "Submitting..." : "Complete onboarding"}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
 

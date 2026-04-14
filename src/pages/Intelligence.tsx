@@ -18,6 +18,7 @@ import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
 import SummaryGrid, { type SummaryItem } from "../components/dashboard/SummaryGrid";
 import { getOnboardingProfile } from "../lib/auth";
+import type { AIInsightResponse } from "../types/ai";
 
 // Static data (kept colocated for easy extraction into components later)
 type PathwayStep = {
@@ -48,7 +49,7 @@ type ActivityItem = {
   status: "done" | "in-progress" | "upcoming";
 };
 
-function buildStats(skillsCount: number | null): SummaryItem[] {
+function buildStats(skillsCount: number | null, aiCount: number | null): SummaryItem[] {
   return [
     { title: "Pathway Progress", value: "45%", note: "Moving steadily toward your goal", icon: TrendingUp },
     {
@@ -58,9 +59,15 @@ function buildStats(skillsCount: number | null): SummaryItem[] {
       icon: Target,
     },
     { title: "Active Matches", value: "8", note: "Potential collaborators and mentors", icon: Users },
-    { title: "AI Insights", value: "16", note: "New recommendations this week", icon: Lightbulb },
+    {
+      title: "AI Insights",
+      value: aiCount !== null ? String(aiCount) : "—",
+      note: aiCount !== null ? "Fresh recommendations ready" : "Complete onboarding to see insights",
+      icon: Lightbulb,
+    },
   ];
 }
+
 
 const pathwaySteps: PathwayStep[] = [
   {
@@ -183,11 +190,13 @@ export default function Intelligence(): JSX.Element {
     goals?: string[];
     interests?: string[];
     skills?: string[];
+    aiInsight?: AIInsightResponse;
   }>(), []);
 
   const field = profile?.fieldOfInterest || "Cloud Security Pathway";
   const headlineGoal = profile?.goals?.[0] || "Become opportunity-ready in cloud security";
   const skillsCount = profile?.skills ? profile.skills.length : null;
+  const aiInsight = profile?.aiInsight;
   const summaryGoal = profile?.goals?.[0] || "Grow in your chosen pathway";
   const summaryTask = profile?.interests?.[0]
     ? `Explore: ${profile.interests[0]}`
@@ -196,7 +205,7 @@ export default function Intelligence(): JSX.Element {
     ? `Strong fit for ${profile.preferredWorkStyle.toLowerCase()} work`
     : "High fit with technical collaborators";
 
-  const stats = useMemo(() => buildStats(skillsCount), [skillsCount]);
+  const stats = useMemo(() => buildStats(skillsCount, aiInsight ? aiInsight.next_steps.length : null), [skillsCount, aiInsight]);
 
   const missingProfile = !profile;
 
@@ -309,21 +318,73 @@ export default function Intelligence(): JSX.Element {
 
             {/* AI insights */}
             <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
-              <div className="mb-6">
-                <p className={`text-sm font-semibold ${subtle}`}>AI Insights</p>
-                <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Personalised growth guidance</h3>
+              <div className="mb-6 flex items-start justify-between gap-4">
+                <div>
+                  <p className={`text-sm font-semibold ${subtle}`}>AI Insights</p>
+                  <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Personalised growth guidance</h3>
+                  <p className={`mt-2 text-sm ${subtle}`}>
+                    {aiInsight
+                      ? "Generated from your latest onboarding profile."
+                      : "Complete onboarding to unlock personalised recommendations."}
+                  </p>
+                </div>
+                <div className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--color-primary)]">
+                  {aiInsight ? "Live" : "Sample"}
+                </div>
               </div>
-              <div className="grid gap-4 md:grid-cols-3">
-                {insights.map((item) => (
-                  <div key={item.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
-                    <div className="mb-3 inline-flex rounded-xl bg-[var(--color-surface-container-lowest)] p-2">
+
+              {aiInsight ? (
+                <div className="space-y-5">
+                  <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                    <div className="mb-2 inline-flex rounded-xl bg-[var(--color-surface-container-lowest)] p-2">
                       <Sparkles className="h-4 w-4 text-[var(--color-on-surface)]" />
                     </div>
-                    <h4 className="font-semibold text-[var(--color-primary)]">{item.title}</h4>
-                    <p className={`mt-2 text-sm leading-6 ${subtle}`}>{item.description}</p>
+                    <h4 className="font-semibold text-[var(--color-primary)]">Profile summary</h4>
+                    <p className={`mt-2 text-sm leading-6 ${subtle}`}>{aiInsight.summary}</p>
                   </div>
-                ))}
-              </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                      <p className="text-sm font-semibold text-[var(--color-on-surface)]">Skill gaps</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {aiInsight.skill_gaps.map((gap, idx) => (
+                          <span key={idx} className="rounded-full bg-white px-3 py-2 text-xs font-medium text-[var(--color-on-surface-variant)]">
+                            {gap}
+                          </span>
+                        ))}
+                        {aiInsight.skill_gaps.length === 0 && (
+                          <span className={`text-sm ${subtle}`}>No gaps detected</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                      <p className="text-sm font-semibold text-[var(--color-on-surface)]">Next steps</p>
+                      <ul className="mt-3 space-y-2 text-sm text-[var(--color-on-surface-variant)]">
+                        {aiInsight.next_steps.map((step, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span className="mt-1 h-2 w-2 rounded-full bg-[var(--color-primary)]" />
+                            <span>{step}</span>
+                          </li>
+                        ))}
+                        {aiInsight.next_steps.length === 0 && <li className={subtle}>Next steps will appear here</li>}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-3">
+                  {insights.map((item) => (
+                    <div key={item.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                      <div className="mb-3 inline-flex rounded-xl bg-[var(--color-surface-container-lowest)] p-2">
+                        <Sparkles className="h-4 w-4 text-[var(--color-on-surface)]" />
+                      </div>
+                      <h4 className="font-semibold text-[var(--color-primary)]">{item.title}</h4>
+                      <p className={`mt-2 text-sm leading-6 ${subtle}`}>{item.description}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Match section */}
