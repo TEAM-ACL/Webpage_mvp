@@ -84,13 +84,12 @@ export default function SignUp(): JSX.Element {
           <div className="p-8 rounded-xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/10">
             <span className="text-white/70 text-4xl mb-4 block font-serif">"</span>
             <blockquote className="text-white font-sans italic text-xl leading-snug mb-4">
-              Innovation is not just about moving fast; it's about seeing what others miss through the noise of the now.
+              The world needs dreamers and the world needs doers. But above all,  what the world needs most are dreamers that do.
             </blockquote>
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-white text-[#1f0954] flex items-center justify-center font-headline font-bold">ET</div>
+              <div className="w-10 h-10 rounded-full bg-white text-[#1f0954] flex items-center justify-center font-headline font-bold">SBB</div>
               <div>
-                <cite className="not-italic block font-headline font-bold text-white">Elias Thorne</cite>
-                <span className="text-sm font-label text-white/70">Director of Predictive Dynamics</span>
+                <cite className="not-italic block font-headline font-bold text-white">Sarah Ban Breathnach</cite>
               </div>
             </div>
           </div>
