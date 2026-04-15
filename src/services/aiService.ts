@@ -9,7 +9,7 @@ if (!API_BASE_URL) {
 }
 
 export async function generateAIInsight(
-  payload: OnboardingData
+  payload?: OnboardingData
 ): Promise<AIInsightResponse> {
   const response = await fetch(`${API_BASE_URL}/ai/profile`, {
     method: "POST",
@@ -17,7 +17,7 @@ export async function generateAIInsight(
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(payload),
+    body: payload ? JSON.stringify(payload) : JSON.stringify({}),
   });
 
   if (!response.ok) {
