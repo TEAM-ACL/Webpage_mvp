@@ -1,11 +1,12 @@
 import type { JSX } from "react";
 import { useState } from "react";
-import { Mail, Lock, ArrowRight, ArrowLeft, User, AtSign } from "lucide-react";
+import { Lock, ArrowRight, ArrowLeft, User, AtSign } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion } from "motion/react";
 import { api, storeSession } from "../lib/api";
 import { setOnboardingComplete } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
+
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SignUp(): JSX.Element {
   const navigate = useNavigate();
@@ -14,10 +15,15 @@ export default function SignUp(): JSX.Element {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
 
   const friendlyError = (message: string) => {
     if (message.toLowerCase().includes("failed to fetch")) {
@@ -31,31 +37,68 @@ export default function SignUp(): JSX.Element {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!emailRegex.test(cleanEmail)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
     if (!agree) {
       setError("Please accept the terms to continue.");
       return;
     }
     setError(null);
+    setSuccess(null);
+    setVerificationEmail(null);
     setLoading(true);
     try {
       const session = await api.register({
-        email,
+        email: cleanEmail,
         password,
-        display_name: `${firstName} ${lastName}`.trim() || email,
+        display_name: `${firstName} ${lastName}`.trim() || cleanEmail,
         first_name: firstName || null,
         last_name: lastName || null,
       });
+      if (!session.access_token) {
+        setSuccess("Account created. Please check your email and verify your address before logging in.");
+        setVerificationEmail(cleanEmail);
+        return;
+      }
+
       storeSession(session);
       setUser(session.user);
       setOnboardingComplete(false);
-      // Redirect new users into onboarding flow
       navigate("/onboarding");
     } catch (err) {
       setError(friendlyError((err as Error).message));
     } finally {
       // Clear sensitive data from memory after submission
       setPassword("");
+      setConfirmPassword("");
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!verificationEmail) return;
+    setError(null);
+    setSuccess(null);
+    setResending(true);
+    try {
+      await api.resendVerificationEmail(verificationEmail, `${window.location.origin}/auth/callback`);
+      setSuccess("Verification email resent. Please check your inbox.");
+    } catch (err) {
+      setError(friendlyError((err as Error).message));
+    } finally {
+      setResending(false);
     }
   };
 
@@ -182,6 +225,28 @@ export default function SignUp(): JSX.Element {
                 </button>
               </div>
             </div>
+            <div className="space-y-2">
+              <label className="font-label text-sm font-semibold text-on-surface-variant ml-1">Confirm Password</label>
+              <div className="relative">
+                <input
+                  className="w-full px-5 py-4 bg-surface-container-high rounded-xl border-none focus:ring-2 focus:ring-secondary/20 focus:bg-white text-on-surface placeholder:text-on-surface-variant/40 transition-all pr-12"
+                  placeholder="Confirm your password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={8}
+                />
+                <Lock className="absolute right-11 top-1/2 -translate-y-1/2 text-on-surface-variant/40 h-5 w-5" />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-primary hover:text-secondary transition-colors"
+                >
+                  {showConfirmPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+            </div>
             <div className="flex items-start gap-3 py-2">
               <input
                 className="mt-1 rounded border-surface-container-high text-primary focus:ring-primary h-4 w-4"
@@ -206,6 +271,21 @@ export default function SignUp(): JSX.Element {
               <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
                 {error}
               </p>
+            )}
+            {success && (
+              <p className="text-sm text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
+                {success}
+              </p>
+            )}
+            {verificationEmail && (
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={resending}
+                className="w-full text-sm font-semibold text-primary border border-primary/30 rounded-lg px-4 py-2 hover:bg-primary/5 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+              >
+                {resending ? "Resending..." : "Resend verification email"}
+              </button>
             )}
             <button
               type="submit"

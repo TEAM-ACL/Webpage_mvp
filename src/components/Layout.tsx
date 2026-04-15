@@ -2,14 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Settings, Search, Linkedin, Instagram, Youtube, Menu, X } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { api } from '../lib/api';
-import { signOut } from '../lib/auth';
 import { useAuth } from '../context/AuthContext';
 
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
@@ -35,14 +33,8 @@ export function Header() {
   };
 
   const handleLogout = async () => {
-    try {
-      await api.logout();
-    } catch {
-      // best-effort
-    } finally {
-      signOut();
-      navigate("/login");
-    }
+    await logout();
+    navigate("/login", { replace: true });
   };
 
   const navItems = [

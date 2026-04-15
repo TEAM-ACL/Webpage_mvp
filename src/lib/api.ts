@@ -153,6 +153,12 @@ export const api = {
       body: { new_password },
     });
   },
+  resendVerificationEmail(email: string, redirect_to?: string) {
+    return request<MessageResponse>("/auth/email-verification/resend", {
+      method: "POST",
+      body: { email, redirect_to },
+    });
+  },
 };
 
 export function storeSession(session: AuthSessionResponse) {

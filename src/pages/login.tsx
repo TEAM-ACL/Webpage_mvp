@@ -4,18 +4,22 @@ import { Mail, Lock, ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
 import { api, storeSession } from "../lib/api";
-import { signOut } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
+
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function Login(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setUser, refreshProfile, onboardingComplete } = useAuth();
+  const { setUser, refreshProfile, onboardingComplete, logout } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [showResendVerification, setShowResendVerification] = useState(false);
 
   // Prefill credentials when arriving from signup
   useEffect(() => {
@@ -24,29 +28,48 @@ export default function Login(): JSX.Element {
     if (state?.password) setPassword(state.password);
   }, [location.state]);
 
+  const isVerificationError = (message: string) => {
+    const lower = message.toLowerCase();
+    return lower.includes("not confirmed") || lower.includes("verify") || lower.includes("confirmation");
+  };
+
   const friendlyError = (message: string) => {
-    if (message.toLowerCase().includes("failed to fetch")) {
+    const lower = message.toLowerCase();
+    if (lower.includes("failed to fetch")) {
       return "Can't reach the server. Check your connection or try again shortly.";
     }
-    if (message.toLowerCase().includes("timeout")) {
+    if (lower.includes("timeout")) {
       return "The request timed out. Please retry.";
+    }
+    if (isVerificationError(message)) {
+      return "Please verify your email before logging in. Check your inbox for the verification link.";
     }
     return message || "Unable to sign in. Please try again.";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!emailRegex.test(cleanEmail)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
     setError(null);
+    setNotice(null);
+    setShowResendVerification(false);
     setLoading(true);
     try {
-      const session = await api.login(email, password);
+      const session = await api.login(cleanEmail, password);
       storeSession(session);
       setUser(session.user);
       const prof = await refreshProfile();
       const done = prof?.isOnboardingComplete ?? onboardingComplete ?? false;
       navigate(done ? "/intelligence" : "/onboarding");
     } catch (err) {
-      setError(friendlyError((err as Error).message));
+      const message = (err as Error).message;
+      setShowResendVerification(isVerificationError(message));
+      setError(friendlyError(message));
     } finally {
       // Clear sensitive data from memory after submission
       setPassword("");
@@ -54,15 +77,29 @@ export default function Login(): JSX.Element {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await api.logout();
-    } catch {
-      // ignore logout errors (best-effort)
-    } finally {
-      signOut();
-      navigate("/");
+  const handleResendVerification = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!emailRegex.test(cleanEmail)) {
+      setError("Enter a valid email before resending verification.");
+      return;
     }
+
+    setError(null);
+    setNotice(null);
+    setResending(true);
+    try {
+      await api.resendVerificationEmail(cleanEmail, `${window.location.origin}/auth/callback`);
+      setNotice("Verification email sent. Please check your inbox.");
+    } catch (err) {
+      setError(friendlyError((err as Error).message));
+    } finally {
+      setResending(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -163,6 +200,21 @@ export default function Login(): JSX.Element {
                 <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
                   {error}
                 </p>
+              )}
+              {notice && (
+                <p className="text-sm text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
+                  {notice}
+                </p>
+              )}
+              {showResendVerification && (
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={resending}
+                  className="w-full text-sm font-semibold text-primary border border-primary/30 rounded-lg px-4 py-2 hover:bg-primary/5 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                >
+                  {resending ? "Resending..." : "Resend verification email"}
+                </button>
               )}
               <button
                 type="submit"

@@ -16,6 +16,7 @@ import SignUp from './pages/signup';
 import Intelligence from './pages/Intelligence';
 import Profile from './pages/Profile';
 import ForgotPassword from './pages/ForgotPassword';
+import AuthCallback from './pages/AuthCallback';
 import { AuthProvider } from './context/AuthContext';
 import ResetPassword from './pages/ResetPassword';
 import { RequireAdmin, RequireAuth, RequireOnboardingComplete, RedirectIfOnboarded } from './components/ProtectedRoute';
@@ -31,6 +32,7 @@ export default function App() {
             <Route path="/signup" element={<RedirectIfOnboarded><SignUp /></RedirectIfOnboarded>} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
 
             {/* Dashboard pages use shared shell internally */}
             <Route
