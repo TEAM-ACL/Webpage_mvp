@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type JSX, type ReactNode } from "react";
 import { api } from "../lib/api";
 import type { AuthSessionResponse, ProfileState } from "../lib/api";
-import type { AIInsightResponse, OnboardingData } from "../types/ai";
+import type { AIInsightResponse } from "../types/ai";
 import { generateAIInsight } from "../services/aiService";
 
 type AuthContextValue = {
@@ -18,7 +18,7 @@ type AuthContextValue = {
   profileError: string | null;
   bootstrap: () => Promise<void>;
   refreshProfile: () => Promise<ProfileState | null>;
-  refreshAIInsight: (payload?: OnboardingData) => Promise<AIInsightResponse | null>;
+  refreshAIInsight: () => Promise<AIInsightResponse | null>;
   setAIInsight: (insight: AIInsightResponse | null) => void;
   setUser: (user: AuthSessionResponse["user"] | null) => void;
   logout: () => Promise<void>;
@@ -49,12 +49,14 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setOnboardingComplete(prof.isOnboardingComplete);
       return prof;
     } catch (err) {
-      setProfile(null);
-      setOnboardingStage(null);
-      setOnboardingComplete(null);
-      setProfileError((err as Error).message);
-      return null;
-    } finally {
+  setProfile(null);
+  setOnboardingStage(null);
+  setOnboardingComplete(null);
+  setAIInsight(null);
+  setAIInsightError(null);
+  setProfileError((err as Error).message);
+  return null;
+} finally {
       setProfileLoading(false);
     }
   };
@@ -62,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const bootstrap = async () => {
     setLoading(true);
     setError(null);
+    setAIInsightError(null);
     try {
       const me = await api.me();
       setUser(me as AuthSessionResponse["user"]);
@@ -78,21 +81,23 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     }
   };
 
-  const refreshAIInsight = async (payload?: OnboardingData): Promise<AIInsightResponse | null> => {
-    setAIInsightLoading(true);
-    setAIInsightError(null);
-    try {
-      const insight = await generateAIInsight(payload);
-      setAIInsight(insight);
-      return insight;
-    } catch (err) {
-      setAIInsight(null);
-      setAIInsightError((err as Error).message);
-      return null;
-    } finally {
-      setAIInsightLoading(false);
-    }
-  };
+  // ACL: refresh AI insight using persisted backend profile as source of truth
+const refreshAIInsight = async (): Promise<AIInsightResponse | null> => {
+  setAIInsightLoading(true);
+  setAIInsightError(null);
+
+  try {
+    const insight = await generateAIInsight();
+    setAIInsight(insight);
+    return insight;
+  } catch (err) {
+    setAIInsight(null);
+    setAIInsightError((err as Error).message);
+    return null;
+  } finally {
+    setAIInsightLoading(false);
+  }
+};
 
   const logout = async () => {
     try {

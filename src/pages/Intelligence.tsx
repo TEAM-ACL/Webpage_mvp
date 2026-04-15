@@ -180,7 +180,14 @@ function activityDot(status: ActivityItem["status"]) {
 const subtle = "text-[var(--color-on-surface-variant)]";
 
 export default function Intelligence(): JSX.Element {
-  const { profile, profileLoading, aiInsight, aiInsightLoading, aiInsightError } = useAuth();
+  const {
+  profile,
+  profileLoading,
+  aiInsight,
+  aiInsightLoading,
+  aiInsightError,
+  refreshAIInsight,
+} = useAuth();
 
   const field = profile?.fieldOfInterest || "Cloud Security Pathway";
   const headlineGoal = profile?.goals?.[0] || "Become opportunity-ready in cloud security";
@@ -195,7 +202,24 @@ export default function Intelligence(): JSX.Element {
 
   const stats = useMemo(() => buildStats(skillsCount, aiInsight ? aiInsight.next_steps.length : null), [skillsCount, aiInsight]);
 
+  const aiStatusLabel = aiInsight
+  ? "Live"
+  : aiInsightLoading
+    ? "Loading"
+    : aiInsightError
+      ? "Unavailable"
+      : "Sample";
+
   const missingProfile = !profile;
+
+  // ACL: manual AI refresh handler for Intelligence page
+const handleRefreshAIInsight = async (): Promise<void> => {
+  try {
+    await refreshAIInsight();
+  } catch (error) {
+    console.error("ACL: Failed to refresh AI insight from Intelligence page", error);
+  }
+};
 
   if (profileLoading) {
     return (
@@ -332,9 +356,21 @@ export default function Intelligence(): JSX.Element {
                           : "Complete onboarding to unlock personalised recommendations."}
                   </p>
                 </div>
-                <div className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--color-primary)]">
-                  {aiInsight ? "Live" : aiInsightLoading ? "Loading" : aiInsightError ? "Unavailable" : "Sample"}
-                </div>
+                <div className="flex items-center gap-3">
+  <div className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--color-primary)]">
+    {aiStatusLabel}
+  </div>
+
+  <button
+    type="button"
+    onClick={handleRefreshAIInsight}
+    disabled={aiInsightLoading || missingProfile}
+    className="inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    <Sparkles className="mr-2 h-4 w-4" />
+    {aiInsightLoading ? "Refreshing..." : "Refresh AI Insight"}
+  </button>
+</div>
               </div>
 
               {aiInsightLoading ? (
@@ -381,9 +417,18 @@ export default function Intelligence(): JSX.Element {
                   </div>
                 </div>
               ) : aiInsightError ? (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                  AI insight unavailable right now. Your profile data is still loaded and usable.
-                </div>
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+             <p>AI insight unavailable right now. Your profile data is still loaded and usable.</p>
+            <button
+              type="button"
+              onClick={handleRefreshAIInsight}
+              disabled={aiInsightLoading || missingProfile}
+              className="mt-3 inline-flex h-10 items-center justify-center rounded-2xl border border-amber-300 bg-white px-4 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              Try again
+              </button>
+          </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-3">
                   {insights.map((item) => (
