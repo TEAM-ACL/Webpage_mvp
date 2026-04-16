@@ -14,3 +14,18 @@ export type AIInsightResponse = {
   skill_gaps: string[];
   next_steps: string[];
 };
+
+// ACL: Recommendation item returned by backend recommendation engine
+export type RecommendationItem = {
+  id: string;
+  title: string;
+  type: string;
+  level: string;
+  reason: string;
+};
+
+// ACL: Recommendation response for Intelligence page
+export type AIRecommendationsResponse = {
+  recommended_resources: RecommendationItem[];
+  recommended_projects: RecommendationItem[];
+};

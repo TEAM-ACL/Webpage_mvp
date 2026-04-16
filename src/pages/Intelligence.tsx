@@ -188,8 +188,13 @@ export default function Intelligence(): JSX.Element {
     aiInsightError,
     refreshAIInsight,
     loadLatestAIInsight,
+    recommendations,
+    recommendationsLoading,
+    recommendationsError,
+    loadRecommendations,
   } = useAuth();
   const hasLoadedLatestInsight = useRef(false);
+  const hasLoadedRecommendations = useRef(false);
 
   const field = profile?.fieldOfInterest || "Cloud Security Pathway";
   const headlineGoal = profile?.goals?.[0] || "Become opportunity-ready in cloud security";
@@ -232,6 +237,16 @@ export default function Intelligence(): JSX.Element {
     hasLoadedLatestInsight.current = true;
     void loadLatestAIInsight();
   }, [profileLoading, profile, loadLatestAIInsight]);
+
+  // ACL: load recommendations on Intelligence page entry
+  useEffect(() => {
+    if (profileLoading) return;
+    if (!profile) return;
+    if (hasLoadedRecommendations.current) return;
+
+    hasLoadedRecommendations.current = true;
+    void loadRecommendations();
+  }, [profileLoading, profile, loadRecommendations]);
 
   if (profileLoading) {
     return (
@@ -470,6 +485,69 @@ export default function Intelligence(): JSX.Element {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* Recommendations section */}
+            <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
+              <div className="mb-6">
+                <p className={`text-sm font-semibold ${subtle}`}>Recommendations</p>
+                <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Suggested resources and projects</h3>
+                <p className={`mt-2 text-sm ${subtle}`}>
+                  Practical recommendations aligned with your saved profile and AI guidance.
+                </p>
+              </div>
+
+              {recommendationsLoading ? (
+                <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
+                  Loading recommendations...
+                </div>
+              ) : recommendations ? (
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="font-semibold text-[var(--color-primary)]">Recommended Resources</h4>
+                    <div className="mt-3 grid gap-4 md:grid-cols-2">
+                      {recommendations.recommended_resources.map((item) => (
+                        <div key={item.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                          <p className="text-sm font-semibold text-[var(--color-on-surface)]">{item.title}</p>
+                          <p className={`mt-1 text-xs ${subtle}`}>
+                            {item.type} • {item.level}
+                          </p>
+                          <p className={`mt-3 text-sm ${subtle}`}>{item.reason}</p>
+                        </div>
+                      ))}
+                      {recommendations.recommended_resources.length === 0 && (
+                        <p className={`text-sm ${subtle}`}>No resource recommendations available yet.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-[var(--color-primary)]">Recommended Projects</h4>
+                    <div className="mt-3 grid gap-4 md:grid-cols-2">
+                      {recommendations.recommended_projects.map((item) => (
+                        <div key={item.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                          <p className="text-sm font-semibold text-[var(--color-on-surface)]">{item.title}</p>
+                          <p className={`mt-1 text-xs ${subtle}`}>
+                            {item.type} • {item.level}
+                          </p>
+                          <p className={`mt-3 text-sm ${subtle}`}>{item.reason}</p>
+                        </div>
+                      ))}
+                      {recommendations.recommended_projects.length === 0 && (
+                        <p className={`text-sm ${subtle}`}>No project recommendations available yet.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : recommendationsError ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                  Recommendations are unavailable right now.
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
+                  Recommendations will appear here once the backend recommendation service is available.
                 </div>
               )}
             </div>
