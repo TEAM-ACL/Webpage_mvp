@@ -7,6 +7,8 @@ import { setOnboardingComplete } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const hasUppercase = (value: string) => /[A-Z]/.test(value);
+const hasLowercase = (value: string) => /[a-z]/.test(value);
 
 export default function SignUp(): JSX.Element {
   const navigate = useNavigate();
@@ -59,6 +61,10 @@ export default function SignUp(): JSX.Element {
     }
     if (password.length > 128) {
       setError("Password must be 128 characters or fewer.");
+      return;
+    }
+    if (!hasUppercase(password) || !hasLowercase(password)) {
+      setError("Password must include at least one uppercase and one lowercase letter.");
       return;
     }
     if (password !== confirmPassword) {
@@ -237,6 +243,13 @@ export default function SignUp(): JSX.Element {
                 >
                   {showPassword ? "Hide" : "Show"}
                 </button>
+              </div>
+              <div className="rounded-lg border border-surface-container-high bg-surface-container-low px-3 py-2 text-xs text-on-surface-variant">
+                <p className="font-semibold mb-1">Use a valid password:</p>
+                <p>- At least 8 characters</p>
+                <p>- No more than 128 characters</p>
+                <p>- At least one uppercase letter (A-Z)</p>
+                <p>- At least one lowercase letter (a-z)</p>
               </div>
             </div>
             <div className="space-y-2">
