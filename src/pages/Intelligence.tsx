@@ -375,7 +375,7 @@ const handleRefreshAIInsight = async (): Promise<void> => {
 
               {aiInsightLoading ? (
                 <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
-                  Generating your profile insight...
+                  Generating your personalised insight from your saved profile...
                 </div>
               ) : aiInsight ? (
                 <div className="space-y-5">
