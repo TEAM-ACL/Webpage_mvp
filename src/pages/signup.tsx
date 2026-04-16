@@ -1,12 +1,14 @@
 import type { JSX } from "react";
 import { useState } from "react";
-import { Lock, ArrowRight, ArrowLeft, User, AtSign } from "lucide-react";
+import { Lock, ArrowRight, ArrowLeft, User, AtSign, Check, Circle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, storeSession } from "../lib/api";
 import { setOnboardingComplete } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const hasUppercase = (value: string) => /[A-Z]/.test(value);
+const hasLowercase = (value: string) => /[a-z]/.test(value);
 
 export default function SignUp(): JSX.Element {
   const navigate = useNavigate();
@@ -24,6 +26,10 @@ export default function SignUp(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
+  const meetsMinLength = password.length >= 8;
+  const meetsMaxLength = password.length <= 128;
+  const meetsUppercase = hasUppercase(password);
+  const meetsLowercase = hasLowercase(password);
 
   const friendlyError = (message: string) => {
     if (message.toLowerCase().includes("failed to fetch")) {
@@ -45,8 +51,24 @@ export default function SignUp(): JSX.Element {
       setError("Please enter a valid email address.");
       return;
     }
+    if (!cleanFirstName) {
+      setError("First name is required.");
+      return;
+    }
+    if (cleanFirstName.length > 100 || cleanLastName.length > 100) {
+      setError("First name and last name must be 100 characters or fewer.");
+      return;
+    }
     if (password.length < 8) {
       setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password.length > 128) {
+      setError("Password must be 128 characters or fewer.");
+      return;
+    }
+    if (!hasUppercase(password) || !hasLowercase(password)) {
+      setError("Password must include at least one uppercase and one lowercase letter.");
       return;
     }
     if (password !== confirmPassword) {
@@ -226,6 +248,13 @@ export default function SignUp(): JSX.Element {
                   {showPassword ? "Hide" : "Show"}
                 </button>
               </div>
+              <div className="rounded-lg border border-surface-container-high bg-surface-container-low px-3 py-2 text-xs text-on-surface-variant">
+                <p className="font-semibold mb-1">Use a valid password:</p>
+                <PasswordRule met={meetsMinLength} text="At least 8 characters" />
+                <PasswordRule met={meetsMaxLength} text="No more than 128 characters" />
+                <PasswordRule met={meetsUppercase} text="At least one uppercase letter (A-Z)" />
+                <PasswordRule met={meetsLowercase} text="At least one lowercase letter (a-z)" />
+              </div>
             </div>
             <div className="space-y-2">
               <label className="font-label text-sm font-semibold text-on-surface-variant ml-1">Confirm Password</label>
@@ -336,6 +365,15 @@ function Zap({ className }: { className?: string }) {
     >
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
     </svg>
+  );
+}
+
+function PasswordRule({ met, text }: { met: boolean; text: string }) {
+  return (
+    <p className={`flex items-center gap-2 ${met ? "text-green-700" : ""}`}>
+      {met ? <Check className="h-3.5 w-3.5" /> : <Circle className="h-3.5 w-3.5" />}
+      <span>{text}</span>
+    </p>
   );
 }
 
