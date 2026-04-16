@@ -45,8 +45,20 @@ export default function SignUp(): JSX.Element {
       setError("Please enter a valid email address.");
       return;
     }
+    if (!cleanFirstName) {
+      setError("First name is required.");
+      return;
+    }
+    if (cleanFirstName.length > 100 || cleanLastName.length > 100) {
+      setError("First name and last name must be 100 characters or fewer.");
+      return;
+    }
     if (password.length < 8) {
       setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password.length > 128) {
+      setError("Password must be 128 characters or fewer.");
       return;
     }
     if (password !== confirmPassword) {

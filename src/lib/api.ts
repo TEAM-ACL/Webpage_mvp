@@ -57,7 +57,16 @@ async function request<T>(
     let message = response.statusText;
     try {
       const data = await response.json();
-      message = data?.error?.message || data?.detail || data?.message || message;
+      const baseMessage = data?.error?.message || data?.detail || data?.message || message;
+      const details = Array.isArray(data?.error?.details) ? data.error.details : [];
+      if (details.length > 0) {
+        const first = details[0];
+        const loc = Array.isArray(first?.loc) ? first.loc.join(".") : "request";
+        const detailMsg = typeof first?.msg === "string" ? first.msg : "Invalid request payload.";
+        message = `${baseMessage} (${loc}: ${detailMsg})`;
+      } else {
+        message = baseMessage;
+      }
     } catch {
       // ignore parse errors
     }
