@@ -1,8 +1,12 @@
 import { createContext, useContext, useEffect, useState, type JSX, type ReactNode } from "react";
 import { api } from "../lib/api";
 import type { AuthSessionResponse, ProfileState } from "../lib/api";
-import type { AIInsightResponse } from "../types/ai";
-import { generateAIInsight, getLatestAIInsight } from "../services/aiService";
+import type { AIInsightResponse, AIRecommendationsResponse } from "../types/ai";
+import {
+  generateAIInsight,
+  getLatestAIInsight,
+  getAIRecommendations,
+} from "../services/aiService";
 
 type AuthContextValue = {
   user: AuthSessionResponse["user"] | null;
@@ -10,8 +14,11 @@ type AuthContextValue = {
   onboardingStage: string | null;
   onboardingComplete: boolean | null;
   aiInsight: AIInsightResponse | null;
+  recommendations: AIRecommendationsResponse | null;
   aiInsightLoading: boolean;
   aiInsightError: string | null;
+  recommendationsLoading: boolean;
+  recommendationsError: string | null;
   loading: boolean;
   profileLoading: boolean;
   error: string | null;
@@ -20,6 +27,7 @@ type AuthContextValue = {
   refreshProfile: () => Promise<ProfileState | null>;
   refreshAIInsight: () => Promise<AIInsightResponse | null>;
   loadLatestAIInsight: () => Promise<AIInsightResponse | null>;
+  loadRecommendations: () => Promise<AIRecommendationsResponse | null>;
   setAIInsight: (insight: AIInsightResponse | null) => void;
   setUser: (user: AuthSessionResponse["user"] | null) => void;
   logout: () => Promise<void>;
@@ -35,8 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const [onboardingStage, setOnboardingStage] = useState<string | null>(null);
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
   const [aiInsight, setAIInsight] = useState<AIInsightResponse | null>(null);
+  const [recommendations, setRecommendations] = useState<AIRecommendationsResponse | null>(null);
   const [aiInsightLoading, setAIInsightLoading] = useState(false);
   const [aiInsightError, setAIInsightError] = useState<string | null>(null);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
+  const [recommendationsError, setRecommendationsError] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
 
@@ -55,6 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   setOnboardingComplete(null);
   setAIInsight(null);
   setAIInsightError(null);
+  setRecommendations(null);
+  setRecommendationsError(null);
   setProfileError((err as Error).message);
   return null;
 } finally {
@@ -118,6 +131,24 @@ const refreshAIInsight = async (): Promise<AIInsightResponse | null> => {
     }
   };
 
+  // ACL: load AI recommendations for the authenticated user
+  const loadRecommendations = async (): Promise<AIRecommendationsResponse | null> => {
+    setRecommendationsLoading(true);
+    setRecommendationsError(null);
+
+    try {
+      const data = await getAIRecommendations();
+      setRecommendations(data);
+      return data;
+    } catch (err) {
+      setRecommendations(null);
+      setRecommendationsError((err as Error).message);
+      return null;
+    } finally {
+      setRecommendationsLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       await api.logout();
@@ -131,6 +162,9 @@ const refreshAIInsight = async (): Promise<AIInsightResponse | null> => {
       setAIInsight(null);
       setAIInsightError(null);
       setAIInsightLoading(false);
+      setRecommendations(null);
+      setRecommendationsError(null);
+      setRecommendationsLoading(false);
     }
   };
 
@@ -146,8 +180,11 @@ const refreshAIInsight = async (): Promise<AIInsightResponse | null> => {
         onboardingStage,
         onboardingComplete,
         aiInsight,
+        recommendations,
         aiInsightLoading,
         aiInsightError,
+        recommendationsLoading,
+        recommendationsError,
         loading,
         profileLoading,
         error,
@@ -156,6 +193,7 @@ const refreshAIInsight = async (): Promise<AIInsightResponse | null> => {
         refreshProfile: fetchProfile,
         refreshAIInsight,
         loadLatestAIInsight,
+        loadRecommendations,
         setAIInsight,
         setUser,
         logout,
