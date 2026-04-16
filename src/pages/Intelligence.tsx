@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   ArrowRight,
   Bell,
@@ -181,13 +181,15 @@ const subtle = "text-[var(--color-on-surface-variant)]";
 
 export default function Intelligence(): JSX.Element {
   const {
-  profile,
-  profileLoading,
-  aiInsight,
-  aiInsightLoading,
-  aiInsightError,
-  refreshAIInsight,
-} = useAuth();
+    profile,
+    profileLoading,
+    aiInsight,
+    aiInsightLoading,
+    aiInsightError,
+    refreshAIInsight,
+    loadLatestAIInsight,
+  } = useAuth();
+  const hasLoadedLatestInsight = useRef(false);
 
   const field = profile?.fieldOfInterest || "Cloud Security Pathway";
   const headlineGoal = profile?.goals?.[0] || "Become opportunity-ready in cloud security";
@@ -203,23 +205,33 @@ export default function Intelligence(): JSX.Element {
   const stats = useMemo(() => buildStats(skillsCount, aiInsight ? aiInsight.next_steps.length : null), [skillsCount, aiInsight]);
 
   const aiStatusLabel = aiInsight
-  ? "Live"
-  : aiInsightLoading
-    ? "Loading"
-    : aiInsightError
-      ? "Unavailable"
-      : "Sample";
+    ? "Live"
+    : aiInsightLoading
+      ? "Loading"
+      : aiInsightError
+        ? "Unavailable"
+        : "Sample";
 
   const missingProfile = !profile;
 
   // ACL: manual AI refresh handler for Intelligence page
-const handleRefreshAIInsight = async (): Promise<void> => {
-  try {
-    await refreshAIInsight();
-  } catch (error) {
-    console.error("ACL: Failed to refresh AI insight from Intelligence page", error);
-  }
-};
+  const handleRefreshAIInsight = async (): Promise<void> => {
+    try {
+      await refreshAIInsight();
+    } catch (error) {
+      console.error("ACL: Failed to refresh AI insight from Intelligence page", error);
+    }
+  };
+
+  // ACL: load latest saved AI insight on Intelligence page entry
+  useEffect(() => {
+    if (profileLoading) return;
+    if (!profile) return;
+    if (hasLoadedLatestInsight.current) return;
+
+    hasLoadedLatestInsight.current = true;
+    void loadLatestAIInsight();
+  }, [profileLoading, profile, loadLatestAIInsight]);
 
   if (profileLoading) {
     return (
@@ -430,16 +442,34 @@ const handleRefreshAIInsight = async (): Promise<void> => {
               </button>
           </div>
               ) : (
-                <div className="grid gap-4 md:grid-cols-3">
-                  {insights.map((item) => (
-                    <div key={item.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
-                      <div className="mb-3 inline-flex rounded-xl bg-[var(--color-surface-container-lowest)] p-2">
-                        <Sparkles className="h-4 w-4 text-[var(--color-on-surface)]" />
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4">
+                    <h4 className="font-semibold text-[var(--color-primary)]">No saved AI insight yet</h4>
+                    <p className={`mt-2 text-sm leading-6 ${subtle}`}>
+                      Your profile is loaded, but no saved AI guidance is available yet. You can generate a fresh insight now.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleRefreshAIInsight}
+                      disabled={aiInsightLoading || missingProfile}
+                      className="mt-4 inline-flex h-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Generate AI Insight
+                    </button>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {insights.map((item) => (
+                      <div key={item.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                        <div className="mb-3 inline-flex rounded-xl bg-[var(--color-surface-container-lowest)] p-2">
+                          <Sparkles className="h-4 w-4 text-[var(--color-on-surface)]" />
+                        </div>
+                        <h4 className="font-semibold text-[var(--color-primary)]">{item.title}</h4>
+                        <p className={`mt-2 text-sm leading-6 ${subtle}`}>{item.description}</p>
                       </div>
-                      <h4 className="font-semibold text-[var(--color-primary)]">{item.title}</h4>
-                      <p className={`mt-2 text-sm leading-6 ${subtle}`}>{item.description}</p>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
