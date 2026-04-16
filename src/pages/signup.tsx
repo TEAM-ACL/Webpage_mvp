@@ -38,6 +38,8 @@ export default function SignUp(): JSX.Element {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
+    const cleanFirstName = firstName.trim();
+    const cleanLastName = lastName.trim();
 
     if (!emailRegex.test(cleanEmail)) {
       setError("Please enter a valid email address.");
@@ -63,9 +65,9 @@ export default function SignUp(): JSX.Element {
       const session = await api.register({
         email: cleanEmail,
         password,
-        display_name: `${firstName} ${lastName}`.trim() || cleanEmail,
-        first_name: firstName || null,
-        last_name: lastName || null,
+        display_name: `${cleanFirstName} ${cleanLastName}`.trim() || cleanEmail,
+        first_name: cleanFirstName,
+        last_name: cleanLastName || undefined,
       });
       if (!session.access_token) {
         setSuccess("Account created. Please check your email and verify your address before logging in.");
