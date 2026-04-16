@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type JSX, type ReactNod
 import { api } from "../lib/api";
 import type { AuthSessionResponse, ProfileState } from "../lib/api";
 import type { AIInsightResponse } from "../types/ai";
-import { generateAIInsight } from "../services/aiService";
+import { generateAIInsight, getLatestAIInsight } from "../services/aiService";
 
 type AuthContextValue = {
   user: AuthSessionResponse["user"] | null;
@@ -19,6 +19,7 @@ type AuthContextValue = {
   bootstrap: () => Promise<void>;
   refreshProfile: () => Promise<ProfileState | null>;
   refreshAIInsight: () => Promise<AIInsightResponse | null>;
+  loadLatestAIInsight: () => Promise<AIInsightResponse | null>;
   setAIInsight: (insight: AIInsightResponse | null) => void;
   setUser: (user: AuthSessionResponse["user"] | null) => void;
   logout: () => Promise<void>;
@@ -99,6 +100,24 @@ const refreshAIInsight = async (): Promise<AIInsightResponse | null> => {
   }
 };
 
+  // ACL: load latest saved AI insight from backend without forcing regeneration
+  const loadLatestAIInsight = async (): Promise<AIInsightResponse | null> => {
+    setAIInsightLoading(true);
+    setAIInsightError(null);
+
+    try {
+      const insight = await getLatestAIInsight();
+      setAIInsight(insight);
+      return insight;
+    } catch (err) {
+      setAIInsight(null);
+      setAIInsightError((err as Error).message);
+      return null;
+    } finally {
+      setAIInsightLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       await api.logout();
@@ -136,6 +155,7 @@ const refreshAIInsight = async (): Promise<AIInsightResponse | null> => {
         bootstrap,
         refreshProfile: fetchProfile,
         refreshAIInsight,
+        loadLatestAIInsight,
         setAIInsight,
         setUser,
         logout,
