@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import { useEffect, useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   Bell,
@@ -197,6 +198,7 @@ function isCompletedRecommendationItem(item: {
 const subtle = "text-[var(--color-on-surface-variant)]";
 
 export default function Intelligence(): JSX.Element {
+  const navigate = useNavigate();
   const {
     user,
     profile,
@@ -268,6 +270,8 @@ export default function Intelligence(): JSX.Element {
   const onboardingIncomplete = onboardingComplete === false;
   const notAuthenticated = !user;
   const pageReady = !!user && !!profile && onboardingComplete === true;
+  const comingSoonButtonClass =
+    "inline-flex items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] px-4 py-3 text-sm font-medium opacity-50 cursor-not-allowed";
 
   // ACL: manual AI refresh handler for Intelligence page
   const handleRefreshAIInsight = async (): Promise<void> => {
@@ -304,6 +308,20 @@ export default function Intelligence(): JSX.Element {
     hasLoadedMatches.current = true;
     void loadMatches();
   }, [pageReady, loadMatches]);
+
+  // ACL: redirect users to the correct MVP flow based on readiness state
+  useEffect(() => {
+    if (profileLoading) return;
+
+    if (!user) {
+      navigate("/login", { replace: true });
+      return;
+    }
+
+    if (onboardingComplete === false) {
+      navigate("/onboarding", { replace: true });
+    }
+  }, [profileLoading, user, onboardingComplete, navigate]);
 
   if (notAuthenticated) {
     return (
@@ -358,7 +376,11 @@ export default function Intelligence(): JSX.Element {
         description="Track pathway progress, understand next steps, and receive intelligent recommendations tailored to your saved goals and profile."
         actions={
           <>
-            <button className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]">
+            <button
+              type="button"
+              disabled
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] opacity-50"
+            >
               <Bell className="mr-2 h-4 w-4" />
               Notifications
             </button>
@@ -429,7 +451,11 @@ export default function Intelligence(): JSX.Element {
                   <p className={`text-sm font-semibold ${subtle}`}>Intelligent Pathway</p>
                   <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Your guided journey</h3>
                 </div>
-                <button className="inline-flex items-center text-sm font-medium text-[var(--color-on-surface)] hover:text-[var(--color-primary)]">
+                <button
+                  type="button"
+                  disabled
+                  className="inline-flex items-center text-sm font-medium text-[var(--color-on-surface)] opacity-50"
+                >
                   View full pathway
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
@@ -659,7 +685,11 @@ export default function Intelligence(): JSX.Element {
                           : "Sample matches are shown until backend matching is ready."}
                   </p>
                 </div>
-                <button className="inline-flex items-center text-sm font-medium text-[var(--color-on-surface)] hover:text-[var(--color-primary)]">
+                <button
+                  type="button"
+                  disabled
+                  className="inline-flex items-center text-sm font-medium text-[var(--color-on-surface)] opacity-50"
+                >
                   Explore all matches
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
@@ -682,7 +712,11 @@ export default function Intelligence(): JSX.Element {
                       </div>
                     </div>
                     <p className={`mt-4 text-sm ${subtle}`}>{match.reason}</p>
-                    <button className="mt-4 inline-flex h-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90">
+                    <button
+                      type="button"
+                      disabled
+                      className="mt-4 inline-flex h-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white opacity-50"
+                    >
                       Connect
                     </button>
                   </div>
@@ -705,7 +739,9 @@ export default function Intelligence(): JSX.Element {
                 ].map((action) => (
                   <button
                     key={action.label}
-                    className="flex w-full items-center justify-between rounded-2xl border border-[var(--color-outline-variant)] px-4 py-3 text-left transition hover:bg-[var(--color-surface-container-low)]"
+                    type="button"
+                    disabled
+                    className={`${comingSoonButtonClass} w-full justify-between text-left`}
                   >
                     <span className="flex items-center gap-3 text-[var(--color-primary)]">
                       <action.icon className="h-4 w-4" />
@@ -743,7 +779,11 @@ export default function Intelligence(): JSX.Element {
               <p className="mt-3 text-sm leading-6 text-white/90">
                 Based on your current pathway activity and skills alignment, your profile is becoming more attractive for future collaboration and role-based opportunities.
               </p>
-              <button className="mt-5 inline-flex h-11 items-center justify-center rounded-2xl bg-white px-4 text-sm font-semibold text-[var(--color-primary)] transition hover:bg-[var(--color-surface-container-low)]">
+              <button
+                type="button"
+                disabled
+                className="mt-5 inline-flex h-11 items-center justify-center rounded-2xl bg-white px-4 text-sm font-semibold text-[var(--color-primary)] opacity-50"
+              >
                 View readiness details
               </button>
             </div>
