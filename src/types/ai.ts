@@ -16,18 +16,27 @@ export type AIInsightResponse = {
 };
 
 // ACL: Recommendation item returned by backend recommendation engine
-export type RecommendationItem = {
-  id: string;
+export type AIRecommendationItem = {
+  pathway_id: string;
   title: string;
-  type: string;
-  level: string;
-  reason: string;
+  summary: string;
+  career_outcome: string;
+  skill_level: string;
+  match_score: number;
+  match_reason: string;
+  next_steps: string[];
+  // ACL: Optional compatibility fields for completion-aware filtering.
+  status?: string;
+  event_type?: string;
+  is_completed?: boolean;
+  completed?: boolean;
 };
 
 // ACL: Recommendation response for Intelligence page
 export type AIRecommendationsResponse = {
-  recommended_resources: RecommendationItem[];
-  recommended_projects: RecommendationItem[];
+  recommendation_id: string;
+  generated_at: string;
+  recommendations: AIRecommendationItem[];
 };
 
 // ACL: Match item returned by backend matching engine

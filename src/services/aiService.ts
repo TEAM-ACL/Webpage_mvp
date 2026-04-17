@@ -33,7 +33,7 @@ export async function generateAIInsight(): Promise<AIInsightResponse> {
 
 // ACL: Service for fetching the latest saved AI insight from backend
 export async function getLatestAIInsight(): Promise<AIInsightResponse | null> {
-  const response = await fetch(`${API_BASE_URL}/ai/insight`, {
+  const response = await fetch(`${API_BASE_URL}/ai/profile`, {
     method: "GET",
     credentials: "include",
     headers: {

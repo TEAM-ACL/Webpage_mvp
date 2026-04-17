@@ -1,6 +1,7 @@
 import type { JSX, ReactNode } from "react";
 import { motion } from "motion/react";
 import { ArrowRight, Users, CheckCircle2, ChevronDown } from "lucide-react";
+import OnboardingWalkthroughSlideshow from "../components/home/OnboardingWalkthroughSlideshow";
 
 type SocialLink = {
   label: string;
@@ -204,6 +205,8 @@ export default function Home(): JSX.Element {
           </div>
         </div>
       </section>
+
+      <OnboardingWalkthroughSlideshow />
 
       {/* FAQs */}
       <section className="py-20 px-6 md:px-12 lg:px-16 bg-white border-t border-slate-200">
