@@ -34,7 +34,7 @@ type Insight = {
 };
 
 type MatchCard = {
-  id: number;
+  id: string;
   name: string;
   role: string;
   matchScore: number;
@@ -116,23 +116,23 @@ const insights: Insight[] = [
   },
 ];
 
-const matches: MatchCard[] = [
+const sampleMatches: MatchCard[] = [
   {
-    id: 1,
+    id: "1",
     name: "Esther A.",
     role: "Cloud Engineer",
     matchScore: 92,
     reason: "Shared interest in cloud security and infrastructure growth.",
   },
   {
-    id: 2,
+    id: "2",
     name: "Daniel K.",
     role: "Cybersecurity Analyst",
     matchScore: 87,
     reason: "Strong overlap in security monitoring and hands-on lab practice.",
   },
   {
-    id: 3,
+    id: "3",
     name: "Miriam O.",
     role: "Product Builder",
     matchScore: 81,
@@ -192,9 +192,14 @@ export default function Intelligence(): JSX.Element {
     recommendationsLoading,
     recommendationsError,
     loadRecommendations,
+    matches,
+    matchesLoading,
+    matchesError,
+    loadMatches,
   } = useAuth();
   const hasLoadedLatestInsight = useRef(false);
   const hasLoadedRecommendations = useRef(false);
+  const hasLoadedMatches = useRef(false);
 
   const field = profile?.fieldOfInterest || "Cloud Security Pathway";
   const headlineGoal = profile?.goals?.[0] || "Become opportunity-ready in cloud security";
@@ -216,6 +221,19 @@ export default function Intelligence(): JSX.Element {
       : aiInsightError
         ? "Unavailable"
         : "Sample";
+  const displayMatches = useMemo(() => {
+    if (matches?.matches) {
+      return matches.matches.map((match) => ({
+        id: match.id,
+        name: match.name,
+        role: match.role,
+        matchScore: match.match_score,
+        reason: match.reason,
+      }));
+    }
+
+    return sampleMatches;
+  }, [matches]);
 
   const missingProfile = !profile;
 
@@ -247,6 +265,16 @@ export default function Intelligence(): JSX.Element {
     hasLoadedRecommendations.current = true;
     void loadRecommendations();
   }, [profileLoading, profile, loadRecommendations]);
+
+  // ACL: load matches on Intelligence page entry
+  useEffect(() => {
+    if (profileLoading) return;
+    if (!profile) return;
+    if (hasLoadedMatches.current) return;
+
+    hasLoadedMatches.current = true;
+    void loadMatches();
+  }, [profileLoading, profile, loadMatches]);
 
   if (profileLoading) {
     return (
@@ -558,14 +586,28 @@ export default function Intelligence(): JSX.Element {
                 <div>
                   <p className={`text-sm font-semibold ${subtle}`}>Smart Matching</p>
                   <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">People and collaboration fits</h3>
+                  <p className={`mt-2 text-sm ${subtle}`}>
+                    {matchesLoading
+                      ? "Loading backend-driven matches..."
+                      : matches
+                        ? "Matches aligned with your saved profile."
+                        : matchesError
+                          ? "Matching is unavailable right now."
+                          : "Sample matches are shown until backend matching is ready."}
+                  </p>
                 </div>
                 <button className="inline-flex items-center text-sm font-medium text-[var(--color-on-surface)] hover:text-[var(--color-primary)]">
                   Explore all matches
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
               </div>
+              {matchesError && (
+                <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                  Backend matching is unavailable right now. Sample matches are being shown instead.
+                </div>
+              )}
               <div className="grid gap-4 md:grid-cols-3">
-                {matches.map((match) => (
+                {displayMatches.map((match) => (
                   <div key={match.id} className="rounded-2xl border border-[var(--color-outline-variant)] p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>

@@ -29,3 +29,17 @@ export type AIRecommendationsResponse = {
   recommended_resources: RecommendationItem[];
   recommended_projects: RecommendationItem[];
 };
+
+// ACL: Match item returned by backend matching engine
+export type AIMatchItem = {
+  id: string;
+  name: string;
+  role: string;
+  match_score: number;
+  reason: string;
+};
+
+// ACL: Matching response for Intelligence page
+export type AIMatchesResponse = {
+  matches: AIMatchItem[];
+};
