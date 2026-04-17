@@ -217,6 +217,8 @@ export default function Intelligence(): JSX.Element {
     matchesLoading,
     matchesError,
     loadMatches,
+    intelligenceRefreshing,
+    refreshIntelligence,
   } = useAuth();
   const hasLoadedLatestInsight = useRef(false);
   const hasLoadedRecommendations = useRef(false);
@@ -279,6 +281,15 @@ export default function Intelligence(): JSX.Element {
       await refreshAIInsight();
     } catch (error) {
       console.error("ACL: Failed to refresh AI insight from Intelligence page", error);
+    }
+  };
+
+  // ACL: refresh all dynamic intelligence sections together
+  const handleRefreshIntelligence = async (): Promise<void> => {
+    try {
+      await refreshIntelligence();
+    } catch (error) {
+      console.error("ACL: Failed to refresh full intelligence state", error);
     }
   };
 
@@ -378,25 +389,31 @@ export default function Intelligence(): JSX.Element {
           <>
             <button
               type="button"
-              disabled
-              className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] opacity-50"
+              onClick={handleRefreshIntelligence}
+              disabled={!pageReady || intelligenceRefreshing}
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Bell className="mr-2 h-4 w-4" />
-              Notifications
+              <Sparkles className="mr-2 h-4 w-4" />
+              {intelligenceRefreshing ? "Refreshing..." : "Refresh Intelligence"}
             </button>
             <button
               type="button"
               disabled
               className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white opacity-50"
             >
-              <Sparkles className="mr-2 h-4 w-4" />
-              Start New Pathway
+              <Bell className="mr-2 h-4 w-4" />
+              Notifications
             </button>
           </>
         }
       />
 
       <SummaryGrid items={stats} />
+      {intelligenceRefreshing && (
+        <div className="mb-6 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
+          Refreshing your AI insight, recommendations, and matches...
+        </div>
+      )}
 
       {/* Hero summary */}
       <section className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
