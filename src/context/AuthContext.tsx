@@ -37,6 +37,8 @@ type AuthContextValue = {
   loadLatestAIInsight: () => Promise<AIInsightResponse | null>;
   loadRecommendations: () => Promise<AIRecommendationsResponse | null>;
   loadMatches: () => Promise<AIMatchesResponse | null>;
+  intelligenceRefreshing: boolean;
+  refreshIntelligence: () => Promise<void>;
   setAIInsight: (insight: AIInsightResponse | null) => void;
   setUser: (user: AuthSessionResponse["user"] | null) => void;
   logout: () => Promise<void>;
@@ -60,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const [recommendationsError, setRecommendationsError] = useState<string | null>(null);
   const [matchesLoading, setMatchesLoading] = useState(false);
   const [matchesError, setMatchesError] = useState<string | null>(null);
+  const [intelligenceRefreshing, setIntelligenceRefreshing] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
 
@@ -181,6 +184,21 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     }
   };
 
+  // ACL: refresh all intelligence sections together for the authenticated user
+  const refreshIntelligence = async (): Promise<void> => {
+    setIntelligenceRefreshing(true);
+
+    try {
+      await Promise.all([
+        refreshAIInsight(),
+        loadRecommendations(),
+        loadMatches(),
+      ]);
+    } finally {
+      setIntelligenceRefreshing(false);
+    }
+  };
+
   const logout = async () => {
     try {
       await api.logout();
@@ -200,6 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setMatches(null);
       setMatchesError(null);
       setMatchesLoading(false);
+      setIntelligenceRefreshing(false);
     }
   };
 
@@ -233,6 +252,8 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
         loadLatestAIInsight,
         loadRecommendations,
         loadMatches,
+        intelligenceRefreshing,
+        refreshIntelligence,
         setAIInsight,
         setUser,
         logout,
