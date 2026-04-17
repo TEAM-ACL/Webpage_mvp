@@ -181,7 +181,9 @@ const subtle = "text-[var(--color-on-surface-variant)]";
 
 export default function Intelligence(): JSX.Element {
   const {
+    user,
     profile,
+    onboardingComplete,
     profileLoading,
     aiInsight,
     aiInsightLoading,
@@ -236,6 +238,9 @@ export default function Intelligence(): JSX.Element {
   }, [matches]);
 
   const missingProfile = !profile;
+  const onboardingIncomplete = onboardingComplete === false;
+  const notAuthenticated = !user;
+  const pageReady = !!user && !!profile && onboardingComplete === true;
 
   // ACL: manual AI refresh handler for Intelligence page
   const handleRefreshAIInsight = async (): Promise<void> => {
@@ -248,33 +253,42 @@ export default function Intelligence(): JSX.Element {
 
   // ACL: load latest saved AI insight on Intelligence page entry
   useEffect(() => {
-    if (profileLoading) return;
-    if (!profile) return;
+    if (!pageReady) return;
     if (hasLoadedLatestInsight.current) return;
 
     hasLoadedLatestInsight.current = true;
     void loadLatestAIInsight();
-  }, [profileLoading, profile, loadLatestAIInsight]);
+  }, [pageReady, loadLatestAIInsight]);
 
   // ACL: load recommendations on Intelligence page entry
   useEffect(() => {
-    if (profileLoading) return;
-    if (!profile) return;
+    if (!pageReady) return;
     if (hasLoadedRecommendations.current) return;
 
     hasLoadedRecommendations.current = true;
     void loadRecommendations();
-  }, [profileLoading, profile, loadRecommendations]);
+  }, [pageReady, loadRecommendations]);
 
   // ACL: load matches on Intelligence page entry
   useEffect(() => {
-    if (profileLoading) return;
-    if (!profile) return;
+    if (!pageReady) return;
     if (hasLoadedMatches.current) return;
 
     hasLoadedMatches.current = true;
     void loadMatches();
-  }, [profileLoading, profile, loadMatches]);
+  }, [pageReady, loadMatches]);
+
+  if (notAuthenticated) {
+    return (
+      <DashboardShell>
+        <PageHeader
+          eyebrow="VisionTech Intelligence"
+          title="Sign in to access your intelligence dashboard"
+          description="Your personalised guidance, recommendations, and matching will appear here after authentication."
+        />
+      </DashboardShell>
+    );
+  }
 
   if (profileLoading) {
     return (
@@ -288,23 +302,44 @@ export default function Intelligence(): JSX.Element {
     );
   }
 
+  if (onboardingIncomplete) {
+    return (
+      <DashboardShell>
+        <PageHeader
+          eyebrow="VisionTech Intelligence"
+          title="Complete onboarding to unlock your intelligence dashboard"
+          description="VisionTech needs your saved profile information before it can generate guidance, recommendations, and matching."
+        />
+
+        <section className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
+          <h2 className="text-xl font-bold text-[var(--color-on-surface)]">What happens next</h2>
+          <div className="mt-4 space-y-3 text-sm text-[var(--color-on-surface-variant)]">
+            <p>• Complete your onboarding details</p>
+            <p>• Save your skills, interests, and goals</p>
+            <p>• Return here to see AI guidance and opportunities</p>
+          </div>
+        </section>
+      </DashboardShell>
+    );
+  }
+
   return (
     <DashboardShell>
       <PageHeader
         eyebrow="VisionTech Intelligence"
         title="Your personalised guidance and growth direction"
-        description={
-          missingProfile
-            ? "Finish onboarding to fully personalise your dashboard."
-            : "Track pathway progress, understand next steps, and receive intelligent recommendations tailored to your goals."
-        }
+        description="Track pathway progress, understand next steps, and receive intelligent recommendations tailored to your saved goals and profile."
         actions={
           <>
             <button className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]">
               <Bell className="mr-2 h-4 w-4" />
               Notifications
             </button>
-            <button className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90">
+            <button
+              type="button"
+              disabled
+              className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white opacity-50"
+            >
               <Sparkles className="mr-2 h-4 w-4" />
               Start New Pathway
             </button>
