@@ -1,11 +1,16 @@
 import { createContext, useContext, useEffect, useState, type JSX, type ReactNode } from "react";
 import { api } from "../lib/api";
 import type { AuthSessionResponse, ProfileState } from "../lib/api";
-import type { AIInsightResponse, AIRecommendationsResponse } from "../types/ai";
+import type {
+  AIInsightResponse,
+  AIRecommendationsResponse,
+  AIMatchesResponse,
+} from "../types/ai";
 import {
   generateAIInsight,
   getLatestAIInsight,
   getAIRecommendations,
+  getAIMatches,
 } from "../services/aiService";
 
 type AuthContextValue = {
@@ -15,10 +20,13 @@ type AuthContextValue = {
   onboardingComplete: boolean | null;
   aiInsight: AIInsightResponse | null;
   recommendations: AIRecommendationsResponse | null;
+  matches: AIMatchesResponse | null;
   aiInsightLoading: boolean;
   aiInsightError: string | null;
   recommendationsLoading: boolean;
   recommendationsError: string | null;
+  matchesLoading: boolean;
+  matchesError: string | null;
   loading: boolean;
   profileLoading: boolean;
   error: string | null;
@@ -28,6 +36,7 @@ type AuthContextValue = {
   refreshAIInsight: () => Promise<AIInsightResponse | null>;
   loadLatestAIInsight: () => Promise<AIInsightResponse | null>;
   loadRecommendations: () => Promise<AIRecommendationsResponse | null>;
+  loadMatches: () => Promise<AIMatchesResponse | null>;
   setAIInsight: (insight: AIInsightResponse | null) => void;
   setUser: (user: AuthSessionResponse["user"] | null) => void;
   logout: () => Promise<void>;
@@ -44,10 +53,13 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
   const [aiInsight, setAIInsight] = useState<AIInsightResponse | null>(null);
   const [recommendations, setRecommendations] = useState<AIRecommendationsResponse | null>(null);
+  const [matches, setMatches] = useState<AIMatchesResponse | null>(null);
   const [aiInsightLoading, setAIInsightLoading] = useState(false);
   const [aiInsightError, setAIInsightError] = useState<string | null>(null);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   const [recommendationsError, setRecommendationsError] = useState<string | null>(null);
+  const [matchesLoading, setMatchesLoading] = useState(false);
+  const [matchesError, setMatchesError] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
 
@@ -61,16 +73,18 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setOnboardingComplete(prof.isOnboardingComplete);
       return prof;
     } catch (err) {
-  setProfile(null);
-  setOnboardingStage(null);
-  setOnboardingComplete(null);
-  setAIInsight(null);
-  setAIInsightError(null);
-  setRecommendations(null);
-  setRecommendationsError(null);
-  setProfileError((err as Error).message);
-  return null;
-} finally {
+      setProfile(null);
+      setOnboardingStage(null);
+      setOnboardingComplete(null);
+      setAIInsight(null);
+      setAIInsightError(null);
+      setRecommendations(null);
+      setRecommendationsError(null);
+      setMatches(null);
+      setMatchesError(null);
+      setProfileError((err as Error).message);
+      return null;
+    } finally {
       setProfileLoading(false);
     }
   };
@@ -96,22 +110,22 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   };
 
   // ACL: refresh AI insight using persisted backend profile as source of truth
-const refreshAIInsight = async (): Promise<AIInsightResponse | null> => {
-  setAIInsightLoading(true);
-  setAIInsightError(null);
+  const refreshAIInsight = async (): Promise<AIInsightResponse | null> => {
+    setAIInsightLoading(true);
+    setAIInsightError(null);
 
-  try {
-    const insight = await generateAIInsight();
-    setAIInsight(insight);
-    return insight;
-  } catch (err) {
-    setAIInsight(null);
-    setAIInsightError((err as Error).message);
-    return null;
-  } finally {
-    setAIInsightLoading(false);
-  }
-};
+    try {
+      const insight = await generateAIInsight();
+      setAIInsight(insight);
+      return insight;
+    } catch (err) {
+      setAIInsight(null);
+      setAIInsightError((err as Error).message);
+      return null;
+    } finally {
+      setAIInsightLoading(false);
+    }
+  };
 
   // ACL: load latest saved AI insight from backend without forcing regeneration
   const loadLatestAIInsight = async (): Promise<AIInsightResponse | null> => {
@@ -149,6 +163,24 @@ const refreshAIInsight = async (): Promise<AIInsightResponse | null> => {
     }
   };
 
+  // ACL: load backend-driven matches for the authenticated user
+  const loadMatches = async (): Promise<AIMatchesResponse | null> => {
+    setMatchesLoading(true);
+    setMatchesError(null);
+
+    try {
+      const data = await getAIMatches();
+      setMatches(data);
+      return data;
+    } catch (err) {
+      setMatches(null);
+      setMatchesError((err as Error).message);
+      return null;
+    } finally {
+      setMatchesLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       await api.logout();
@@ -165,6 +197,9 @@ const refreshAIInsight = async (): Promise<AIInsightResponse | null> => {
       setRecommendations(null);
       setRecommendationsError(null);
       setRecommendationsLoading(false);
+      setMatches(null);
+      setMatchesError(null);
+      setMatchesLoading(false);
     }
   };
 
@@ -181,10 +216,13 @@ const refreshAIInsight = async (): Promise<AIInsightResponse | null> => {
         onboardingComplete,
         aiInsight,
         recommendations,
+        matches,
         aiInsightLoading,
         aiInsightError,
         recommendationsLoading,
         recommendationsError,
+        matchesLoading,
+        matchesError,
         loading,
         profileLoading,
         error,
@@ -194,6 +232,7 @@ const refreshAIInsight = async (): Promise<AIInsightResponse | null> => {
         refreshAIInsight,
         loadLatestAIInsight,
         loadRecommendations,
+        loadMatches,
         setAIInsight,
         setUser,
         logout,

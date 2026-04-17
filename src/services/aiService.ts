@@ -1,6 +1,10 @@
 // ACL: Service for fetching AI insight from persisted backend profile
 
-import type { AIInsightResponse, AIRecommendationsResponse } from "../types/ai";
+import type {
+  AIInsightResponse,
+  AIRecommendationsResponse,
+  AIMatchesResponse,
+} from "../types/ai";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -66,5 +70,24 @@ export async function getAIRecommendations(): Promise<AIRecommendationsResponse>
   }
 
   const data: AIRecommendationsResponse = await response.json();
+  return data;
+}
+
+// ACL: Service for fetching backend-driven matches
+export async function getAIMatches(): Promise<AIMatchesResponse> {
+  const response = await fetch(`${API_BASE_URL}/ai/match`, {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`AI matches request failed: ${errorText}`);
+  }
+
+  const data: AIMatchesResponse = await response.json();
   return data;
 }
