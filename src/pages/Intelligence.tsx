@@ -53,14 +53,14 @@ function buildStats(skillsCount: number | null, aiCount: number | null): Summary
     { title: "Pathway Progress", value: "45%", note: "Moving steadily toward your goal", icon: TrendingUp },
     {
       title: "Skills Identified",
-      value: skillsCount !== null ? String(skillsCount) : "—",
+      value: skillsCount !== null ? String(skillsCount) : "-",
       note: skillsCount !== null ? "Captured from onboarding" : "Add skills in onboarding to unlock precision",
       icon: Target,
     },
     { title: "Active Matches", value: "8", note: "Potential collaborators and mentors", icon: Users },
     {
       title: "AI Insights",
-      value: aiCount !== null ? String(aiCount) : "—",
+      value: aiCount !== null ? String(aiCount) : "-",
       note: aiCount !== null ? "Fresh recommendations ready" : "Complete onboarding to see insights",
       icon: Lightbulb,
     },
@@ -177,6 +177,23 @@ function activityDot(status: ActivityItem["status"]) {
   return "bg-zinc-400";
 }
 
+function isCompletedRecommendationItem(item: {
+  status?: string;
+  event_type?: string;
+  is_completed?: boolean;
+  completed?: boolean;
+}): boolean {
+  if (item.is_completed === true || item.completed === true) return true;
+
+  const normalizedStatus = item.status?.trim().toLowerCase();
+  const normalizedEventType = item.event_type?.trim().toLowerCase();
+  const completedMarkers = new Set(["completed", "done", "finished"]);
+  return (
+    (normalizedStatus !== undefined && completedMarkers.has(normalizedStatus))
+    || (normalizedEventType !== undefined && completedMarkers.has(normalizedEventType))
+  );
+}
+
 const subtle = "text-[var(--color-on-surface-variant)]";
 
 export default function Intelligence(): JSX.Element {
@@ -236,6 +253,16 @@ export default function Intelligence(): JSX.Element {
 
     return sampleMatches;
   }, [matches]);
+  const activeRecommendations = useMemo(
+    () =>
+      (recommendations?.recommendations ?? []).filter(
+        (item) => !isCompletedRecommendationItem(item)
+      ),
+    [recommendations]
+  );
+  const hasFilteredCompletedRecommendations =
+    !!recommendations
+    && recommendations.recommendations.length > activeRecommendations.length;
 
   const missingProfile = !profile;
   const onboardingIncomplete = onboardingComplete === false;
@@ -314,9 +341,9 @@ export default function Intelligence(): JSX.Element {
         <section className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
           <h2 className="text-xl font-bold text-[var(--color-on-surface)]">What happens next</h2>
           <div className="mt-4 space-y-3 text-sm text-[var(--color-on-surface-variant)]">
-            <p>• Complete your onboarding details</p>
-            <p>• Save your skills, interests, and goals</p>
-            <p>• Return here to see AI guidance and opportunities</p>
+            <p>- Complete your onboarding details</p>
+            <p>- Save your skills, interests, and goals</p>
+            <p>- Return here to see AI guidance and opportunities</p>
           </div>
         </section>
       </DashboardShell>
@@ -556,7 +583,7 @@ export default function Intelligence(): JSX.Element {
             <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
               <div className="mb-6">
                 <p className={`text-sm font-semibold ${subtle}`}>Recommendations</p>
-                <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Suggested resources and projects</h3>
+                <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Suggested pathways and next steps</h3>
                 <p className={`mt-2 text-sm ${subtle}`}>
                   Practical recommendations aligned with your saved profile and AI guidance.
                 </p>
@@ -568,40 +595,41 @@ export default function Intelligence(): JSX.Element {
                 </div>
               ) : recommendations ? (
                 <div className="space-y-6">
-                  <div>
-                    <h4 className="font-semibold text-[var(--color-primary)]">Recommended Resources</h4>
-                    <div className="mt-3 grid gap-4 md:grid-cols-2">
-                      {recommendations.recommended_resources.map((item) => (
-                        <div key={item.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
-                          <p className="text-sm font-semibold text-[var(--color-on-surface)]">{item.title}</p>
-                          <p className={`mt-1 text-xs ${subtle}`}>
-                            {item.type} • {item.level}
-                          </p>
-                          <p className={`mt-3 text-sm ${subtle}`}>{item.reason}</p>
-                        </div>
-                      ))}
-                      {recommendations.recommended_resources.length === 0 && (
-                        <p className={`text-sm ${subtle}`}>No resource recommendations available yet.</p>
-                      )}
+                  {hasFilteredCompletedRecommendations && (
+                    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                      Completed tasks were excluded from this list.
                     </div>
-                  </div>
+                  )}
 
-                  <div>
-                    <h4 className="font-semibold text-[var(--color-primary)]">Recommended Projects</h4>
-                    <div className="mt-3 grid gap-4 md:grid-cols-2">
-                      {recommendations.recommended_projects.map((item) => (
-                        <div key={item.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {activeRecommendations.map((item) => (
+                      <div key={item.pathway_id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                        <div className="flex items-start justify-between gap-3">
                           <p className="text-sm font-semibold text-[var(--color-on-surface)]">{item.title}</p>
-                          <p className={`mt-1 text-xs ${subtle}`}>
-                            {item.type} • {item.level}
-                          </p>
-                          <p className={`mt-3 text-sm ${subtle}`}>{item.reason}</p>
+                          <span className="rounded-xl bg-[var(--color-primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--color-primary)]">
+                            {item.match_score}%
+                          </span>
                         </div>
-                      ))}
-                      {recommendations.recommended_projects.length === 0 && (
-                        <p className={`text-sm ${subtle}`}>No project recommendations available yet.</p>
-                      )}
-                    </div>
+                        <p className={`mt-1 text-xs ${subtle}`}>
+                          {item.skill_level} - {item.career_outcome}
+                        </p>
+                        <p className={`mt-3 text-sm ${subtle}`}>{item.summary}</p>
+                        <p className={`mt-3 text-sm ${subtle}`}>{item.match_reason}</p>
+                        {item.next_steps.length > 0 && (
+                          <ul className="mt-3 space-y-1 text-sm text-[var(--color-on-surface-variant)]">
+                            {item.next_steps.slice(0, 2).map((step, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <span className="mt-1 h-2 w-2 rounded-full bg-[var(--color-primary)]" />
+                                <span>{step}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+                    {activeRecommendations.length === 0 && (
+                      <p className={`text-sm ${subtle}`}>No pending recommendations available right now.</p>
+                    )}
                   </div>
                 </div>
               ) : recommendationsError ? (
@@ -724,3 +752,5 @@ export default function Intelligence(): JSX.Element {
     </DashboardShell>
   );
 }
+
+
