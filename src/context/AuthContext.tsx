@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type JSX, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type JSX, type ReactNode } from "react";
 import { api } from "../lib/api";
 import type { AuthSessionResponse, ProfileState } from "../lib/api";
 import type {
@@ -73,6 +73,11 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const [intelligenceUpdatedAt, setIntelligenceUpdatedAt] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
+  // ACL: prevent duplicate intelligence requests from overlapping clicks/effects
+  const aiInsightRequestInFlight = useRef(false);
+  const recommendationsRequestInFlight = useRef(false);
+  const matchesRequestInFlight = useRef(false);
+  const intelligenceRefreshInFlight = useRef(false);
 
   const fetchProfile = async (): Promise<ProfileState | null> => {
     setProfileLoading(true);
@@ -97,6 +102,10 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setMatchesError(null);
       setMatchesUpdatedAt(null);
       setIntelligenceUpdatedAt(null);
+      aiInsightRequestInFlight.current = false;
+      recommendationsRequestInFlight.current = false;
+      matchesRequestInFlight.current = false;
+      intelligenceRefreshInFlight.current = false;
       setProfileError((err as Error).message);
       return null;
     } finally {
@@ -126,6 +135,11 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
 
   // ACL: refresh AI insight using persisted backend profile as source of truth
   const refreshAIInsight = async (): Promise<AIInsightResponse | null> => {
+    if (aiInsightRequestInFlight.current) {
+      return aiInsight;
+    }
+
+    aiInsightRequestInFlight.current = true;
     setAIInsightLoading(true);
     setAIInsightError(null);
 
@@ -140,11 +154,17 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       return null;
     } finally {
       setAIInsightLoading(false);
+      aiInsightRequestInFlight.current = false;
     }
   };
 
   // ACL: load latest saved AI insight from backend without forcing regeneration
   const loadLatestAIInsight = async (): Promise<AIInsightResponse | null> => {
+    if (aiInsightRequestInFlight.current) {
+      return aiInsight;
+    }
+
+    aiInsightRequestInFlight.current = true;
     setAIInsightLoading(true);
     setAIInsightError(null);
 
@@ -159,11 +179,17 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       return null;
     } finally {
       setAIInsightLoading(false);
+      aiInsightRequestInFlight.current = false;
     }
   };
 
   // ACL: load AI recommendations for the authenticated user
   const loadRecommendations = async (): Promise<AIRecommendationsResponse | null> => {
+    if (recommendationsRequestInFlight.current) {
+      return recommendations;
+    }
+
+    recommendationsRequestInFlight.current = true;
     setRecommendationsLoading(true);
     setRecommendationsError(null);
 
@@ -178,11 +204,17 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       return null;
     } finally {
       setRecommendationsLoading(false);
+      recommendationsRequestInFlight.current = false;
     }
   };
 
   // ACL: load backend-driven matches for the authenticated user
   const loadMatches = async (): Promise<AIMatchesResponse | null> => {
+    if (matchesRequestInFlight.current) {
+      return matches;
+    }
+
+    matchesRequestInFlight.current = true;
     setMatchesLoading(true);
     setMatchesError(null);
 
@@ -197,11 +229,17 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       return null;
     } finally {
       setMatchesLoading(false);
+      matchesRequestInFlight.current = false;
     }
   };
 
   // ACL: refresh all intelligence sections together for the authenticated user
   const refreshIntelligence = async (): Promise<void> => {
+    if (intelligenceRefreshInFlight.current) {
+      return;
+    }
+
+    intelligenceRefreshInFlight.current = true;
     setIntelligenceRefreshing(true);
 
     try {
@@ -214,6 +252,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setIntelligenceUpdatedAt(new Date().toISOString());
     } finally {
       setIntelligenceRefreshing(false);
+      intelligenceRefreshInFlight.current = false;
     }
   };
 
@@ -241,6 +280,10 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setMatchesUpdatedAt(null);
       setIntelligenceRefreshing(false);
       setIntelligenceUpdatedAt(null);
+      aiInsightRequestInFlight.current = false;
+      recommendationsRequestInFlight.current = false;
+      matchesRequestInFlight.current = false;
+      intelligenceRefreshInFlight.current = false;
     }
   };
 

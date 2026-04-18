@@ -208,9 +208,8 @@ export default function Intelligence(): JSX.Element {
     intelligenceUpdatedAt,
     refreshIntelligence,
   } = useAuth();
-  const hasLoadedLatestInsight = useRef(false);
-  const hasLoadedRecommendations = useRef(false);
-  const hasLoadedMatches = useRef(false);
+  // ACL: ensure intelligence bootstrap runs once per stable page mount context
+  const intelligenceBootstrapStarted = useRef(false);
 
   const field = profile?.fieldOfInterest || "Cloud Security Pathway";
   const headlineGoal = profile?.goals?.[0] || "Become opportunity-ready in cloud security";
@@ -329,7 +328,6 @@ export default function Intelligence(): JSX.Element {
   }, [matches]);
   const hasRealMatches = !!matches && matches.matches.length > 0;
 
-  const missingProfile = !profile;
   const onboardingIncomplete = onboardingComplete === false;
   const notAuthenticated = !user;
   const pageReady = !!user && !!profile && onboardingComplete === true;
@@ -350,6 +348,9 @@ export default function Intelligence(): JSX.Element {
     pageReady &&
     !intelligenceLoading &&
     (insightReady || recommendationsReady || matchesReady);
+  const aiInsightMissing = !aiInsight && !aiInsightLoading;
+  const recommendationsMissing = !recommendations && !recommendationsLoading;
+  const matchesMissing = !matches && !matchesLoading;
   const formatTimestamp = (value: string | null): string => {
     if (!value) return "Never";
     return new Date(value).toLocaleString();
@@ -393,41 +394,61 @@ export default function Intelligence(): JSX.Element {
     }
   };
 
-  // ACL: load latest saved AI insight on Intelligence page entry
+  // ACL: bootstrap missing intelligence data once when page context is ready
   useEffect(() => {
-    if (!pageReady) return;
-    if (hasLoadedLatestInsight.current) return;
+    if (intelligenceBootstrapStarted.current) {
+      return;
+    }
 
-    hasLoadedLatestInsight.current = true;
-    void loadLatestAIInsight();
-  }, [pageReady, loadLatestAIInsight]);
+    if (!user || profileLoading) {
+      return;
+    }
 
-  // ACL: load recommendations on Intelligence page entry
+    if (!profile || !onboardingComplete) {
+      return;
+    }
+
+    intelligenceBootstrapStarted.current = true;
+
+    const bootstrap = async (): Promise<void> => {
+      const tasks: Promise<unknown>[] = [];
+
+      if (aiInsightMissing) {
+        tasks.push(loadLatestAIInsight());
+      }
+
+      if (recommendationsMissing) {
+        tasks.push(loadRecommendations());
+      }
+
+      if (matchesMissing) {
+        tasks.push(loadMatches());
+      }
+
+      if (tasks.length > 0) {
+        await Promise.all(tasks);
+      }
+    };
+
+    void bootstrap();
+  }, [
+    user,
+    profile,
+    profileLoading,
+    onboardingComplete,
+    aiInsightMissing,
+    recommendationsMissing,
+    matchesMissing,
+    loadLatestAIInsight,
+    loadRecommendations,
+    loadMatches,
+  ]);
+
   useEffect(() => {
-    if (!pageReady) return;
-    if (hasLoadedRecommendations.current) return;
-
-    hasLoadedRecommendations.current = true;
-    void loadRecommendations();
-  }, [pageReady, loadRecommendations]);
-
-  // ACL: load matches on Intelligence page entry
-  useEffect(() => {
-    if (!pageReady) return;
-    if (hasLoadedMatches.current) return;
-
-    hasLoadedMatches.current = true;
-    void loadMatches();
-  }, [pageReady, loadMatches]);
-
-  // ACL: reset initial load guards when page readiness is lost
-  useEffect(() => {
-    if (pageReady) return;
-
-    hasLoadedLatestInsight.current = false;
-    hasLoadedRecommendations.current = false;
-    hasLoadedMatches.current = false;
-  }, [pageReady]);
+    if (!user) {
+      intelligenceBootstrapStarted.current = false;
+    }
+  }, [user]);
 
   // ACL: redirect users to the correct MVP flow based on readiness state
   useEffect(() => {
@@ -667,7 +688,7 @@ export default function Intelligence(): JSX.Element {
   <button
     type="button"
     onClick={handleRefreshAIInsight}
-    disabled={aiInsightLoading || missingProfile}
+    disabled={aiInsightLoading || intelligenceRefreshing}
     className="inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
   >
     <Sparkles className="mr-2 h-4 w-4" />
@@ -725,7 +746,7 @@ export default function Intelligence(): JSX.Element {
             <button
               type="button"
               onClick={handleRefreshAIInsight}
-              disabled={aiInsightLoading || missingProfile}
+              disabled={aiInsightLoading || intelligenceRefreshing}
               className="mt-3 inline-flex h-10 items-center justify-center rounded-2xl border border-amber-300 bg-white px-4 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Sparkles className="mr-2 h-4 w-4" />
@@ -737,12 +758,12 @@ export default function Intelligence(): JSX.Element {
                   <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4">
                     <h4 className="font-semibold text-[var(--color-primary)]">No saved AI insight yet</h4>
                     <p className={`mt-2 text-sm leading-6 ${subtle}`}>
-                      Your profile is ready, but no saved AI insight is available yet. Generate one now to unlock tailored guidance.
+                      No AI insight has been loaded yet. Use refresh to generate or retrieve the latest result.
                     </p>
                     <button
                       type="button"
                       onClick={handleRefreshAIInsight}
-                      disabled={aiInsightLoading || missingProfile}
+                      disabled={aiInsightLoading || intelligenceRefreshing}
                       className="mt-4 inline-flex h-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Sparkles className="mr-2 h-4 w-4" />
@@ -838,7 +859,7 @@ export default function Intelligence(): JSX.Element {
                   <button
                     type="button"
                     onClick={handleRetryRecommendations}
-                    disabled={recommendationsLoading || !pageReady}
+                    disabled={recommendationsLoading || intelligenceRefreshing || !pageReady}
                     className="mt-3 inline-flex h-10 items-center justify-center rounded-2xl border border-amber-300 bg-white px-4 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Retry recommendations
@@ -846,7 +867,7 @@ export default function Intelligence(): JSX.Element {
                 </div>
               ) : (
                 <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
-                  Recommendations will appear here once the backend recommendation service is available.
+                  No recommendations have been loaded yet.
                 </div>
               )}
             </div>
@@ -864,7 +885,9 @@ export default function Intelligence(): JSX.Element {
                         ? "Matches aligned with your saved profile."
                         : matchesError
                           ? "Matching is unavailable right now."
-                          : "No matches are available yet for your current profile."}
+                          : !matches
+                            ? "No smart matches have been loaded yet."
+                            : "No matches are available yet for your current profile."}
                   </p>
                   <p className={`mt-2 text-xs ${subtle}`}>
                     Last updated: {formatTimestamp(matchesUpdatedAt)}
@@ -885,7 +908,7 @@ export default function Intelligence(): JSX.Element {
                   <button
                     type="button"
                     onClick={handleRetryMatches}
-                    disabled={matchesLoading || !pageReady}
+                    disabled={matchesLoading || intelligenceRefreshing || !pageReady}
                     className="mt-3 inline-flex h-10 items-center justify-center rounded-2xl border border-amber-300 bg-white px-4 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Retry matches
@@ -922,7 +945,9 @@ export default function Intelligence(): JSX.Element {
                 </div>
               ) : (
                 <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
-                  No collaborator or opportunity matches are available yet.
+                  {!matches
+                    ? "No smart matches have been loaded yet."
+                    : "No collaborator or opportunity matches are available yet."}
                 </div>
               )}
             </div>
