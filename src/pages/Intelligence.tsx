@@ -57,6 +57,9 @@ type RecommendationCard = {
   reason: string;
 };
 
+// ACL: section status options for lightweight intelligence state badges
+type IntelligenceSectionState = "ready" | "loading" | "empty" | "error";
+
 function buildStats(skillsCount: number | null, aiCount: number | null): SummaryItem[] {
   return [
     { title: "Pathway Progress", value: "45%", note: "Moving steadily toward your goal", icon: TrendingUp },
@@ -348,6 +351,82 @@ export default function Intelligence(): JSX.Element {
     pageReady &&
     !intelligenceLoading &&
     (insightReady || recommendationsReady || matchesReady);
+
+  const getSectionState = (
+    loading: boolean,
+    error: string | null,
+    hasData: boolean,
+  ): IntelligenceSectionState => {
+    if (loading) return "loading";
+    if (error) return "error";
+    if (hasData) return "ready";
+    return "empty";
+  };
+
+  const aiInsightState = getSectionState(
+    aiInsightLoading,
+    aiInsightError,
+    Boolean(aiInsight),
+  );
+
+  const recommendationsState = getSectionState(
+    recommendationsLoading,
+    recommendationsError,
+    Boolean(recommendations),
+  );
+
+  const matchesState = getSectionState(
+    matchesLoading,
+    matchesError,
+    Boolean(matches),
+  );
+
+  const getSectionStateLabel = (state: IntelligenceSectionState): string => {
+    switch (state) {
+      case "loading":
+        return "Loading";
+      case "error":
+        return "Error";
+      case "ready":
+        return "Ready";
+      case "empty":
+      default:
+        return "Empty";
+    }
+  };
+
+  const getSectionStateClassName = (state: IntelligenceSectionState): string => {
+    switch (state) {
+      case "loading":
+        return "bg-amber-100 text-amber-700";
+      case "error":
+        return "bg-red-100 text-red-700";
+      case "ready":
+        return "bg-green-100 text-green-700";
+      case "empty":
+      default:
+        return "bg-slate-100 text-slate-600";
+    }
+  };
+
+  const renderSectionBadge = (state: IntelligenceSectionState) => (
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getSectionStateClassName(state)}`}
+    >
+      {getSectionStateLabel(state)}
+    </span>
+  );
+
+  const sectionStates: IntelligenceSectionState[] = [
+    aiInsightState,
+    recommendationsState,
+    matchesState,
+  ];
+  const readySectionCount = sectionStates.filter((state) => state === "ready").length;
+  const errorSectionCount = sectionStates.filter((state) => state === "error").length;
+  const loadingSectionCount = sectionStates.filter((state) => state === "loading").length;
+  const emptySectionCount = sectionStates.filter((state) => state === "empty").length;
+
   const aiInsightMissing = !aiInsight && !aiInsightLoading;
   const recommendationsMissing = !recommendations && !recommendationsLoading;
   const matchesMissing = !matches && !matchesLoading;
@@ -555,6 +634,9 @@ export default function Intelligence(): JSX.Element {
             <p className={`mt-1 text-xs ${subtle}`}>
               Last full refresh: {formatTimestamp(intelligenceUpdatedAt)}
             </p>
+            <p className={`mt-1 text-xs ${subtle}`}>
+              Sections: {readySectionCount} ready, {loadingSectionCount} loading, {emptySectionCount} empty, {errorSectionCount} error.
+            </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -681,6 +763,7 @@ export default function Intelligence(): JSX.Element {
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
+  {renderSectionBadge(aiInsightState)}
   <div className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--color-primary)]">
     {aiStatusLabel}
   </div>
@@ -788,15 +871,20 @@ export default function Intelligence(): JSX.Element {
 
             {/* Recommendations section */}
             <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
-              <div className="mb-6">
-                <p className={`text-sm font-semibold ${subtle}`}>Recommendations</p>
-                <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Suggested pathways and next steps</h3>
-                <p className={`mt-2 text-sm ${subtle}`}>
-                  Practical recommendations aligned with your saved profile and AI guidance.
-                </p>
-                <p className={`mt-2 text-xs ${subtle}`}>
-                  Last updated: {formatTimestamp(recommendationsUpdatedAt)}
-                </p>
+              <div className="mb-6 flex items-start justify-between gap-3">
+                <div>
+                  <p className={`text-sm font-semibold ${subtle}`}>Recommendations</p>
+                  <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Suggested pathways and next steps</h3>
+                  <p className={`mt-2 text-sm ${subtle}`}>
+                    Practical recommendations aligned with your saved profile and AI guidance.
+                  </p>
+                  <p className={`mt-2 text-xs ${subtle}`}>
+                    Last updated: {formatTimestamp(recommendationsUpdatedAt)}
+                  </p>
+                </div>
+                <div className="shrink-0">
+                  {renderSectionBadge(recommendationsState)}
+                </div>
               </div>
 
               {recommendationsLoading ? (
@@ -893,14 +981,17 @@ export default function Intelligence(): JSX.Element {
                     Last updated: {formatTimestamp(matchesUpdatedAt)}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  disabled
-                  className="inline-flex items-center text-sm font-medium text-[var(--color-on-surface)] opacity-50"
-                >
-                  Explore all matches
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </button>
+                <div className="flex items-center gap-3">
+                  {renderSectionBadge(matchesState)}
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex items-center text-sm font-medium text-[var(--color-on-surface)] opacity-50"
+                  >
+                    Explore all matches
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </button>
+                </div>
               </div>
               {matchesError && (
                 <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
