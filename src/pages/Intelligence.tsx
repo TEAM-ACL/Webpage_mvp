@@ -329,6 +329,23 @@ export default function Intelligence(): JSX.Element {
   const onboardingIncomplete = onboardingComplete === false;
   const notAuthenticated = !user;
   const pageReady = !!user && !!profile && onboardingComplete === true;
+  const insightReady = !!aiInsight && !aiInsightLoading && !aiInsightError;
+  const recommendationsReady =
+    !!recommendations &&
+    !recommendationsLoading &&
+    !recommendationsError;
+  const matchesReady = !!matches && !matchesLoading && !matchesError;
+
+  const intelligenceLoading =
+    aiInsightLoading || recommendationsLoading || matchesLoading;
+
+  const intelligencePartiallyDegraded =
+    !!aiInsightError || !!recommendationsError || !!matchesError;
+
+  const intelligenceReady =
+    pageReady &&
+    !intelligenceLoading &&
+    (insightReady || recommendationsReady || matchesReady);
   const comingSoonButtonClass =
     "inline-flex items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] px-4 py-3 text-sm font-medium opacity-50 cursor-not-allowed";
 
@@ -493,6 +510,34 @@ export default function Intelligence(): JSX.Element {
       />
 
       <SummaryGrid items={stats} />
+      <div className="mb-6 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="font-semibold text-[var(--color-on-surface)]">System status</p>
+            <p className={`mt-1 ${subtle}`}>
+              {intelligenceLoading
+                ? "Refreshing intelligence services..."
+                : intelligencePartiallyDegraded
+                  ? "Some intelligence services are currently unavailable."
+                  : intelligenceReady
+                    ? "Intelligence services are active and responding."
+                    : "Intelligence services are waiting for available backend data."}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-[var(--color-on-surface-variant)]">
+              AI Insight: {aiInsightLoading ? "Loading" : aiInsightError ? "Error" : aiInsight ? "Ready" : "Empty"}
+            </span>
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-[var(--color-on-surface-variant)]">
+              Recommendations: {recommendationsLoading ? "Loading" : recommendationsError ? "Error" : recommendations ? "Ready" : "Empty"}
+            </span>
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-[var(--color-on-surface-variant)]">
+              Matching: {matchesLoading ? "Loading" : matchesError ? "Error" : matches ? "Ready" : "Empty"}
+            </span>
+          </div>
+        </div>
+      </div>
       {intelligenceRefreshing && (
         <div className="mb-6 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
           Refreshing your AI insight, recommendations, and matches...
