@@ -49,6 +49,14 @@ type ActivityItem = {
   status: "done" | "in-progress" | "upcoming";
 };
 
+type RecommendationCard = {
+  id: string;
+  title: string;
+  type: string;
+  level: string;
+  reason: string;
+};
+
 function buildStats(skillsCount: number | null, aiCount: number | null): SummaryItem[] {
   return [
     { title: "Pathway Progress", value: "45%", note: "Moving steadily toward your goal", icon: TrendingUp },
@@ -114,30 +122,6 @@ const insights: Insight[] = [
     title: "Momentum insight",
     description:
       "Users who complete 3 pathway tasks in one month usually improve their match quality and opportunity readiness.",
-  },
-];
-
-const sampleMatches: MatchCard[] = [
-  {
-    id: "1",
-    name: "Esther A.",
-    role: "Cloud Engineer",
-    matchScore: 92,
-    reason: "Shared interest in cloud security and infrastructure growth.",
-  },
-  {
-    id: "2",
-    name: "Daniel K.",
-    role: "Cybersecurity Analyst",
-    matchScore: 87,
-    reason: "Strong overlap in security monitoring and hands-on lab practice.",
-  },
-  {
-    id: "3",
-    name: "Miriam O.",
-    role: "Product Builder",
-    matchScore: 81,
-    reason: "Useful fit for collaboration around innovation and technical execution.",
   },
 ];
 
@@ -244,6 +228,88 @@ export default function Intelligence(): JSX.Element {
       : aiInsightError
         ? "Unavailable"
         : "Sample";
+
+  const hasStructuredRecommendationFields = useMemo(() => {
+    if (!recommendations) return false;
+    const payload = recommendations as unknown as Record<string, unknown>;
+    return "recommended_resources" in payload || "recommended_projects" in payload;
+  }, [recommendations]);
+
+  const activeRecommendations = useMemo(
+    () =>
+      (recommendations?.recommendations ?? []).filter(
+        (item) => !isCompletedRecommendationItem(item)
+      ),
+    [recommendations]
+  );
+
+  const hasFilteredCompletedRecommendations =
+    !!recommendations
+    && !!recommendations.recommendations
+    && recommendations.recommendations.length > activeRecommendations.length;
+
+  const recommendationResources = useMemo<RecommendationCard[]>(() => {
+    if (!recommendations) return [];
+
+    if (hasStructuredRecommendationFields) {
+      const payload = recommendations as unknown as {
+        recommended_resources?: Array<{
+          id?: string;
+          title?: string;
+          type?: string;
+          level?: string;
+          reason?: string;
+        }>;
+      };
+
+      return (payload.recommended_resources ?? []).map((item, index) => ({
+        id: item.id ?? `resource-${index}`,
+        title: item.title ?? "Untitled resource",
+        type: item.type ?? "Resource",
+        level: item.level ?? "General",
+        reason: item.reason ?? "Recommended for your profile.",
+      }));
+    }
+
+    return [];
+  }, [recommendations, hasStructuredRecommendationFields]);
+
+  const recommendationProjects = useMemo<RecommendationCard[]>(() => {
+    if (!recommendations) return [];
+
+    if (hasStructuredRecommendationFields) {
+      const payload = recommendations as unknown as {
+        recommended_projects?: Array<{
+          id?: string;
+          title?: string;
+          type?: string;
+          level?: string;
+          reason?: string;
+        }>;
+      };
+
+      return (payload.recommended_projects ?? []).map((item, index) => ({
+        id: item.id ?? `project-${index}`,
+        title: item.title ?? "Untitled project",
+        type: item.type ?? "Project",
+        level: item.level ?? "General",
+        reason: item.reason ?? "Recommended for your profile.",
+      }));
+    }
+
+    return activeRecommendations.map((item) => ({
+      id: item.pathway_id,
+      title: item.title,
+      type: "Pathway",
+      level: item.skill_level,
+      reason: item.match_reason || item.summary,
+    }));
+  }, [recommendations, hasStructuredRecommendationFields, activeRecommendations]);
+
+  const hasRecommendationData =
+    !!recommendations &&
+    (recommendationResources.length > 0 || recommendationProjects.length > 0);
+
   const displayMatches = useMemo(() => {
     if (matches?.matches) {
       return matches.matches.map((match) => ({
@@ -255,18 +321,9 @@ export default function Intelligence(): JSX.Element {
       }));
     }
 
-    return sampleMatches;
+    return [];
   }, [matches]);
-  const activeRecommendations = useMemo(
-    () =>
-      (recommendations?.recommendations ?? []).filter(
-        (item) => !isCompletedRecommendationItem(item)
-      ),
-    [recommendations]
-  );
-  const hasFilteredCompletedRecommendations =
-    !!recommendations
-    && recommendations.recommendations.length > activeRecommendations.length;
+  const hasRealMatches = !!matches && matches.matches.length > 0;
 
   const missingProfile = !profile;
   const onboardingIncomplete = onboardingComplete === false;
@@ -594,7 +651,7 @@ export default function Intelligence(): JSX.Element {
                   <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4">
                     <h4 className="font-semibold text-[var(--color-primary)]">No saved AI insight yet</h4>
                     <p className={`mt-2 text-sm leading-6 ${subtle}`}>
-                      Your profile is loaded, but no saved AI guidance is available yet. You can generate a fresh insight now.
+                      Your profile is ready, but no saved AI insight is available yet. Generate one now to unlock tailored guidance.
                     </p>
                     <button
                       type="button"
@@ -637,44 +694,55 @@ export default function Intelligence(): JSX.Element {
                   Loading recommendations...
                 </div>
               ) : recommendations ? (
-                <div className="space-y-6">
-                  {hasFilteredCompletedRecommendations && (
-                    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-                      Completed tasks were excluded from this list.
-                    </div>
-                  )}
+                hasRecommendationData ? (
+                  <div className="space-y-6">
+                    {!hasStructuredRecommendationFields && hasFilteredCompletedRecommendations && (
+                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                        Completed tasks were excluded from this list.
+                      </div>
+                    )}
 
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {activeRecommendations.map((item) => (
-                      <div key={item.pathway_id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <p className="text-sm font-semibold text-[var(--color-on-surface)]">{item.title}</p>
-                          <span className="rounded-xl bg-[var(--color-primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--color-primary)]">
-                            {item.match_score}%
-                          </span>
-                        </div>
-                        <p className={`mt-1 text-xs ${subtle}`}>
-                          {item.skill_level} - {item.career_outcome}
-                        </p>
-                        <p className={`mt-3 text-sm ${subtle}`}>{item.summary}</p>
-                        <p className={`mt-3 text-sm ${subtle}`}>{item.match_reason}</p>
-                        {item.next_steps.length > 0 && (
-                          <ul className="mt-3 space-y-1 text-sm text-[var(--color-on-surface-variant)]">
-                            {item.next_steps.slice(0, 2).map((step, idx) => (
-                              <li key={idx} className="flex items-start gap-2">
-                                <span className="mt-1 h-2 w-2 rounded-full bg-[var(--color-primary)]" />
-                                <span>{step}</span>
-                              </li>
-                            ))}
-                          </ul>
+                    <div>
+                      <h4 className="font-semibold text-[var(--color-primary)]">Recommended Resources</h4>
+                      <div className="mt-3 grid gap-4 md:grid-cols-2">
+                        {recommendationResources.map((item) => (
+                          <div key={item.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                            <p className="text-sm font-semibold text-[var(--color-on-surface)]">{item.title}</p>
+                            <p className={`mt-1 text-xs ${subtle}`}>
+                              {item.type} - {item.level}
+                            </p>
+                            <p className={`mt-3 text-sm ${subtle}`}>{item.reason}</p>
+                          </div>
+                        ))}
+                        {recommendationResources.length === 0 && (
+                          <p className={`text-sm ${subtle}`}>No resource recommendations available yet.</p>
                         )}
                       </div>
-                    ))}
-                    {activeRecommendations.length === 0 && (
-                      <p className={`text-sm ${subtle}`}>No pending recommendations available right now.</p>
-                    )}
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold text-[var(--color-primary)]">Recommended Projects</h4>
+                      <div className="mt-3 grid gap-4 md:grid-cols-2">
+                        {recommendationProjects.map((item) => (
+                          <div key={item.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                            <p className="text-sm font-semibold text-[var(--color-on-surface)]">{item.title}</p>
+                            <p className={`mt-1 text-xs ${subtle}`}>
+                              {item.type} - {item.level}
+                            </p>
+                            <p className={`mt-3 text-sm ${subtle}`}>{item.reason}</p>
+                          </div>
+                        ))}
+                        {recommendationProjects.length === 0 && (
+                          <p className={`text-sm ${subtle}`}>No project recommendations available yet.</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
+                    No recommendations are available yet for your current saved profile.
+                  </div>
+                )
               ) : recommendationsError ? (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
                   Recommendations are unavailable right now.
@@ -695,11 +763,11 @@ export default function Intelligence(): JSX.Element {
                   <p className={`mt-2 text-sm ${subtle}`}>
                     {matchesLoading
                       ? "Loading backend-driven matches..."
-                      : matches
+                      : hasRealMatches
                         ? "Matches aligned with your saved profile."
                         : matchesError
                           ? "Matching is unavailable right now."
-                          : "Sample matches are shown until backend matching is ready."}
+                          : "No matches are available yet for your current profile."}
                   </p>
                 </div>
                 <button
@@ -713,32 +781,42 @@ export default function Intelligence(): JSX.Element {
               </div>
               {matchesError && (
                 <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                  Backend matching is unavailable right now. Sample matches are being shown instead.
+                  Backend matching is unavailable right now.
                 </div>
               )}
-              <div className="grid gap-4 md:grid-cols-3">
-                {displayMatches.map((match) => (
-                  <div key={match.id} className="rounded-2xl border border-[var(--color-outline-variant)] p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h4 className="font-semibold text-[var(--color-on-surface)]">{match.name}</h4>
-                        <p className={`mt-1 text-sm ${subtle}`}>{match.role}</p>
+              {matchesLoading ? (
+                <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
+                  Loading matches...
+                </div>
+              ) : displayMatches.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-3">
+                  {displayMatches.map((match) => (
+                    <div key={match.id} className="rounded-2xl border border-[var(--color-outline-variant)] p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h4 className="font-semibold text-[var(--color-on-surface)]">{match.name}</h4>
+                          <p className={`mt-1 text-sm ${subtle}`}>{match.role}</p>
+                        </div>
+                        <div className="rounded-xl px-3 py-2 text-sm font-bold bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+                          {match.matchScore}%
+                        </div>
                       </div>
-                      <div className="rounded-xl px-3 py-2 text-sm font-bold bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
-                        {match.matchScore}%
-                      </div>
+                      <p className={`mt-4 text-sm ${subtle}`}>{match.reason}</p>
+                      <button
+                        type="button"
+                        disabled
+                        className="mt-4 inline-flex h-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white opacity-50"
+                      >
+                        Connect
+                      </button>
                     </div>
-                    <p className={`mt-4 text-sm ${subtle}`}>{match.reason}</p>
-                    <button
-                      type="button"
-                      disabled
-                      className="mt-4 inline-flex h-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white opacity-50"
-                    >
-                      Connect
-                    </button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
+                  No collaborator or opportunity matches are available yet.
+                </div>
+              )}
             </div>
           </div>
 
