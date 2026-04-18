@@ -350,6 +350,24 @@ export default function Intelligence(): JSX.Element {
     }
   };
 
+  // ACL: retry backend recommendations only
+  const handleRetryRecommendations = async (): Promise<void> => {
+    try {
+      await loadRecommendations();
+    } catch (error) {
+      console.error("ACL: Failed to retry recommendations", error);
+    }
+  };
+
+  // ACL: retry backend matches only
+  const handleRetryMatches = async (): Promise<void> => {
+    try {
+      await loadMatches();
+    } catch (error) {
+      console.error("ACL: Failed to retry matches", error);
+    }
+  };
+
   // ACL: load latest saved AI insight on Intelligence page entry
   useEffect(() => {
     if (!pageReady) return;
@@ -754,7 +772,15 @@ export default function Intelligence(): JSX.Element {
                 )
               ) : recommendationsError ? (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                  Recommendations are unavailable right now.
+                  <p>Recommendations are unavailable right now.</p>
+                  <button
+                    type="button"
+                    onClick={handleRetryRecommendations}
+                    disabled={recommendationsLoading || !pageReady}
+                    className="mt-3 inline-flex h-10 items-center justify-center rounded-2xl border border-amber-300 bg-white px-4 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Retry recommendations
+                  </button>
                 </div>
               ) : (
                 <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
@@ -790,7 +816,15 @@ export default function Intelligence(): JSX.Element {
               </div>
               {matchesError && (
                 <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                  Backend matching is unavailable right now.
+                  <p>Backend matching is unavailable right now.</p>
+                  <button
+                    type="button"
+                    onClick={handleRetryMatches}
+                    disabled={matchesLoading || !pageReady}
+                    className="mt-3 inline-flex h-10 items-center justify-center rounded-2xl border border-amber-300 bg-white px-4 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Retry matches
+                  </button>
                 </div>
               )}
               {matchesLoading ? (
