@@ -13,6 +13,16 @@ import {
   getAIMatches,
 } from "../services/aiService";
 
+// ACL: result contract for intelligence actions to support lightweight UI feedback
+export type IntelligenceActionResult = {
+  success: boolean;
+  message: string;
+};
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "An unexpected error occurred.";
+}
+
 type AuthContextValue = {
   user: AuthSessionResponse["user"] | null;
   profile: ProfileState["profile"] | null;
@@ -39,11 +49,11 @@ type AuthContextValue = {
   profileError: string | null;
   bootstrap: () => Promise<void>;
   refreshProfile: () => Promise<ProfileState | null>;
-  refreshAIInsight: () => Promise<AIInsightResponse | null>;
-  loadLatestAIInsight: () => Promise<AIInsightResponse | null>;
-  loadRecommendations: () => Promise<AIRecommendationsResponse | null>;
-  loadMatches: () => Promise<AIMatchesResponse | null>;
-  refreshIntelligence: () => Promise<void>;
+  refreshAIInsight: () => Promise<IntelligenceActionResult>;
+  loadLatestAIInsight: () => Promise<IntelligenceActionResult>;
+  loadRecommendations: () => Promise<IntelligenceActionResult>;
+  loadMatches: () => Promise<IntelligenceActionResult>;
+  refreshIntelligence: () => Promise<IntelligenceActionResult>;
   setAIInsight: (insight: AIInsightResponse | null) => void;
   setUser: (user: AuthSessionResponse["user"] | null) => void;
   logout: () => Promise<void>;
@@ -137,9 +147,12 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   };
 
   // ACL: refresh AI insight using persisted backend profile as source of truth
-  const refreshAIInsight = async (): Promise<AIInsightResponse | null> => {
+  const refreshAIInsight = async (): Promise<IntelligenceActionResult> => {
     if (aiInsightRequestInFlight.current) {
-      return aiInsight;
+      return {
+        success: false,
+        message: "AI insight refresh is already in progress.",
+      };
     }
 
     aiInsightRequestInFlight.current = true;
@@ -151,12 +164,19 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setAIInsight(insight);
       setAIInsightUpdatedAt(new Date().toISOString());
       setAIInsightSource("fresh");
-      return insight;
-    } catch (err) {
+      return {
+        success: true,
+        message: "AI insight refreshed successfully.",
+      };
+    } catch (error) {
+      const message = getErrorMessage(error);
       setAIInsight(null);
-      setAIInsightError((err as Error).message);
+      setAIInsightError(message);
       setAIInsightSource(null);
-      return null;
+      return {
+        success: false,
+        message: "AI insight refresh failed.",
+      };
     } finally {
       setAIInsightLoading(false);
       aiInsightRequestInFlight.current = false;
@@ -164,9 +184,12 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   };
 
   // ACL: load latest saved AI insight from backend without forcing regeneration
-  const loadLatestAIInsight = async (): Promise<AIInsightResponse | null> => {
+  const loadLatestAIInsight = async (): Promise<IntelligenceActionResult> => {
     if (aiInsightRequestInFlight.current) {
-      return aiInsight;
+      return {
+        success: false,
+        message: "AI insight retrieval is already in progress.",
+      };
     }
 
     aiInsightRequestInFlight.current = true;
@@ -178,12 +201,25 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setAIInsight(insight);
       setAIInsightUpdatedAt(insight ? new Date().toISOString() : null);
       setAIInsightSource(insight ? "saved" : null);
-      return insight;
-    } catch (err) {
+      if (insight) {
+        return {
+          success: true,
+          message: "Saved AI insight loaded successfully.",
+        };
+      }
+      return {
+        success: true,
+        message: "No saved AI insight is available yet.",
+      };
+    } catch (error) {
+      const message = getErrorMessage(error);
       setAIInsight(null);
-      setAIInsightError((err as Error).message);
+      setAIInsightError(message);
       setAIInsightSource(null);
-      return null;
+      return {
+        success: false,
+        message: "Saved AI insight could not be loaded.",
+      };
     } finally {
       setAIInsightLoading(false);
       aiInsightRequestInFlight.current = false;
@@ -191,9 +227,12 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   };
 
   // ACL: load AI recommendations for the authenticated user
-  const loadRecommendations = async (): Promise<AIRecommendationsResponse | null> => {
+  const loadRecommendations = async (): Promise<IntelligenceActionResult> => {
     if (recommendationsRequestInFlight.current) {
-      return recommendations;
+      return {
+        success: false,
+        message: "Recommendations are already loading.",
+      };
     }
 
     recommendationsRequestInFlight.current = true;
@@ -204,11 +243,18 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       const data = await getAIRecommendations();
       setRecommendations(data);
       setRecommendationsUpdatedAt(new Date().toISOString());
-      return data;
-    } catch (err) {
+      return {
+        success: true,
+        message: "Recommendations loaded successfully.",
+      };
+    } catch (error) {
+      const message = getErrorMessage(error);
       setRecommendations(null);
-      setRecommendationsError((err as Error).message);
-      return null;
+      setRecommendationsError(message);
+      return {
+        success: false,
+        message: "Recommendations failed to load.",
+      };
     } finally {
       setRecommendationsLoading(false);
       recommendationsRequestInFlight.current = false;
@@ -216,9 +262,12 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   };
 
   // ACL: load backend-driven matches for the authenticated user
-  const loadMatches = async (): Promise<AIMatchesResponse | null> => {
+  const loadMatches = async (): Promise<IntelligenceActionResult> => {
     if (matchesRequestInFlight.current) {
-      return matches;
+      return {
+        success: false,
+        message: "Smart matching is already loading.",
+      };
     }
 
     matchesRequestInFlight.current = true;
@@ -229,11 +278,18 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       const data = await getAIMatches();
       setMatches(data);
       setMatchesUpdatedAt(new Date().toISOString());
-      return data;
-    } catch (err) {
+      return {
+        success: true,
+        message: "Smart matches loaded successfully.",
+      };
+    } catch (error) {
+      const message = getErrorMessage(error);
       setMatches(null);
-      setMatchesError((err as Error).message);
-      return null;
+      setMatchesError(message);
+      return {
+        success: false,
+        message: "Smart matches failed to load.",
+      };
     } finally {
       setMatchesLoading(false);
       matchesRequestInFlight.current = false;
@@ -241,22 +297,42 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   };
 
   // ACL: refresh all intelligence sections together for the authenticated user
-  const refreshIntelligence = async (): Promise<void> => {
+  const refreshIntelligence = async (): Promise<IntelligenceActionResult> => {
     if (intelligenceRefreshInFlight.current) {
-      return;
+      return {
+        success: false,
+        message: "Full intelligence refresh is already in progress.",
+      };
     }
 
     intelligenceRefreshInFlight.current = true;
     setIntelligenceRefreshing(true);
 
     try {
-      await Promise.all([
+      const results = await Promise.all([
         refreshAIInsight(),
         loadRecommendations(),
         loadMatches(),
       ]);
+      const successCount = results.filter((result) => result.success).length;
 
       setIntelligenceUpdatedAt(new Date().toISOString());
+      if (successCount === results.length) {
+        return {
+          success: true,
+          message: "Full intelligence refresh completed successfully.",
+        };
+      }
+      if (successCount === 0) {
+        return {
+          success: false,
+          message: "Full intelligence refresh failed.",
+        };
+      }
+      return {
+        success: true,
+        message: `Full intelligence refresh completed with partial success (${successCount}/${results.length}).`,
+      };
     } finally {
       setIntelligenceRefreshing(false);
       intelligenceRefreshInFlight.current = false;

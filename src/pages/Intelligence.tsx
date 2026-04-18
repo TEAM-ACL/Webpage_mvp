@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -212,6 +212,11 @@ export default function Intelligence(): JSX.Element {
     intelligenceUpdatedAt,
     refreshIntelligence,
   } = useAuth();
+  // ACL: local feedback state for intelligence actions on this page
+  const [actionFeedback, setActionFeedback] = useState<{
+    type: "success" | "error" | "info";
+    message: string;
+  } | null>(null);
   // ACL: ensure intelligence bootstrap runs once per stable page mount context
   const intelligenceBootstrapStarted = useRef(false);
 
@@ -464,40 +469,65 @@ export default function Intelligence(): JSX.Element {
   const comingSoonButtonClass =
     "inline-flex items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] px-4 py-3 text-sm font-medium opacity-50 cursor-not-allowed";
 
+  const showActionFeedback = (
+    result: { success: boolean; message: string },
+    mode: "success" | "error" | "info" = "info",
+  ): void => {
+    if (result.success) {
+      setActionFeedback({
+        type: mode === "error" ? "success" : mode,
+        message: result.message,
+      });
+      return;
+    }
+    setActionFeedback({
+      type: "error",
+      message: result.message,
+    });
+  };
+
+  const getActionFeedbackClassName = (
+    type: "success" | "error" | "info",
+  ): string => {
+    switch (type) {
+      case "success":
+        return "border border-green-200 bg-green-50 text-green-700";
+      case "error":
+        return "border border-red-200 bg-red-50 text-red-700";
+      case "info":
+      default:
+        return "border border-slate-200 bg-slate-50 text-slate-700";
+    }
+  };
+
   // ACL: manual AI refresh handler for Intelligence page
   const handleRefreshAIInsight = async (): Promise<void> => {
-    try {
-      await refreshAIInsight();
-    } catch (error) {
-      console.error("ACL: Failed to refresh AI insight from Intelligence page", error);
-    }
+    const result = await refreshAIInsight();
+    showActionFeedback(result, result.success ? "success" : "error");
+  };
+
+  // ACL: manually load latest saved AI insight
+  const handleLoadLatestAIInsight = async (): Promise<void> => {
+    const result = await loadLatestAIInsight();
+    showActionFeedback(result, result.success ? "info" : "error");
+  };
+
+  // ACL: manually load backend recommendations
+  const handleLoadRecommendations = async (): Promise<void> => {
+    const result = await loadRecommendations();
+    showActionFeedback(result, result.success ? "success" : "error");
+  };
+
+  // ACL: manually load backend matches
+  const handleLoadMatches = async (): Promise<void> => {
+    const result = await loadMatches();
+    showActionFeedback(result, result.success ? "success" : "error");
   };
 
   // ACL: refresh all dynamic intelligence sections together
   const handleRefreshIntelligence = async (): Promise<void> => {
-    try {
-      await refreshIntelligence();
-    } catch (error) {
-      console.error("ACL: Failed to refresh full intelligence state", error);
-    }
-  };
-
-  // ACL: retry backend recommendations only
-  const handleRetryRecommendations = async (): Promise<void> => {
-    try {
-      await loadRecommendations();
-    } catch (error) {
-      console.error("ACL: Failed to retry recommendations", error);
-    }
-  };
-
-  // ACL: retry backend matches only
-  const handleRetryMatches = async (): Promise<void> => {
-    try {
-      await loadMatches();
-    } catch (error) {
-      console.error("ACL: Failed to retry matches", error);
-    }
+    const result = await refreshIntelligence();
+    showActionFeedback(result, result.success ? "info" : "error");
   };
 
   // ACL: bootstrap missing intelligence data once when page context is ready
@@ -553,8 +583,19 @@ export default function Intelligence(): JSX.Element {
   useEffect(() => {
     if (!user) {
       intelligenceBootstrapStarted.current = false;
+      setActionFeedback(null);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!actionFeedback) {
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      setActionFeedback(null);
+    }, 4000);
+    return () => window.clearTimeout(timeout);
+  }, [actionFeedback]);
 
   // ACL: redirect users to the correct MVP flow based on readiness state
   useEffect(() => {
@@ -625,7 +666,7 @@ export default function Intelligence(): JSX.Element {
           <>
             <button
               type="button"
-              onClick={handleRefreshIntelligence}
+              onClick={() => void handleRefreshIntelligence()}
               disabled={!pageReady || intelligenceRefreshing}
               className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -684,6 +725,13 @@ export default function Intelligence(): JSX.Element {
           Refreshing your AI insight, recommendations, and matches...
         </div>
       )}
+      {actionFeedback ? (
+        <div
+          className={`mb-6 rounded-xl px-4 py-3 text-sm ${getActionFeedbackClassName(actionFeedback.type)}`}
+        >
+          {actionFeedback.message}
+        </div>
+      ) : null}
 
       {/* Hero summary */}
       <section className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -800,7 +848,7 @@ export default function Intelligence(): JSX.Element {
                   </div>
                   <button
                     type="button"
-                    onClick={handleRefreshAIInsight}
+                    onClick={() => void handleRefreshAIInsight()}
                     disabled={aiInsightLoading || intelligenceRefreshing}
                     className="inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -865,7 +913,7 @@ export default function Intelligence(): JSX.Element {
              <p>AI insight unavailable right now. Your profile data is still loaded and usable.</p>
             <button
               type="button"
-              onClick={handleRefreshAIInsight}
+              onClick={() => void handleRefreshAIInsight()}
               disabled={aiInsightLoading || intelligenceRefreshing}
               className="mt-3 inline-flex h-10 items-center justify-center rounded-2xl border border-amber-300 bg-white px-4 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -882,9 +930,17 @@ export default function Intelligence(): JSX.Element {
                     </p>
                     <button
                       type="button"
-                      onClick={handleRefreshAIInsight}
+                      onClick={() => void handleLoadLatestAIInsight()}
                       disabled={aiInsightLoading || intelligenceRefreshing}
-                      className="mt-4 inline-flex h-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="mt-4 inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Load saved AI insight
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleRefreshAIInsight()}
+                      disabled={aiInsightLoading || intelligenceRefreshing}
+                      className="mt-3 inline-flex h-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Sparkles className="mr-2 h-4 w-4" />
                       Generate AI Insight
@@ -983,7 +1039,7 @@ export default function Intelligence(): JSX.Element {
                   <p>Recommendations are unavailable right now.</p>
                   <button
                     type="button"
-                    onClick={handleRetryRecommendations}
+                    onClick={() => void handleLoadRecommendations()}
                     disabled={recommendationsLoading || intelligenceRefreshing || !pageReady}
                     className="mt-3 inline-flex h-10 items-center justify-center rounded-2xl border border-amber-300 bg-white px-4 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -993,6 +1049,14 @@ export default function Intelligence(): JSX.Element {
               ) : (
                 <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
                   No recommendations have been loaded yet.
+                  <button
+                    type="button"
+                    onClick={() => void handleLoadRecommendations()}
+                    disabled={recommendationsLoading || intelligenceRefreshing || !pageReady}
+                    className="mt-3 inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Load Recommendations
+                  </button>
                 </div>
               )}
             </div>
@@ -1035,7 +1099,7 @@ export default function Intelligence(): JSX.Element {
                   <p>Backend matching is unavailable right now.</p>
                   <button
                     type="button"
-                    onClick={handleRetryMatches}
+                    onClick={() => void handleLoadMatches()}
                     disabled={matchesLoading || intelligenceRefreshing || !pageReady}
                     className="mt-3 inline-flex h-10 items-center justify-center rounded-2xl border border-amber-300 bg-white px-4 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -1076,6 +1140,16 @@ export default function Intelligence(): JSX.Element {
                   {!matches
                     ? "No smart matches have been loaded yet."
                     : "No collaborator or opportunity matches are available yet."}
+                  {!matches ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleLoadMatches()}
+                      disabled={matchesLoading || intelligenceRefreshing || !pageReady}
+                      className="mt-3 inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Load Matches
+                    </button>
+                  ) : null}
                 </div>
               )}
             </div>
