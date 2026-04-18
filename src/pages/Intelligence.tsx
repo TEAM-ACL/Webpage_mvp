@@ -195,6 +195,7 @@ export default function Intelligence(): JSX.Element {
     aiInsightLoading,
     aiInsightError,
     aiInsightUpdatedAt,
+    aiInsightSource,
     refreshAIInsight,
     loadLatestAIInsight,
     recommendations,
@@ -414,6 +415,32 @@ export default function Intelligence(): JSX.Element {
       className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getSectionStateClassName(state)}`}
     >
       {getSectionStateLabel(state)}
+    </span>
+  );
+
+  const getAIInsightSourceLabel = (source: "saved" | "fresh" | null): string => {
+    if (source === "fresh") return "Fresh";
+    if (source === "saved") return "Saved";
+    return "Not available";
+  };
+
+  const getAIInsightSourceClassName = (source: "saved" | "fresh" | null): string => {
+    if (source === "fresh") {
+      return "bg-blue-100 text-blue-700";
+    }
+
+    if (source === "saved") {
+      return "bg-violet-100 text-violet-700";
+    }
+
+    return "bg-slate-100 text-slate-600";
+  };
+
+  const renderAIInsightSourceBadge = (source: "saved" | "fresh" | null) => (
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getAIInsightSourceClassName(source)}`}
+    >
+      {getAIInsightSourceLabel(source)}
     </span>
   );
 
@@ -761,23 +788,26 @@ export default function Intelligence(): JSX.Element {
                   <p className={`mt-2 text-xs ${subtle}`}>
                     Last updated: {formatTimestamp(aiInsightUpdatedAt)}
                   </p>
+                  <p className={`mt-1 text-xs ${subtle}`}>
+                    Source: {getAIInsightSourceLabel(aiInsightSource)}
+                  </p>
                 </div>
-                <div className="flex items-center gap-3">
-  {renderSectionBadge(aiInsightState)}
-  <div className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--color-primary)]">
-    {aiStatusLabel}
-  </div>
-
-  <button
-    type="button"
-    onClick={handleRefreshAIInsight}
-    disabled={aiInsightLoading || intelligenceRefreshing}
-    className="inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
-  >
-    <Sparkles className="mr-2 h-4 w-4" />
-    {aiInsightLoading ? "Refreshing..." : "Refresh AI Insight"}
-  </button>
-</div>
+                <div className="flex shrink-0 items-center gap-3">
+                  {aiInsight ? renderAIInsightSourceBadge(aiInsightSource) : null}
+                  {renderSectionBadge(aiInsightState)}
+                  <div className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--color-primary)]">
+                    {aiStatusLabel}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRefreshAIInsight}
+                    disabled={aiInsightLoading || intelligenceRefreshing}
+                    className="inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    {aiInsightLoading ? "Refreshing..." : "Refresh AI Insight"}
+                  </button>
+                </div>
               </div>
 
               {aiInsightLoading ? (
@@ -786,6 +816,13 @@ export default function Intelligence(): JSX.Element {
                 </div>
               ) : aiInsight ? (
                 <div className="space-y-5">
+                  <p className={`mb-3 text-xs ${subtle}`}>
+                    {aiInsightSource === "fresh"
+                      ? "This insight was generated during your current session."
+                      : aiInsightSource === "saved"
+                        ? "This insight was retrieved from your saved intelligence data."
+                        : "Source information is not available."}
+                  </p>
                   <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
                     <div className="mb-2 inline-flex rounded-xl bg-[var(--color-surface-container-lowest)] p-2">
                       <Sparkles className="h-4 w-4 text-[var(--color-on-surface)]" />
