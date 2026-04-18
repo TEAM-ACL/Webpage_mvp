@@ -59,6 +59,11 @@ type RecommendationCard = {
 
 // ACL: section status options for lightweight intelligence state badges
 type IntelligenceSectionState = "ready" | "loading" | "empty" | "error";
+// ACL: onboarding guidance item for intelligence-readiness messaging
+type IntelligenceGuidanceItem = {
+  id: string;
+  message: string;
+};
 
 function buildStats(skillsCount: number | null, aiCount: number | null): SummaryItem[] {
   return [
@@ -234,6 +239,51 @@ export default function Intelligence(): JSX.Element {
   const matchStrength = profile?.preferredWorkStyle
     ? `Strong fit for ${profile.preferredWorkStyle.toLowerCase()} work`
     : "High fit with technical collaborators";
+  const profileSkills = Array.isArray(profile?.skills) ? profile.skills : [];
+  const profileInterests = Array.isArray(profile?.interests) ? profile.interests : [];
+  const profileGoals = Array.isArray(profile?.goals) ? profile.goals : [];
+  const minimumSkillsForStrongInsight = 3;
+  const minimumInterestsForStrongInsight = 2;
+  const minimumGoalsForStrongInsight = 2;
+  const skillsAreThin = profileSkills.length < minimumSkillsForStrongInsight;
+  const interestsAreThin = profileInterests.length < minimumInterestsForStrongInsight;
+  const goalsAreThin = profileGoals.length < minimumGoalsForStrongInsight;
+  const onboardingDataIsThin = skillsAreThin || interestsAreThin || goalsAreThin;
+  const onboardingReadyForIntelligence = onboardingComplete === true && !onboardingDataIsThin;
+  const intelligenceGuidanceItems: IntelligenceGuidanceItem[] = [];
+  if (onboardingComplete !== true) {
+    intelligenceGuidanceItems.push({
+      id: "complete-onboarding",
+      message: "Complete onboarding to unlock full intelligence features.",
+    });
+  }
+  if (skillsAreThin) {
+    intelligenceGuidanceItems.push({
+      id: "skills-thin",
+      message: `Add at least ${minimumSkillsForStrongInsight} skills to improve insight quality and recommendations.`,
+    });
+  }
+  if (interestsAreThin) {
+    intelligenceGuidanceItems.push({
+      id: "interests-thin",
+      message: `Add at least ${minimumInterestsForStrongInsight} interests to improve pathway relevance and smart matching.`,
+    });
+  }
+  if (goalsAreThin) {
+    intelligenceGuidanceItems.push({
+      id: "goals-thin",
+      message: `Add at least ${minimumGoalsForStrongInsight} goals to help the system generate better guidance.`,
+    });
+  }
+  const shouldShowIntelligenceGuidance =
+    !profileLoading &&
+    Boolean(user) &&
+    intelligenceGuidanceItems.length > 0;
+  const completedReadinessAreas = [
+    !skillsAreThin,
+    !interestsAreThin,
+    !goalsAreThin,
+  ].filter(Boolean).length;
 
   const stats = useMemo(() => buildStats(skillsCount, aiInsight ? aiInsight.next_steps.length : null), [skillsCount, aiInsight]);
 
@@ -506,6 +556,8 @@ export default function Intelligence(): JSX.Element {
     if (!value) return "Never";
     return new Date(value).toLocaleString();
   };
+  const guidancePanelClassName =
+    "rounded-2xl border border-amber-200 bg-amber-50 p-4";
   const comingSoonButtonClass =
     "inline-flex items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] px-4 py-3 text-sm font-medium opacity-50 cursor-not-allowed";
 
@@ -643,13 +695,8 @@ export default function Intelligence(): JSX.Element {
 
     if (!user) {
       navigate("/login", { replace: true });
-      return;
     }
-
-    if (onboardingComplete === false) {
-      navigate("/onboarding", { replace: true });
-    }
-  }, [profileLoading, user, onboardingComplete, navigate]);
+  }, [profileLoading, user, navigate]);
 
   if (notAuthenticated) {
     return (
@@ -671,27 +718,6 @@ export default function Intelligence(): JSX.Element {
           title="Loading your personalised guidance"
           description="Fetching your profile and recommendations."
         />
-      </DashboardShell>
-    );
-  }
-
-  if (onboardingIncomplete) {
-    return (
-      <DashboardShell>
-        <PageHeader
-          eyebrow="VisionTech Intelligence"
-          title="Complete onboarding to unlock your intelligence dashboard"
-          description="VisionTech needs your saved profile information before it can generate guidance, recommendations, and matching."
-        />
-
-        <section className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-[var(--color-on-surface)]">What happens next</h2>
-          <div className="mt-4 space-y-3 text-sm text-[var(--color-on-surface-variant)]">
-            <p>- Complete your onboarding details</p>
-            <p>- Save your skills, interests, and goals</p>
-            <p>- Return here to see AI guidance and opportunities</p>
-          </div>
-        </section>
       </DashboardShell>
     );
   }
@@ -780,6 +806,29 @@ export default function Intelligence(): JSX.Element {
         >
           {actionFeedback.message}
         </div>
+      ) : null}
+      {shouldShowIntelligenceGuidance ? (
+        <section className={`mb-6 ${guidancePanelClassName}`}>
+          <div className="flex flex-col gap-2">
+            <div>
+              <p className="text-sm font-semibold text-amber-800">
+                Intelligence readiness guidance
+              </p>
+              <p className="mt-1 text-sm text-amber-700">
+                Your current profile data may limit the quality of insights, recommendations, or matching.
+              </p>
+              <p className="mt-1 text-xs text-amber-700">
+                Readiness: {completedReadinessAreas}/3 profile areas strong enough for richer intelligence.
+              </p>
+            </div>
+
+            <ul className="list-disc space-y-1 pl-5 text-sm text-amber-700">
+              {intelligenceGuidanceItems.map((item) => (
+                <li key={item.id}>{item.message}</li>
+              ))}
+            </ul>
+          </div>
+        </section>
       ) : null}
 
       {/* Hero summary */}
@@ -880,7 +929,11 @@ export default function Intelligence(): JSX.Element {
                         ? "Generating AI insight from your saved profile."
                         : aiInsightError
                           ? "AI insight unavailable right now."
-                          : "Complete onboarding to unlock personalised recommendations."}
+                          : onboardingComplete !== true
+                            ? "Complete onboarding to unlock personalised insights."
+                            : onboardingReadyForIntelligence
+                              ? "AI insight is ready to generate from your profile."
+                              : "AI insight quality may be limited until onboarding data is stronger."}
                   </p>
                   <p className={`mt-2 text-xs ${subtle}`}>
                     Last updated: {formatTimestamp(aiInsightUpdatedAt)}
@@ -888,6 +941,11 @@ export default function Intelligence(): JSX.Element {
                   <p className={`mt-1 text-xs ${subtle}`}>
                     Source: {getAIInsightSourceLabel(aiInsightSource)}
                   </p>
+                  {(skillsAreThin || interestsAreThin || goalsAreThin) && (
+                    <p className={`mt-1 text-xs ${subtle}`}>
+                      Insight quality may be limited until your skills, interests, and goals are more complete.
+                    </p>
+                  )}
                   {renderLastAction(aiInsightLastAction)}
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
@@ -976,7 +1034,11 @@ export default function Intelligence(): JSX.Element {
                   <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4">
                     <h4 className="font-semibold text-[var(--color-primary)]">No saved AI insight yet</h4>
                     <p className={`mt-2 text-sm leading-6 ${subtle}`}>
-                      No AI insight has been loaded yet. Use refresh to generate or retrieve the latest result.
+                      {onboardingComplete !== true
+                        ? "Complete onboarding to generate AI insight."
+                        : onboardingDataIsThin
+                          ? "Your AI insight is not available yet. Adding more skills, interests, and goals will improve generation quality."
+                          : "No AI insight is available yet. Use refresh to generate or retrieve the latest result."}
                     </p>
                     <button
                       type="button"
@@ -1024,6 +1086,11 @@ export default function Intelligence(): JSX.Element {
                   <p className={`mt-2 text-xs ${subtle}`}>
                     Last updated: {formatTimestamp(recommendationsUpdatedAt)}
                   </p>
+                  {(skillsAreThin || goalsAreThin) && (
+                    <p className={`mt-1 text-xs ${subtle}`}>
+                      Recommendations improve when your profile includes enough skills and goals.
+                    </p>
+                  )}
                   {renderLastAction(recommendationsLastAction)}
                 </div>
                 <div className="shrink-0">
@@ -1099,7 +1166,11 @@ export default function Intelligence(): JSX.Element {
                 </div>
               ) : (
                 <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
-                  No recommendations have been loaded yet.
+                  {onboardingComplete !== true
+                    ? "Complete onboarding to unlock recommendations."
+                    : skillsAreThin || goalsAreThin
+                      ? "No recommendations are available yet. Add more skills and goals to improve recommendation quality."
+                      : "No recommendations are available yet."}
                   <button
                     type="button"
                     onClick={() => void handleLoadRecommendations()}
@@ -1132,6 +1203,11 @@ export default function Intelligence(): JSX.Element {
                   <p className={`mt-2 text-xs ${subtle}`}>
                     Last updated: {formatTimestamp(matchesUpdatedAt)}
                   </p>
+                  {(skillsAreThin || interestsAreThin) && (
+                    <p className={`mt-1 text-xs ${subtle}`}>
+                      Smart matching works better when both skills and interests are well defined.
+                    </p>
+                  )}
                   {renderLastAction(matchesLastAction)}
                 </div>
                 <div className="flex items-center gap-3">
@@ -1190,7 +1266,11 @@ export default function Intelligence(): JSX.Element {
               ) : (
                 <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
                   {!matches
-                    ? "No smart matches have been loaded yet."
+                    ? onboardingComplete !== true
+                      ? "Complete onboarding to unlock smart matching."
+                      : skillsAreThin || interestsAreThin
+                        ? "No smart matches are available yet. Add more skills and interests to improve matching quality."
+                        : "No smart matches are available yet."
                     : "No collaborator or opportunity matches are available yet."}
                   {!matches ? (
                     <button
