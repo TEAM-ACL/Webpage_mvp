@@ -377,6 +377,15 @@ export default function Intelligence(): JSX.Element {
     void loadMatches();
   }, [pageReady, loadMatches]);
 
+  // ACL: reset initial load guards when page readiness is lost
+  useEffect(() => {
+    if (pageReady) return;
+
+    hasLoadedLatestInsight.current = false;
+    hasLoadedRecommendations.current = false;
+    hasLoadedMatches.current = false;
+  }, [pageReady]);
+
   // ACL: redirect users to the correct MVP flow based on readiness state
   useEffect(() => {
     if (profileLoading) return;
