@@ -196,20 +196,24 @@ export default function Intelligence(): JSX.Element {
     aiInsightError,
     aiInsightUpdatedAt,
     aiInsightSource,
+    aiInsightLastAction,
     refreshAIInsight,
     loadLatestAIInsight,
     recommendations,
     recommendationsLoading,
     recommendationsError,
     recommendationsUpdatedAt,
+    recommendationsLastAction,
     loadRecommendations,
     matches,
     matchesLoading,
     matchesError,
     matchesUpdatedAt,
+    matchesLastAction,
     loadMatches,
     intelligenceRefreshing,
     intelligenceUpdatedAt,
+    intelligenceLastAction,
     refreshIntelligence,
   } = useAuth();
   // ACL: local feedback state for intelligence actions on this page
@@ -448,6 +452,42 @@ export default function Intelligence(): JSX.Element {
       {getAIInsightSourceLabel(source)}
     </span>
   );
+
+  const getLastActionClassName = (
+    status: "success" | "error" | "info",
+  ): string => {
+    switch (status) {
+      case "success":
+        return "text-green-700";
+      case "error":
+        return "text-red-700";
+      case "info":
+      default:
+        return "text-slate-600";
+    }
+  };
+
+  const renderLastAction = (
+    action: {
+      status: "success" | "error" | "info";
+      message: string;
+      timestamp: string;
+    } | null,
+  ) => {
+    if (!action) {
+      return (
+        <p className={`mt-1 text-xs ${subtle}`}>
+          Last action: No action recorded yet.
+        </p>
+      );
+    }
+
+    return (
+      <p className={`mt-1 text-xs ${getLastActionClassName(action.status)}`}>
+        Last action: {action.message} ({formatTimestamp(action.timestamp)})
+      </p>
+    );
+  };
 
   const sectionStates: IntelligenceSectionState[] = [
     aiInsightState,
@@ -702,6 +742,15 @@ export default function Intelligence(): JSX.Element {
             <p className={`mt-1 text-xs ${subtle}`}>
               Last full refresh: {formatTimestamp(intelligenceUpdatedAt)}
             </p>
+            {intelligenceLastAction ? (
+              <p className={`mt-1 text-xs ${getLastActionClassName(intelligenceLastAction.status)}`}>
+                Last refresh action: {intelligenceLastAction.message} ({formatTimestamp(intelligenceLastAction.timestamp)})
+              </p>
+            ) : (
+              <p className={`mt-1 text-xs ${subtle}`}>
+                Last refresh action: No refresh action recorded yet.
+              </p>
+            )}
             <p className={`mt-1 text-xs ${subtle}`}>
               Sections: {readySectionCount} ready, {loadingSectionCount} loading, {emptySectionCount} empty, {errorSectionCount} error.
             </p>
@@ -839,6 +888,7 @@ export default function Intelligence(): JSX.Element {
                   <p className={`mt-1 text-xs ${subtle}`}>
                     Source: {getAIInsightSourceLabel(aiInsightSource)}
                   </p>
+                  {renderLastAction(aiInsightLastAction)}
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
                   {aiInsight ? renderAIInsightSourceBadge(aiInsightSource) : null}
@@ -974,6 +1024,7 @@ export default function Intelligence(): JSX.Element {
                   <p className={`mt-2 text-xs ${subtle}`}>
                     Last updated: {formatTimestamp(recommendationsUpdatedAt)}
                   </p>
+                  {renderLastAction(recommendationsLastAction)}
                 </div>
                 <div className="shrink-0">
                   {renderSectionBadge(recommendationsState)}
@@ -1081,6 +1132,7 @@ export default function Intelligence(): JSX.Element {
                   <p className={`mt-2 text-xs ${subtle}`}>
                     Last updated: {formatTimestamp(matchesUpdatedAt)}
                   </p>
+                  {renderLastAction(matchesLastAction)}
                 </div>
                 <div className="flex items-center gap-3">
                   {renderSectionBadge(matchesState)}
