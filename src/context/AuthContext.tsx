@@ -19,6 +19,13 @@ export type IntelligenceActionResult = {
   message: string;
 };
 
+// ACL: lightweight action history for intelligence sections
+export type IntelligenceSectionAction = {
+  status: "success" | "error" | "info";
+  message: string;
+  timestamp: string;
+};
+
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "An unexpected error occurred.";
 }
@@ -33,16 +40,20 @@ type AuthContextValue = {
   aiInsightError: string | null;
   aiInsightUpdatedAt: string | null;
   aiInsightSource: "saved" | "fresh" | null;
+  aiInsightLastAction: IntelligenceSectionAction | null;
   recommendations: AIRecommendationsResponse | null;
   recommendationsLoading: boolean;
   recommendationsError: string | null;
   recommendationsUpdatedAt: string | null;
+  recommendationsLastAction: IntelligenceSectionAction | null;
   matches: AIMatchesResponse | null;
   matchesLoading: boolean;
   matchesError: string | null;
   matchesUpdatedAt: string | null;
+  matchesLastAction: IntelligenceSectionAction | null;
   intelligenceRefreshing: boolean;
   intelligenceUpdatedAt: string | null;
+  intelligenceLastAction: IntelligenceSectionAction | null;
   loading: boolean;
   profileLoading: boolean;
   error: string | null;
@@ -75,14 +86,18 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const [aiInsightError, setAIInsightError] = useState<string | null>(null);
   const [aiInsightUpdatedAt, setAIInsightUpdatedAt] = useState<string | null>(null);
   const [aiInsightSource, setAIInsightSource] = useState<"saved" | "fresh" | null>(null);
+  const [aiInsightLastAction, setAIInsightLastAction] = useState<IntelligenceSectionAction | null>(null);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   const [recommendationsError, setRecommendationsError] = useState<string | null>(null);
   const [recommendationsUpdatedAt, setRecommendationsUpdatedAt] = useState<string | null>(null);
+  const [recommendationsLastAction, setRecommendationsLastAction] = useState<IntelligenceSectionAction | null>(null);
   const [matchesLoading, setMatchesLoading] = useState(false);
   const [matchesError, setMatchesError] = useState<string | null>(null);
   const [matchesUpdatedAt, setMatchesUpdatedAt] = useState<string | null>(null);
+  const [matchesLastAction, setMatchesLastAction] = useState<IntelligenceSectionAction | null>(null);
   const [intelligenceRefreshing, setIntelligenceRefreshing] = useState(false);
   const [intelligenceUpdatedAt, setIntelligenceUpdatedAt] = useState<string | null>(null);
+  const [intelligenceLastAction, setIntelligenceLastAction] = useState<IntelligenceSectionAction | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
   // ACL: prevent duplicate intelligence requests from overlapping clicks/effects
@@ -108,13 +123,17 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setAIInsightError(null);
       setAIInsightUpdatedAt(null);
       setAIInsightSource(null);
+      setAIInsightLastAction(null);
       setRecommendations(null);
       setRecommendationsError(null);
       setRecommendationsUpdatedAt(null);
+      setRecommendationsLastAction(null);
       setMatches(null);
       setMatchesError(null);
       setMatchesUpdatedAt(null);
+      setMatchesLastAction(null);
       setIntelligenceUpdatedAt(null);
+      setIntelligenceLastAction(null);
       aiInsightRequestInFlight.current = false;
       recommendationsRequestInFlight.current = false;
       matchesRequestInFlight.current = false;
@@ -160,19 +179,31 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     setAIInsightError(null);
 
     try {
+      const actionTimestamp = new Date().toISOString();
       const insight = await generateAIInsight();
       setAIInsight(insight);
-      setAIInsightUpdatedAt(new Date().toISOString());
+      setAIInsightUpdatedAt(actionTimestamp);
       setAIInsightSource("fresh");
+      setAIInsightLastAction({
+        status: "success",
+        message: "Refreshed successfully.",
+        timestamp: actionTimestamp,
+      });
       return {
         success: true,
         message: "AI insight refreshed successfully.",
       };
     } catch (error) {
       const message = getErrorMessage(error);
+      const actionTimestamp = new Date().toISOString();
       setAIInsight(null);
       setAIInsightError(message);
       setAIInsightSource(null);
+      setAIInsightLastAction({
+        status: "error",
+        message: "Refresh failed.",
+        timestamp: actionTimestamp,
+      });
       return {
         success: false,
         message: "AI insight refresh failed.",
@@ -197,25 +228,42 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     setAIInsightError(null);
 
     try {
+      const actionTimestamp = new Date().toISOString();
       const insight = await getLatestAIInsight();
       setAIInsight(insight);
-      setAIInsightUpdatedAt(insight ? new Date().toISOString() : null);
+      setAIInsightUpdatedAt(insight ? actionTimestamp : null);
       setAIInsightSource(insight ? "saved" : null);
       if (insight) {
+        setAIInsightLastAction({
+          status: "success",
+          message: "Loaded saved insight.",
+          timestamp: actionTimestamp,
+        });
         return {
           success: true,
           message: "Saved AI insight loaded successfully.",
         };
       }
+      setAIInsightLastAction({
+        status: "info",
+        message: "No saved insight found yet.",
+        timestamp: actionTimestamp,
+      });
       return {
         success: true,
         message: "No saved AI insight is available yet.",
       };
     } catch (error) {
       const message = getErrorMessage(error);
+      const actionTimestamp = new Date().toISOString();
       setAIInsight(null);
       setAIInsightError(message);
       setAIInsightSource(null);
+      setAIInsightLastAction({
+        status: "error",
+        message: "Saved insight retrieval failed.",
+        timestamp: actionTimestamp,
+      });
       return {
         success: false,
         message: "Saved AI insight could not be loaded.",
@@ -240,17 +288,29 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     setRecommendationsError(null);
 
     try {
+      const actionTimestamp = new Date().toISOString();
       const data = await getAIRecommendations();
       setRecommendations(data);
-      setRecommendationsUpdatedAt(new Date().toISOString());
+      setRecommendationsUpdatedAt(actionTimestamp);
+      setRecommendationsLastAction({
+        status: "success",
+        message: "Recommendations loaded successfully.",
+        timestamp: actionTimestamp,
+      });
       return {
         success: true,
         message: "Recommendations loaded successfully.",
       };
     } catch (error) {
       const message = getErrorMessage(error);
+      const actionTimestamp = new Date().toISOString();
       setRecommendations(null);
       setRecommendationsError(message);
+      setRecommendationsLastAction({
+        status: "error",
+        message: "Recommendations failed to load.",
+        timestamp: actionTimestamp,
+      });
       return {
         success: false,
         message: "Recommendations failed to load.",
@@ -275,17 +335,29 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     setMatchesError(null);
 
     try {
+      const actionTimestamp = new Date().toISOString();
       const data = await getAIMatches();
       setMatches(data);
-      setMatchesUpdatedAt(new Date().toISOString());
+      setMatchesUpdatedAt(actionTimestamp);
+      setMatchesLastAction({
+        status: "success",
+        message: "Smart matches loaded successfully.",
+        timestamp: actionTimestamp,
+      });
       return {
         success: true,
         message: "Smart matches loaded successfully.",
       };
     } catch (error) {
       const message = getErrorMessage(error);
+      const actionTimestamp = new Date().toISOString();
       setMatches(null);
       setMatchesError(message);
+      setMatchesLastAction({
+        status: "error",
+        message: "Smart matches failed to load.",
+        timestamp: actionTimestamp,
+      });
       return {
         success: false,
         message: "Smart matches failed to load.",
@@ -315,20 +387,35 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
         loadMatches(),
       ]);
       const successCount = results.filter((result) => result.success).length;
-
-      setIntelligenceUpdatedAt(new Date().toISOString());
+      const actionTimestamp = new Date().toISOString();
+      setIntelligenceUpdatedAt(actionTimestamp);
       if (successCount === results.length) {
+        setIntelligenceLastAction({
+          status: "success",
+          message: "Full refresh completed successfully.",
+          timestamp: actionTimestamp,
+        });
         return {
           success: true,
           message: "Full intelligence refresh completed successfully.",
         };
       }
       if (successCount === 0) {
+        setIntelligenceLastAction({
+          status: "error",
+          message: "Full refresh failed.",
+          timestamp: actionTimestamp,
+        });
         return {
           success: false,
           message: "Full intelligence refresh failed.",
         };
       }
+      setIntelligenceLastAction({
+        status: "info",
+        message: `Full refresh completed with partial success (${successCount}/${results.length}).`,
+        timestamp: actionTimestamp,
+      });
       return {
         success: true,
         message: `Full intelligence refresh completed with partial success (${successCount}/${results.length}).`,
@@ -354,16 +441,20 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setAIInsightLoading(false);
       setAIInsightUpdatedAt(null);
       setAIInsightSource(null);
+      setAIInsightLastAction(null);
       setRecommendations(null);
       setRecommendationsError(null);
       setRecommendationsLoading(false);
       setRecommendationsUpdatedAt(null);
+      setRecommendationsLastAction(null);
       setMatches(null);
       setMatchesError(null);
       setMatchesLoading(false);
       setMatchesUpdatedAt(null);
+      setMatchesLastAction(null);
       setIntelligenceRefreshing(false);
       setIntelligenceUpdatedAt(null);
+      setIntelligenceLastAction(null);
       aiInsightRequestInFlight.current = false;
       recommendationsRequestInFlight.current = false;
       matchesRequestInFlight.current = false;
@@ -385,10 +476,13 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
         aiInsight,
         aiInsightUpdatedAt,
         aiInsightSource,
+        aiInsightLastAction,
         recommendations,
         recommendationsUpdatedAt,
+        recommendationsLastAction,
         matches,
         matchesUpdatedAt,
+        matchesLastAction,
         aiInsightLoading,
         aiInsightError,
         recommendationsLoading,
@@ -396,6 +490,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
         matchesLoading,
         matchesError,
         intelligenceUpdatedAt,
+        intelligenceLastAction,
         loading,
         profileLoading,
         error,
