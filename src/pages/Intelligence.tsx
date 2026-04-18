@@ -411,7 +411,7 @@ export default function Intelligence(): JSX.Element {
   const intelligenceLoading =
     aiInsightLoading || recommendationsLoading || matchesLoading;
 
-  const intelligencePartiallyDegraded =
+  const hasRecoverableSectionErrors =
     !!aiInsightError || !!recommendationsError || !!matchesError;
 
   const intelligenceReady =
@@ -573,6 +573,27 @@ export default function Intelligence(): JSX.Element {
       </div>
     );
   };
+
+  const renderErrorRecoveryBlock = ({
+    title,
+    description,
+    error,
+    actions,
+  }: {
+    title: string;
+    description: string;
+    error: string;
+    actions: IntelligenceRecoveryAction[];
+  }) => (
+    <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+      <p className="text-sm font-semibold text-red-800">{title}</p>
+      <p className="mt-1 text-sm text-red-700">{description}</p>
+      <p className="mt-2 text-sm text-red-700">
+        <span className="font-medium">Error:</span> {error}
+      </p>
+      {renderRecoveryActions(actions)}
+    </div>
+  );
 
   const sectionStates: IntelligenceSectionState[] = [
     aiInsightState,
@@ -785,6 +806,73 @@ export default function Intelligence(): JSX.Element {
     !recommendationsLoading &&
     !matchesLoading;
 
+  const aiInsightErrorRecoveryActions: IntelligenceRecoveryAction[] = [
+    {
+      id: "ai-retry-refresh",
+      label: "Retry AI insight",
+      onClick: () => {
+        void handleRefreshAIInsight();
+      },
+      disabled: aiInsightLoading || intelligenceRefreshing,
+    },
+    {
+      id: "ai-refresh-all",
+      label: "Refresh all intelligence",
+      onClick: () => {
+        void handleRefreshIntelligence();
+      },
+      disabled: intelligenceRefreshing,
+    },
+  ];
+  if (onboardingComplete === true) {
+    aiInsightErrorRecoveryActions.unshift({
+      id: "ai-load-saved-after-error",
+      label: "Load saved insight",
+      onClick: () => {
+        void handleLoadLatestAIInsight();
+      },
+      disabled: aiInsightLoading || intelligenceRefreshing,
+    });
+  }
+
+  const recommendationsErrorRecoveryActions: IntelligenceRecoveryAction[] = [
+    {
+      id: "recommendations-retry",
+      label: "Retry recommendations",
+      onClick: () => {
+        void handleLoadRecommendations();
+      },
+      disabled: recommendationsLoading || intelligenceRefreshing,
+    },
+    {
+      id: "recommendations-refresh-all",
+      label: "Refresh all intelligence",
+      onClick: () => {
+        void handleRefreshIntelligence();
+      },
+      disabled: intelligenceRefreshing,
+    },
+  ];
+
+  const matchesErrorRecoveryActions: IntelligenceRecoveryAction[] = [
+    {
+      id: "matches-retry",
+      label: "Retry smart matches",
+      onClick: () => {
+        void handleLoadMatches();
+      },
+      disabled: matchesLoading || intelligenceRefreshing,
+    },
+    {
+      id: "matches-refresh-all",
+      label: "Refresh all intelligence",
+      onClick: () => {
+        void handleRefreshIntelligence();
+      },
+      disabled: intelligenceRefreshing,
+    },
+  ];
+
   // ACL: bootstrap missing intelligence data once when page context is ready
   useEffect(() => {
     if (intelligenceBootstrapStarted.current) {
@@ -922,8 +1010,8 @@ export default function Intelligence(): JSX.Element {
             <p className={`mt-1 ${subtle}`}>
               {intelligenceLoading
                 ? "Refreshing intelligence services..."
-                : intelligencePartiallyDegraded
-                  ? "Some intelligence services are currently unavailable."
+                : hasRecoverableSectionErrors
+                  ? "Some intelligence services need recovery."
                   : intelligenceReady
                     ? "Intelligence services are active and responding."
                     : "Intelligence services are waiting for available backend data."}
@@ -958,6 +1046,32 @@ export default function Intelligence(): JSX.Element {
           </div>
         </div>
       </div>
+      {hasRecoverableSectionErrors ? (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
+          <p className="text-sm font-semibold text-red-800">
+            Some intelligence sections need attention
+          </p>
+          <p className="mt-1 text-sm text-red-700">
+            One or more intelligence requests failed. You can retry individual sections below or refresh all intelligence.
+          </p>
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={() => {
+                void handleRefreshIntelligence();
+              }}
+              disabled={intelligenceRefreshing}
+              className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                intelligenceRefreshing
+                  ? "cursor-not-allowed bg-red-100 text-red-300"
+                  : "bg-red-600 text-white hover:bg-red-700"
+              }`}
+            >
+              Refresh all intelligence
+            </button>
+          </div>
+        </div>
+      ) : null}
       {intelligenceRefreshing && (
         <div className="mb-6 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
           Refreshing your AI insight, recommendations, and matches...
@@ -1206,18 +1320,17 @@ export default function Intelligence(): JSX.Element {
                   </div>
                 </div>
               ) : aiInsightError ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-             <p>AI insight unavailable right now. Your profile data is still loaded and usable.</p>
-            <button
-              type="button"
-              onClick={() => void handleRefreshAIInsight()}
-              disabled={aiInsightLoading || intelligenceRefreshing}
-              className="mt-3 inline-flex h-10 items-center justify-center rounded-2xl border border-amber-300 bg-white px-4 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Sparkles className="mr-2 h-4 w-4" />
-              Try again
-              </button>
-          </div>
+                renderErrorRecoveryBlock({
+                  title: "AI insight could not be loaded",
+                  description:
+                    onboardingComplete !== true
+                      ? "Complete onboarding first, then retry AI insight generation."
+                      : onboardingDataIsThin
+                        ? "Your current profile data may limit AI insight quality, but you can still retry now."
+                        : "The AI insight request did not complete successfully. You can retry this section or refresh all intelligence.",
+                  error: aiInsightError,
+                  actions: aiInsightErrorRecoveryActions,
+                })
               ) : (
                 <div className="space-y-4">
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -1328,17 +1441,17 @@ export default function Intelligence(): JSX.Element {
                   </div>
                 )
               ) : recommendationsError ? (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                  <p>Recommendations are unavailable right now.</p>
-                  <button
-                    type="button"
-                    onClick={() => void handleLoadRecommendations()}
-                    disabled={recommendationsLoading || intelligenceRefreshing || !pageReady}
-                    className="mt-3 inline-flex h-10 items-center justify-center rounded-2xl border border-amber-300 bg-white px-4 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Retry recommendations
-                  </button>
-                </div>
+                renderErrorRecoveryBlock({
+                  title: "Recommendations could not be loaded",
+                  description:
+                    onboardingComplete !== true
+                      ? "Complete onboarding first, then retry recommendations."
+                      : skillsAreThin || goalsAreThin
+                        ? "Your current profile may be too limited for stronger recommendation results, but you can retry now."
+                        : "The recommendations request failed. Retry this section or refresh all intelligence.",
+                  error: recommendationsError,
+                  actions: recommendationsErrorRecoveryActions,
+                })
               ) : (
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-sm font-medium text-slate-800">
@@ -1395,23 +1508,22 @@ export default function Intelligence(): JSX.Element {
                   </button>
                 </div>
               </div>
-              {matchesError && (
-                <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                  <p>Backend matching is unavailable right now.</p>
-                  <button
-                    type="button"
-                    onClick={() => void handleLoadMatches()}
-                    disabled={matchesLoading || intelligenceRefreshing || !pageReady}
-                    className="mt-3 inline-flex h-10 items-center justify-center rounded-2xl border border-amber-300 bg-white px-4 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Retry matches
-                  </button>
-                </div>
-              )}
               {matchesLoading ? (
                 <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
                   Loading matches...
                 </div>
+              ) : matchesError ? (
+                renderErrorRecoveryBlock({
+                  title: "Smart matches could not be loaded",
+                  description:
+                    onboardingComplete !== true
+                      ? "Complete onboarding first, then retry smart matching."
+                      : skillsAreThin || interestsAreThin
+                        ? "Your current profile may not yet be rich enough for stronger matching, but you can retry now."
+                        : "The smart matching request failed. Retry this section or refresh all intelligence.",
+                  error: matchesError,
+                  actions: matchesErrorRecoveryActions,
+                })
               ) : displayMatches.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-3">
                   {displayMatches.map((match) => (
