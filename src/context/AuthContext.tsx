@@ -22,6 +22,7 @@ type AuthContextValue = {
   aiInsightLoading: boolean;
   aiInsightError: string | null;
   aiInsightUpdatedAt: string | null;
+  aiInsightSource: "saved" | "fresh" | null;
   recommendations: AIRecommendationsResponse | null;
   recommendationsLoading: boolean;
   recommendationsError: string | null;
@@ -63,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const [aiInsightLoading, setAIInsightLoading] = useState(false);
   const [aiInsightError, setAIInsightError] = useState<string | null>(null);
   const [aiInsightUpdatedAt, setAIInsightUpdatedAt] = useState<string | null>(null);
+  const [aiInsightSource, setAIInsightSource] = useState<"saved" | "fresh" | null>(null);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   const [recommendationsError, setRecommendationsError] = useState<string | null>(null);
   const [recommendationsUpdatedAt, setRecommendationsUpdatedAt] = useState<string | null>(null);
@@ -95,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setAIInsight(null);
       setAIInsightError(null);
       setAIInsightUpdatedAt(null);
+      setAIInsightSource(null);
       setRecommendations(null);
       setRecommendationsError(null);
       setRecommendationsUpdatedAt(null);
@@ -147,10 +150,12 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       const insight = await generateAIInsight();
       setAIInsight(insight);
       setAIInsightUpdatedAt(new Date().toISOString());
+      setAIInsightSource("fresh");
       return insight;
     } catch (err) {
       setAIInsight(null);
       setAIInsightError((err as Error).message);
+      setAIInsightSource(null);
       return null;
     } finally {
       setAIInsightLoading(false);
@@ -172,10 +177,12 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       const insight = await getLatestAIInsight();
       setAIInsight(insight);
       setAIInsightUpdatedAt(insight ? new Date().toISOString() : null);
+      setAIInsightSource(insight ? "saved" : null);
       return insight;
     } catch (err) {
       setAIInsight(null);
       setAIInsightError((err as Error).message);
+      setAIInsightSource(null);
       return null;
     } finally {
       setAIInsightLoading(false);
@@ -270,6 +277,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setAIInsightError(null);
       setAIInsightLoading(false);
       setAIInsightUpdatedAt(null);
+      setAIInsightSource(null);
       setRecommendations(null);
       setRecommendationsError(null);
       setRecommendationsLoading(false);
@@ -300,6 +308,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
         onboardingComplete,
         aiInsight,
         aiInsightUpdatedAt,
+        aiInsightSource,
         recommendations,
         recommendationsUpdatedAt,
         matches,
