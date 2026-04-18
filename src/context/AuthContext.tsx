@@ -19,14 +19,19 @@ type AuthContextValue = {
   onboardingStage: string | null;
   onboardingComplete: boolean | null;
   aiInsight: AIInsightResponse | null;
-  recommendations: AIRecommendationsResponse | null;
-  matches: AIMatchesResponse | null;
   aiInsightLoading: boolean;
   aiInsightError: string | null;
+  aiInsightUpdatedAt: string | null;
+  recommendations: AIRecommendationsResponse | null;
   recommendationsLoading: boolean;
   recommendationsError: string | null;
+  recommendationsUpdatedAt: string | null;
+  matches: AIMatchesResponse | null;
   matchesLoading: boolean;
   matchesError: string | null;
+  matchesUpdatedAt: string | null;
+  intelligenceRefreshing: boolean;
+  intelligenceUpdatedAt: string | null;
   loading: boolean;
   profileLoading: boolean;
   error: string | null;
@@ -37,7 +42,6 @@ type AuthContextValue = {
   loadLatestAIInsight: () => Promise<AIInsightResponse | null>;
   loadRecommendations: () => Promise<AIRecommendationsResponse | null>;
   loadMatches: () => Promise<AIMatchesResponse | null>;
-  intelligenceRefreshing: boolean;
   refreshIntelligence: () => Promise<void>;
   setAIInsight: (insight: AIInsightResponse | null) => void;
   setUser: (user: AuthSessionResponse["user"] | null) => void;
@@ -58,11 +62,15 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const [matches, setMatches] = useState<AIMatchesResponse | null>(null);
   const [aiInsightLoading, setAIInsightLoading] = useState(false);
   const [aiInsightError, setAIInsightError] = useState<string | null>(null);
+  const [aiInsightUpdatedAt, setAIInsightUpdatedAt] = useState<string | null>(null);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   const [recommendationsError, setRecommendationsError] = useState<string | null>(null);
+  const [recommendationsUpdatedAt, setRecommendationsUpdatedAt] = useState<string | null>(null);
   const [matchesLoading, setMatchesLoading] = useState(false);
   const [matchesError, setMatchesError] = useState<string | null>(null);
+  const [matchesUpdatedAt, setMatchesUpdatedAt] = useState<string | null>(null);
   const [intelligenceRefreshing, setIntelligenceRefreshing] = useState(false);
+  const [intelligenceUpdatedAt, setIntelligenceUpdatedAt] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
 
@@ -81,10 +89,14 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setOnboardingComplete(null);
       setAIInsight(null);
       setAIInsightError(null);
+      setAIInsightUpdatedAt(null);
       setRecommendations(null);
       setRecommendationsError(null);
+      setRecommendationsUpdatedAt(null);
       setMatches(null);
       setMatchesError(null);
+      setMatchesUpdatedAt(null);
+      setIntelligenceUpdatedAt(null);
       setProfileError((err as Error).message);
       return null;
     } finally {
@@ -120,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     try {
       const insight = await generateAIInsight();
       setAIInsight(insight);
+      setAIInsightUpdatedAt(new Date().toISOString());
       return insight;
     } catch (err) {
       setAIInsight(null);
@@ -138,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     try {
       const insight = await getLatestAIInsight();
       setAIInsight(insight);
+      setAIInsightUpdatedAt(insight ? new Date().toISOString() : null);
       return insight;
     } catch (err) {
       setAIInsight(null);
@@ -156,6 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     try {
       const data = await getAIRecommendations();
       setRecommendations(data);
+      setRecommendationsUpdatedAt(new Date().toISOString());
       return data;
     } catch (err) {
       setRecommendations(null);
@@ -174,6 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     try {
       const data = await getAIMatches();
       setMatches(data);
+      setMatchesUpdatedAt(new Date().toISOString());
       return data;
     } catch (err) {
       setMatches(null);
@@ -194,6 +210,8 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
         loadRecommendations(),
         loadMatches(),
       ]);
+
+      setIntelligenceUpdatedAt(new Date().toISOString());
     } finally {
       setIntelligenceRefreshing(false);
     }
@@ -212,13 +230,17 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setAIInsight(null);
       setAIInsightError(null);
       setAIInsightLoading(false);
+      setAIInsightUpdatedAt(null);
       setRecommendations(null);
       setRecommendationsError(null);
       setRecommendationsLoading(false);
+      setRecommendationsUpdatedAt(null);
       setMatches(null);
       setMatchesError(null);
       setMatchesLoading(false);
+      setMatchesUpdatedAt(null);
       setIntelligenceRefreshing(false);
+      setIntelligenceUpdatedAt(null);
     }
   };
 
@@ -234,14 +256,18 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
         onboardingStage,
         onboardingComplete,
         aiInsight,
+        aiInsightUpdatedAt,
         recommendations,
+        recommendationsUpdatedAt,
         matches,
+        matchesUpdatedAt,
         aiInsightLoading,
         aiInsightError,
         recommendationsLoading,
         recommendationsError,
         matchesLoading,
         matchesError,
+        intelligenceUpdatedAt,
         loading,
         profileLoading,
         error,
