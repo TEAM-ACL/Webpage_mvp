@@ -191,17 +191,21 @@ export default function Intelligence(): JSX.Element {
     aiInsight,
     aiInsightLoading,
     aiInsightError,
+    aiInsightUpdatedAt,
     refreshAIInsight,
     loadLatestAIInsight,
     recommendations,
     recommendationsLoading,
     recommendationsError,
+    recommendationsUpdatedAt,
     loadRecommendations,
     matches,
     matchesLoading,
     matchesError,
+    matchesUpdatedAt,
     loadMatches,
     intelligenceRefreshing,
+    intelligenceUpdatedAt,
     refreshIntelligence,
   } = useAuth();
   const hasLoadedLatestInsight = useRef(false);
@@ -346,6 +350,10 @@ export default function Intelligence(): JSX.Element {
     pageReady &&
     !intelligenceLoading &&
     (insightReady || recommendationsReady || matchesReady);
+  const formatTimestamp = (value: string | null): string => {
+    if (!value) return "Never";
+    return new Date(value).toLocaleString();
+  };
   const comingSoonButtonClass =
     "inline-flex items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] px-4 py-3 text-sm font-medium opacity-50 cursor-not-allowed";
 
@@ -523,6 +531,9 @@ export default function Intelligence(): JSX.Element {
                     ? "Intelligence services are active and responding."
                     : "Intelligence services are waiting for available backend data."}
             </p>
+            <p className={`mt-1 text-xs ${subtle}`}>
+              Last full refresh: {formatTimestamp(intelligenceUpdatedAt)}
+            </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -644,6 +655,9 @@ export default function Intelligence(): JSX.Element {
                           ? "AI insight unavailable right now."
                           : "Complete onboarding to unlock personalised recommendations."}
                   </p>
+                  <p className={`mt-2 text-xs ${subtle}`}>
+                    Last updated: {formatTimestamp(aiInsightUpdatedAt)}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
   <div className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--color-primary)]">
@@ -759,6 +773,9 @@ export default function Intelligence(): JSX.Element {
                 <p className={`mt-2 text-sm ${subtle}`}>
                   Practical recommendations aligned with your saved profile and AI guidance.
                 </p>
+                <p className={`mt-2 text-xs ${subtle}`}>
+                  Last updated: {formatTimestamp(recommendationsUpdatedAt)}
+                </p>
               </div>
 
               {recommendationsLoading ? (
@@ -848,6 +865,9 @@ export default function Intelligence(): JSX.Element {
                         : matchesError
                           ? "Matching is unavailable right now."
                           : "No matches are available yet for your current profile."}
+                  </p>
+                  <p className={`mt-2 text-xs ${subtle}`}>
+                    Last updated: {formatTimestamp(matchesUpdatedAt)}
                   </p>
                 </div>
                 <button
