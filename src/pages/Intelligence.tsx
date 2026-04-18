@@ -64,6 +64,13 @@ type IntelligenceGuidanceItem = {
   id: string;
   message: string;
 };
+// ACL: recovery action guidance for empty intelligence states
+type IntelligenceRecoveryAction = {
+  id: string;
+  label: string;
+  onClick?: () => void;
+  disabled?: boolean;
+};
 
 function buildStats(skillsCount: number | null, aiCount: number | null): SummaryItem[] {
   return [
@@ -539,6 +546,34 @@ export default function Intelligence(): JSX.Element {
     );
   };
 
+  const renderRecoveryActions = (
+    actions: IntelligenceRecoveryAction[],
+  ) => {
+    if (actions.length === 0) {
+      return null;
+    }
+
+    return (
+      <div className="mt-3 flex flex-wrap gap-2">
+        {actions.map((action) => (
+          <button
+            key={action.id}
+            type="button"
+            onClick={action.onClick}
+            disabled={action.disabled || !action.onClick}
+            className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
+              action.disabled || !action.onClick
+                ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            {action.label}
+          </button>
+        ))}
+      </div>
+    );
+  };
+
   const sectionStates: IntelligenceSectionState[] = [
     aiInsightState,
     recommendationsState,
@@ -621,6 +656,134 @@ export default function Intelligence(): JSX.Element {
     const result = await refreshIntelligence();
     showActionFeedback(result, result.success ? "info" : "error");
   };
+
+  const aiInsightRecoveryActions: IntelligenceRecoveryAction[] = [];
+  if (onboardingComplete !== true) {
+    aiInsightRecoveryActions.push({
+      id: "ai-complete-onboarding",
+      label: "Complete onboarding",
+      onClick: () => navigate("/onboarding"),
+    });
+  } else if (onboardingDataIsThin) {
+    aiInsightRecoveryActions.push({
+      id: "ai-improve-profile",
+      label: "Improve profile data",
+      onClick: () => navigate("/onboarding"),
+    });
+    aiInsightRecoveryActions.push({
+      id: "ai-refresh",
+      label: "Refresh AI insight",
+      onClick: () => {
+        void handleRefreshAIInsight();
+      },
+      disabled: aiInsightLoading || intelligenceRefreshing,
+    });
+  } else {
+    aiInsightRecoveryActions.push({
+      id: "ai-load-latest",
+      label: "Load saved insight",
+      onClick: () => {
+        void handleLoadLatestAIInsight();
+      },
+      disabled: aiInsightLoading || intelligenceRefreshing,
+    });
+    aiInsightRecoveryActions.push({
+      id: "ai-refresh",
+      label: "Refresh AI insight",
+      onClick: () => {
+        void handleRefreshAIInsight();
+      },
+      disabled: aiInsightLoading || intelligenceRefreshing,
+    });
+  }
+
+  const recommendationsRecoveryActions: IntelligenceRecoveryAction[] = [];
+  if (onboardingComplete !== true) {
+    recommendationsRecoveryActions.push({
+      id: "recommendations-complete-onboarding",
+      label: "Complete onboarding",
+      onClick: () => navigate("/onboarding"),
+    });
+  } else if (skillsAreThin || goalsAreThin) {
+    recommendationsRecoveryActions.push({
+      id: "recommendations-improve-profile",
+      label: "Add more skills and goals",
+      onClick: () => navigate("/onboarding"),
+    });
+    recommendationsRecoveryActions.push({
+      id: "recommendations-refresh",
+      label: "Load recommendations",
+      onClick: () => {
+        void handleLoadRecommendations();
+      },
+      disabled: recommendationsLoading || intelligenceRefreshing,
+    });
+  } else {
+    recommendationsRecoveryActions.push({
+      id: "recommendations-refresh",
+      label: "Load recommendations",
+      onClick: () => {
+        void handleLoadRecommendations();
+      },
+      disabled: recommendationsLoading || intelligenceRefreshing,
+    });
+    recommendationsRecoveryActions.push({
+      id: "recommendations-refresh-all",
+      label: "Refresh all intelligence",
+      onClick: () => {
+        void handleRefreshIntelligence();
+      },
+      disabled: intelligenceRefreshing,
+    });
+  }
+
+  const matchesRecoveryActions: IntelligenceRecoveryAction[] = [];
+  if (onboardingComplete !== true) {
+    matchesRecoveryActions.push({
+      id: "matches-complete-onboarding",
+      label: "Complete onboarding",
+      onClick: () => navigate("/onboarding"),
+    });
+  } else if (skillsAreThin || interestsAreThin) {
+    matchesRecoveryActions.push({
+      id: "matches-improve-profile",
+      label: "Add more skills and interests",
+      onClick: () => navigate("/onboarding"),
+    });
+    matchesRecoveryActions.push({
+      id: "matches-load",
+      label: "Load smart matches",
+      onClick: () => {
+        void handleLoadMatches();
+      },
+      disabled: matchesLoading || intelligenceRefreshing,
+    });
+  } else {
+    matchesRecoveryActions.push({
+      id: "matches-load",
+      label: "Load smart matches",
+      onClick: () => {
+        void handleLoadMatches();
+      },
+      disabled: matchesLoading || intelligenceRefreshing,
+    });
+    matchesRecoveryActions.push({
+      id: "matches-refresh-all",
+      label: "Refresh all intelligence",
+      onClick: () => {
+        void handleRefreshIntelligence();
+      },
+      disabled: intelligenceRefreshing,
+    });
+  }
+
+  const allSectionsEmpty =
+    !aiInsight &&
+    !recommendations &&
+    !matches &&
+    !aiInsightLoading &&
+    !recommendationsLoading &&
+    !matchesLoading;
 
   // ACL: bootstrap missing intelligence data once when page context is ready
   useEffect(() => {
@@ -830,6 +993,32 @@ export default function Intelligence(): JSX.Element {
           </div>
         </section>
       ) : null}
+      {allSectionsEmpty && onboardingComplete === true ? (
+        <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+          <p className="text-sm font-semibold text-blue-800">
+            Intelligence is ready to be generated
+          </p>
+          <p className="mt-1 text-sm text-blue-700">
+            Your profile is available, but no intelligence has been loaded yet.
+          </p>
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={() => {
+                void handleRefreshIntelligence();
+              }}
+              disabled={intelligenceRefreshing}
+              className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                intelligenceRefreshing
+                  ? "cursor-not-allowed bg-blue-100 text-blue-300"
+                  : "bg-blue-600 text-white hover:bg-blue-700"
+              }`}
+            >
+              Refresh all intelligence
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {/* Hero summary */}
       <section className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -1031,32 +1220,18 @@ export default function Intelligence(): JSX.Element {
           </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4">
-                    <h4 className="font-semibold text-[var(--color-primary)]">No saved AI insight yet</h4>
-                    <p className={`mt-2 text-sm leading-6 ${subtle}`}>
-                      {onboardingComplete !== true
-                        ? "Complete onboarding to generate AI insight."
-                        : onboardingDataIsThin
-                          ? "Your AI insight is not available yet. Adding more skills, interests, and goals will improve generation quality."
-                          : "No AI insight is available yet. Use refresh to generate or retrieve the latest result."}
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-sm font-medium text-slate-800">
+                      AI insight is not available yet.
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => void handleLoadLatestAIInsight()}
-                      disabled={aiInsightLoading || intelligenceRefreshing}
-                      className="mt-4 inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Load saved AI insight
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleRefreshAIInsight()}
-                      disabled={aiInsightLoading || intelligenceRefreshing}
-                      className="mt-3 inline-flex h-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Generate AI Insight
-                    </button>
+                    <p className={`mt-1 text-sm ${subtle}`}>
+                      {onboardingComplete !== true
+                        ? "Complete onboarding to unlock AI-generated insight."
+                        : onboardingDataIsThin
+                          ? "Your profile data is still too limited for stronger AI insight generation."
+                          : "You can retrieve the latest saved insight or generate a fresh one now."}
+                    </p>
+                    {renderRecoveryActions(aiInsightRecoveryActions)}
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-3">
@@ -1165,20 +1340,18 @@ export default function Intelligence(): JSX.Element {
                   </button>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
-                  {onboardingComplete !== true
-                    ? "Complete onboarding to unlock recommendations."
-                    : skillsAreThin || goalsAreThin
-                      ? "No recommendations are available yet. Add more skills and goals to improve recommendation quality."
-                      : "No recommendations are available yet."}
-                  <button
-                    type="button"
-                    onClick={() => void handleLoadRecommendations()}
-                    disabled={recommendationsLoading || intelligenceRefreshing || !pageReady}
-                    className="mt-3 inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Load Recommendations
-                  </button>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm font-medium text-slate-800">
+                    Recommendations are not available yet.
+                  </p>
+                  <p className={`mt-1 text-sm ${subtle}`}>
+                    {onboardingComplete !== true
+                      ? "Complete onboarding to unlock recommendations."
+                      : skillsAreThin || goalsAreThin
+                        ? "Recommendations work better when your profile includes enough skills and goals."
+                        : "You can load recommendations now using your current intelligence profile."}
+                  </p>
+                  {renderRecoveryActions(recommendationsRecoveryActions)}
                 </div>
               )}
             </div>
@@ -1264,24 +1437,20 @@ export default function Intelligence(): JSX.Element {
                   ))}
                 </div>
               ) : (
-                <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
-                  {!matches
-                    ? onboardingComplete !== true
-                      ? "Complete onboarding to unlock smart matching."
-                      : skillsAreThin || interestsAreThin
-                        ? "No smart matches are available yet. Add more skills and interests to improve matching quality."
-                        : "No smart matches are available yet."
-                    : "No collaborator or opportunity matches are available yet."}
-                  {!matches ? (
-                    <button
-                      type="button"
-                      onClick={() => void handleLoadMatches()}
-                      disabled={matchesLoading || intelligenceRefreshing || !pageReady}
-                      className="mt-3 inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Load Matches
-                    </button>
-                  ) : null}
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm font-medium text-slate-800">
+                    Smart matches are not available yet.
+                  </p>
+                  <p className={`mt-1 text-sm ${subtle}`}>
+                    {!matches
+                      ? onboardingComplete !== true
+                        ? "Complete onboarding to unlock smart matching."
+                        : skillsAreThin || interestsAreThin
+                          ? "Matching improves when your skills and interests are more complete."
+                          : "You can load smart matches from your current profile intelligence."
+                      : "No collaborator or opportunity matches are available yet."}
+                  </p>
+                  {!matches ? renderRecoveryActions(matchesRecoveryActions) : null}
                 </div>
               )}
             </div>
