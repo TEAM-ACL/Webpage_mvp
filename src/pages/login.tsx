@@ -5,12 +5,17 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
 import { api, storeSession } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
+import { toUserMessage } from "../lib/userErrors";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const emailConfirmationRedirectUrl =
+  import.meta.env.VITE_AUTH_EMAIL_CONFIRMATION_REDIRECT_URL || `${window.location.origin}/auth/callback`;
 
 export default function Login(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
+  const { showError, showSuccess } = useToast();
   const { setUser, refreshProfile, onboardingComplete, logout } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,16 +40,10 @@ export default function Login(): JSX.Element {
 
   const friendlyError = (message: string) => {
     const lower = message.toLowerCase();
-    if (lower.includes("failed to fetch")) {
-      return "Can't reach the server. Check your connection or try again shortly.";
-    }
-    if (lower.includes("timeout")) {
-      return "The request timed out. Please retry.";
-    }
     if (isVerificationError(message)) {
       return "Please verify your email before logging in. Check your inbox for the verification link.";
     }
-    return message || "Unable to sign in. Please try again.";
+    return toUserMessage(message, "Unable to sign in. Please try again.");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,7 +51,9 @@ export default function Login(): JSX.Element {
     const cleanEmail = email.trim().toLowerCase();
 
     if (!emailRegex.test(cleanEmail)) {
-      setError("Please enter a valid email address.");
+      const message = "Please enter a valid email address.";
+      setError(message);
+      showError(message);
       return;
     }
     setError(null);
@@ -69,7 +70,9 @@ export default function Login(): JSX.Element {
     } catch (err) {
       const message = (err as Error).message;
       setShowResendVerification(isVerificationError(message));
-      setError(friendlyError(message));
+      const friendly = friendlyError(message);
+      setError(friendly);
+      showError(friendly);
     } finally {
       // Clear sensitive data from memory after submission
       setPassword("");
@@ -80,7 +83,9 @@ export default function Login(): JSX.Element {
   const handleResendVerification = async () => {
     const cleanEmail = email.trim().toLowerCase();
     if (!emailRegex.test(cleanEmail)) {
-      setError("Enter a valid email before resending verification.");
+      const message = "Enter a valid email before resending verification.";
+      setError(message);
+      showError(message);
       return;
     }
 
@@ -88,10 +93,14 @@ export default function Login(): JSX.Element {
     setNotice(null);
     setResending(true);
     try {
-      await api.resendVerificationEmail(cleanEmail, `${window.location.origin}/auth/callback`);
-      setNotice("Verification email sent. Please check your inbox.");
+      await api.resendVerificationEmail(cleanEmail, emailConfirmationRedirectUrl);
+      const message = "Verification email sent. Please check your inbox.";
+      setNotice(message);
+      showSuccess(message);
     } catch (err) {
-      setError(friendlyError((err as Error).message));
+      const message = friendlyError((err as Error).message);
+      setError(message);
+      showError(message);
     } finally {
       setResending(false);
     }
@@ -198,7 +207,7 @@ export default function Login(): JSX.Element {
               </div>
               {error && (
                 <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                  {error}
+                  We couldn't complete that action. Please check the notification and try again.
                 </p>
               )}
               {notice && (

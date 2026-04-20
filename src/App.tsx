@@ -18,15 +18,17 @@ import Profile from './pages/Profile';
 import ForgotPassword from './pages/ForgotPassword';
 import AuthCallback from './pages/AuthCallback';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import ResetPassword from './pages/ResetPassword';
 import { RequireAdmin, RequireAuth, RequireOnboardingComplete, RedirectIfOnboarded } from './components/ProtectedRoute';
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="min-h-screen flex flex-col">
-          <Routes>
+    <ToastProvider>
+      <AuthProvider>
+        <Router>
+          <div className="min-h-screen flex flex-col">
+            <Routes>
             {/* Standalone layouts (no global header/footer) */}
             <Route path="/login" element={<RedirectIfOnboarded><Login /></RedirectIfOnboarded>} />
             <Route path="/signup" element={<RedirectIfOnboarded><SignUp /></RedirectIfOnboarded>} />
@@ -100,9 +102,10 @@ export default function App() {
                 </div>
               }
             />
-          </Routes>
-        </div>
-      </Router>
-    </AuthProvider>
+            </Routes>
+          </div>
+        </Router>
+      </AuthProvider>
+    </ToastProvider>
   );
 }

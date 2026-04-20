@@ -2,8 +2,11 @@ import { useState } from "react";
 import type { JSX } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { api } from "../lib/api";
+import { useToast } from "../context/ToastContext";
+import { toUserMessage } from "../lib/userErrors";
 
 export default function ResetPassword(): JSX.Element {
+  const { showError, showSuccess } = useToast();
   const [params] = useSearchParams();
   const token = params.get("token") || params.get("access_token") || "";
   const [password, setPassword] = useState("");
@@ -15,7 +18,9 @@ export default function ResetPassword(): JSX.Element {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirm) {
-      setError("Passwords do not match.");
+      const message = "Passwords do not match.";
+      setError(message);
+      showError(message);
       return;
     }
     setLoading(true);
@@ -23,8 +28,11 @@ export default function ResetPassword(): JSX.Element {
     try {
       await api.confirmPasswordReset(password, token);
       setDone(true);
+      showSuccess("Your password has been updated.");
     } catch (err) {
-      setError((err as Error).message || "Unable to reset password.");
+      const message = toUserMessage(err, "Unable to reset password right now.");
+      setError(message);
+      showError(message);
     } finally {
       setLoading(false);
     }
@@ -59,7 +67,11 @@ export default function ResetPassword(): JSX.Element {
               className="w-full border border-surface-container-high rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/30"
               placeholder="Confirm password"
             />
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && (
+              <p className="text-sm text-red-600">
+                We couldn't update your password. Please check the notification and try again.
+              </p>
+            )}
             <button
               type="submit"
               disabled={loading || !token}

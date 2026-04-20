@@ -126,7 +126,14 @@ export const api = {
       body: { email, password },
     });
   },
-  register(payload: { email: string; password: string; display_name?: string | null; first_name?: string | null; last_name?: string | null }) {
+  register(payload: {
+    email: string;
+    password: string;
+    display_name?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+    redirect_to?: string;
+  }) {
     return request<AuthSessionResponse>("/auth/register", {
       method: "POST",
       body: payload,

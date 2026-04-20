@@ -5,13 +5,19 @@ import { Link, useNavigate } from "react-router-dom";
 import { api, storeSession } from "../lib/api";
 import { setOnboardingComplete } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
+import { toUserMessage } from "../lib/userErrors";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const hasUppercase = (value: string) => /[A-Z]/.test(value);
 const hasLowercase = (value: string) => /[a-z]/.test(value);
+const hasSpecialCharacter = (value: string) => /[^A-Za-z0-9]/.test(value);
+const emailConfirmationRedirectUrl =
+  import.meta.env.VITE_AUTH_EMAIL_CONFIRMATION_REDIRECT_URL || `${window.location.origin}/auth/callback`;
 
 export default function SignUp(): JSX.Element {
   const navigate = useNavigate();
+  const { showError, showSuccess } = useToast();
   const { setUser } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -26,19 +32,14 @@ export default function SignUp(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
-  const meetsMinLength = password.length >= 8;
+  const meetsMinLength = password.length >= 12;
   const meetsMaxLength = password.length <= 128;
   const meetsUppercase = hasUppercase(password);
   const meetsLowercase = hasLowercase(password);
+  const meetsSpecialCharacter = hasSpecialCharacter(password);
 
   const friendlyError = (message: string) => {
-    if (message.toLowerCase().includes("failed to fetch")) {
-      return "Can't reach the server. Check your connection or try again in a moment.";
-    }
-    if (message.toLowerCase().includes("timeout")) {
-      return "The request timed out. Please retry.";
-    }
-    return message || "Unable to create account. Please try again.";
+    return toUserMessage(message, "Unable to create account. Please try again.");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,35 +49,51 @@ export default function SignUp(): JSX.Element {
     const cleanLastName = lastName.trim();
 
     if (!emailRegex.test(cleanEmail)) {
-      setError("Please enter a valid email address.");
+      const message = "Please enter a valid email address.";
+      setError(message);
+      showError(message);
       return;
     }
     if (!cleanFirstName) {
-      setError("First name is required.");
+      const message = "First name is required.";
+      setError(message);
+      showError(message);
       return;
     }
     if (cleanFirstName.length > 100 || cleanLastName.length > 100) {
-      setError("First name and last name must be 100 characters or fewer.");
+      const message = "First name and last name must be 100 characters or fewer.";
+      setError(message);
+      showError(message);
       return;
     }
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    if (password.length < 12) {
+      const message = "Password must be at least 12 characters.";
+      setError(message);
+      showError(message);
       return;
     }
     if (password.length > 128) {
-      setError("Password must be 128 characters or fewer.");
+      const message = "Password must be 128 characters or fewer.";
+      setError(message);
+      showError(message);
       return;
     }
-    if (!hasUppercase(password) || !hasLowercase(password)) {
-      setError("Password must include at least one uppercase and one lowercase letter.");
+    if (!hasUppercase(password) || !hasLowercase(password) || !hasSpecialCharacter(password)) {
+      const message = "Password must include uppercase, lowercase, and at least one special character.";
+      setError(message);
+      showError(message);
       return;
     }
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      const message = "Passwords do not match.";
+      setError(message);
+      showError(message);
       return;
     }
     if (!agree) {
-      setError("Please accept the terms to continue.");
+      const message = "Please accept the terms to continue.";
+      setError(message);
+      showError(message);
       return;
     }
     setError(null);
@@ -90,9 +107,12 @@ export default function SignUp(): JSX.Element {
         display_name: `${cleanFirstName} ${cleanLastName}`.trim() || cleanEmail,
         first_name: cleanFirstName,
         last_name: cleanLastName || undefined,
+        redirect_to: emailConfirmationRedirectUrl,
       });
       if (!session.access_token) {
-        setSuccess("Account created. Please check your email and verify your address before logging in.");
+        const message = "Account created. Please check your email and verify your address before logging in.";
+        setSuccess(message);
+        showSuccess(message);
         setVerificationEmail(cleanEmail);
         return;
       }
@@ -102,7 +122,9 @@ export default function SignUp(): JSX.Element {
       setOnboardingComplete(false);
       navigate("/onboarding");
     } catch (err) {
-      setError(friendlyError((err as Error).message));
+      const message = friendlyError((err as Error).message);
+      setError(message);
+      showError(message);
     } finally {
       // Clear sensitive data from memory after submission
       setPassword("");
@@ -117,10 +139,14 @@ export default function SignUp(): JSX.Element {
     setSuccess(null);
     setResending(true);
     try {
-      await api.resendVerificationEmail(verificationEmail, `${window.location.origin}/auth/callback`);
-      setSuccess("Verification email resent. Please check your inbox.");
+      await api.resendVerificationEmail(verificationEmail, emailConfirmationRedirectUrl);
+      const message = "Verification email resent. Please check your inbox.";
+      setSuccess(message);
+      showSuccess(message);
     } catch (err) {
-      setError(friendlyError((err as Error).message));
+      const message = friendlyError((err as Error).message);
+      setError(message);
+      showError(message);
     } finally {
       setResending(false);
     }
@@ -237,7 +263,7 @@ export default function SignUp(): JSX.Element {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  minLength={8}
+                  minLength={12}
                 />
                 <Lock className="absolute right-11 top-1/2 -translate-y-1/2 text-on-surface-variant/40 h-5 w-5" />
                 <button
@@ -250,10 +276,11 @@ export default function SignUp(): JSX.Element {
               </div>
               <div className="rounded-lg border border-surface-container-high bg-surface-container-low px-3 py-2 text-xs text-on-surface-variant">
                 <p className="font-semibold mb-1">Use a valid password:</p>
-                <PasswordRule met={meetsMinLength} text="At least 8 characters" />
+                <PasswordRule met={meetsMinLength} text="At least 12 characters" />
                 <PasswordRule met={meetsMaxLength} text="No more than 128 characters" />
                 <PasswordRule met={meetsUppercase} text="At least one uppercase letter (A-Z)" />
                 <PasswordRule met={meetsLowercase} text="At least one lowercase letter (a-z)" />
+                <PasswordRule met={meetsSpecialCharacter} text="At least one special character (e.g. ! @ # $ %)" />
               </div>
             </div>
             <div className="space-y-2">
@@ -266,7 +293,7 @@ export default function SignUp(): JSX.Element {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  minLength={8}
+                  minLength={12}
                 />
                 <Lock className="absolute right-11 top-1/2 -translate-y-1/2 text-on-surface-variant/40 h-5 w-5" />
                 <button
@@ -300,7 +327,7 @@ export default function SignUp(): JSX.Element {
             </div>
             {error && (
               <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                {error}
+                We couldn't complete signup. Please check the notification and try again.
               </p>
             )}
             {success && (

@@ -2,8 +2,11 @@ import { useState } from "react";
 import type { JSX } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api";
+import { useToast } from "../context/ToastContext";
+import { toUserMessage } from "../lib/userErrors";
 
 export default function ForgotPassword(): JSX.Element {
+  const { showError, showSuccess } = useToast();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -16,8 +19,11 @@ export default function ForgotPassword(): JSX.Element {
     try {
       await api.requestPasswordReset(email, window.location.origin + "/reset-password");
       setSent(true);
+      showSuccess("If an account exists for that email, a reset link is on its way.");
     } catch (err) {
-      setError((err as Error).message || "Unable to send reset link.");
+      const message = toUserMessage(err, "Unable to send reset link right now.");
+      setError(message);
+      showError(message);
     } finally {
       setLoading(false);
     }
@@ -44,7 +50,11 @@ export default function ForgotPassword(): JSX.Element {
               className="w-full border border-surface-container-high rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/30"
               placeholder="you@example.com"
             />
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && (
+              <p className="text-sm text-red-600">
+                We couldn't send the reset link. Please check the notification and try again.
+              </p>
+            )}
             <button
               type="submit"
               disabled={loading}

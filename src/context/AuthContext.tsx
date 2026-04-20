@@ -12,6 +12,7 @@ import {
   getAIRecommendations,
   getAIMatches,
 } from "../services/aiService";
+import { toUserMessage } from "../lib/userErrors";
 
 // ACL: result contract for intelligence actions to support lightweight UI feedback
 export type IntelligenceActionResult = {
@@ -27,7 +28,7 @@ export type IntelligenceSectionAction = {
 };
 
 function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "An unexpected error occurred.";
+  return toUserMessage(error, "Something went wrong. Please try again.");
 }
 
 type AuthContextValue = {
@@ -40,6 +41,7 @@ type AuthContextValue = {
   aiInsightError: string | null;
   aiInsightUpdatedAt: string | null;
   aiInsightSource: "saved" | "fresh" | null;
+  aiInsightIsCached: boolean;
   aiInsightLastAction: IntelligenceSectionAction | null;
   recommendations: AIRecommendationsResponse | null;
   recommendationsLoading: boolean;
@@ -86,6 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const [aiInsightError, setAIInsightError] = useState<string | null>(null);
   const [aiInsightUpdatedAt, setAIInsightUpdatedAt] = useState<string | null>(null);
   const [aiInsightSource, setAIInsightSource] = useState<"saved" | "fresh" | null>(null);
+  // ACL: track whether current AI insight is reused from cache
+  const [aiInsightIsCached, setAIInsightIsCached] = useState<boolean>(false);
   const [aiInsightLastAction, setAIInsightLastAction] = useState<IntelligenceSectionAction | null>(null);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   const [recommendationsError, setRecommendationsError] = useState<string | null>(null);
@@ -123,6 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setAIInsightError(null);
       setAIInsightUpdatedAt(null);
       setAIInsightSource(null);
+      setAIInsightIsCached(false);
       setAIInsightLastAction(null);
       setRecommendations(null);
       setRecommendationsError(null);
@@ -138,7 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       recommendationsRequestInFlight.current = false;
       matchesRequestInFlight.current = false;
       intelligenceRefreshInFlight.current = false;
-      setProfileError((err as Error).message);
+      setProfileError(getErrorMessage(err));
       return null;
     } finally {
       setProfileLoading(false);
@@ -155,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       await fetchProfile();
     } catch (err) {
       setUser(null);
-      setError((err as Error).message);
+      setError(getErrorMessage(err));
       setProfile(null);
       setOnboardingStage(null);
       setOnboardingComplete(null);
@@ -184,6 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setAIInsight(insight);
       setAIInsightUpdatedAt(actionTimestamp);
       setAIInsightSource("fresh");
+      setAIInsightIsCached(false);
       setAIInsightLastAction({
         status: "success",
         message: "Refreshed successfully.",
@@ -199,6 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setAIInsight(null);
       setAIInsightError(message);
       setAIInsightSource(null);
+      setAIInsightIsCached(false);
       setAIInsightLastAction({
         status: "error",
         message: "Refresh failed.",
@@ -233,6 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setAIInsight(insight);
       setAIInsightUpdatedAt(insight ? actionTimestamp : null);
       setAIInsightSource(insight ? "saved" : null);
+      setAIInsightIsCached(Boolean(insight));
       if (insight) {
         setAIInsightLastAction({
           status: "success",
@@ -259,6 +267,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setAIInsight(null);
       setAIInsightError(message);
       setAIInsightSource(null);
+      setAIInsightIsCached(false);
       setAIInsightLastAction({
         status: "error",
         message: "Saved insight retrieval failed.",
@@ -441,6 +450,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setAIInsightLoading(false);
       setAIInsightUpdatedAt(null);
       setAIInsightSource(null);
+      setAIInsightIsCached(false);
       setAIInsightLastAction(null);
       setRecommendations(null);
       setRecommendationsError(null);
@@ -476,6 +486,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
         aiInsight,
         aiInsightUpdatedAt,
         aiInsightSource,
+        aiInsightIsCached,
         aiInsightLastAction,
         recommendations,
         recommendationsUpdatedAt,
