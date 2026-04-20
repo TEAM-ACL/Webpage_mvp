@@ -14,6 +14,19 @@ const hasLowercase = (value: string) => /[a-z]/.test(value);
 const hasSpecialCharacter = (value: string) => /[^A-Za-z0-9]/.test(value);
 const emailConfirmationRedirectUrl =
   import.meta.env.VITE_AUTH_EMAIL_CONFIRMATION_REDIRECT_URL || `${window.location.origin}/auth/callback`;
+const duplicateEmailMessage = "This email is already registered. Try signing in or resending verification.";
+
+const isAlreadyRegisteredError = (message: string): boolean => {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("already registered")
+    || lower.includes("already exists")
+    || lower.includes("user already")
+    || lower.includes("duplicate key")
+    || lower.includes("email has already been taken")
+    || lower.includes("email already in use")
+  );
+};
 
 export default function SignUp(): JSX.Element {
   const navigate = useNavigate();
@@ -122,9 +135,15 @@ export default function SignUp(): JSX.Element {
       setOnboardingComplete(false);
       navigate("/onboarding");
     } catch (err) {
-      const message = friendlyError((err as Error).message);
+      const rawMessage = (err as Error).message || "";
+      const message = isAlreadyRegisteredError(rawMessage)
+        ? duplicateEmailMessage
+        : friendlyError(rawMessage);
       setError(message);
       showError(message);
+      if (isAlreadyRegisteredError(rawMessage)) {
+        setVerificationEmail(cleanEmail);
+      }
     } finally {
       // Clear sensitive data from memory after submission
       setPassword("");
@@ -327,7 +346,7 @@ export default function SignUp(): JSX.Element {
             </div>
             {error && (
               <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                We couldn't complete signup. Please check the notification and try again.
+                {error}
               </p>
             )}
             {success && (
