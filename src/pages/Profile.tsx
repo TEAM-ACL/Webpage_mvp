@@ -1,7 +1,9 @@
 import { useEffect, useState, type JSX } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import { api } from "../lib/api";
+import { toUserMessage } from "../lib/userErrors";
 
 type ProfileForm = {
   preferredNickname: string;
@@ -17,6 +19,7 @@ type ProfileForm = {
 
 export default function Profile(): JSX.Element {
   const { user, profile, profileLoading, refreshProfile } = useAuth();
+  const { showError, showSuccess } = useToast();
   const navigate = useNavigate();
   const [form, setForm] = useState<ProfileForm>({
     preferredNickname: "",
@@ -74,9 +77,11 @@ export default function Profile(): JSX.Element {
       };
       await api.saveOnboardingProfile(payload);
       await refreshProfile();
-      alert("Profile saved");
+      showSuccess("Profile saved.");
     } catch (err) {
-      setError((err as Error).message);
+      const message = toUserMessage(err, "We couldn't save your profile right now.");
+      setError(message);
+      showError(message);
     } finally {
       setSaving(false);
     }
@@ -92,7 +97,11 @@ export default function Profile(): JSX.Element {
             <p className="text-sm text-[var(--color-on-surface-variant)]">Review and update your core details and onboarding signals.</p>
           </div>
           <div className="flex flex-col items-end gap-2">
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && (
+              <p className="text-sm text-red-600">
+                We couldn't save your profile. Please check the notification and try again.
+              </p>
+            )}
             <button
               onClick={handleSave}
               disabled={saving}

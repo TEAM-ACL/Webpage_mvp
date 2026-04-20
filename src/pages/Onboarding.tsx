@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
+import { toUserMessage } from "../lib/userErrors";
 
 
 type OptionGroup = {
@@ -712,6 +714,7 @@ function SelectionBlock({
 export default function OnboardingPage(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
+  const { showError } = useToast();
   const { user, refreshProfile, refreshAIInsight } = useAuth();
   const reminder = (location.state as { reminder?: string } | null)?.reminder;
   const [form, setForm] = useState<FormState>({
@@ -939,7 +942,9 @@ export default function OnboardingPage(): JSX.Element {
       navigate("/intelligence");
     } catch (error) {
       console.error("Failed to complete onboarding", error);
-      setSubmitError((error as Error).message);
+      const message = toUserMessage(error, "We couldn't complete onboarding right now. Please try again.");
+      setSubmitError(message);
+      showError(message);
     } finally {
       setSubmitting(false);
     }
@@ -1398,7 +1403,7 @@ export default function OnboardingPage(): JSX.Element {
               <div className="mt-6 flex flex-wrap gap-3">
                 {submitError && (
                   <p className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                    {submitError}
+                    We couldn't complete onboarding. Please check the notification and try again.
                   </p>
                 )}
                 <button

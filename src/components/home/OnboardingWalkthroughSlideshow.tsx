@@ -174,17 +174,17 @@ export default function OnboardingWalkthroughSlideshow(): JSX.Element {
                 <button
                   type="button"
                   onClick={() => setAutoplay((prev) => !prev)}
-                  className="ml-auto inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-800 transition hover:border-[#1f0954]"
+                  className="inline-flex h-10 items-center justify-center rounded-xl bg-[#1f0954] px-4 text-sm font-medium text-white transition hover:bg-black"
                 >
                   {autoplay ? (
                     <>
                       <Pause className="mr-1 h-4 w-4" />
-                      Pause auto-play
+                      Pause
                     </>
                   ) : (
                     <>
                       <Play className="mr-1 h-4 w-4" />
-                      Resume auto-play
+                      Play
                     </>
                   )}
                 </button>

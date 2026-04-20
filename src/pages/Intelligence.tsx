@@ -208,6 +208,7 @@ export default function Intelligence(): JSX.Element {
     aiInsightError,
     aiInsightUpdatedAt,
     aiInsightSource,
+    aiInsightIsCached,
     aiInsightLastAction,
     refreshAIInsight,
     loadLatestAIInsight,
@@ -257,6 +258,12 @@ export default function Intelligence(): JSX.Element {
   const goalsAreThin = profileGoals.length < minimumGoalsForStrongInsight;
   const onboardingDataIsThin = skillsAreThin || interestsAreThin || goalsAreThin;
   const onboardingReadyForIntelligence = onboardingComplete === true && !onboardingDataIsThin;
+  let aiConfidence: "high" | "medium" | "low" = "low";
+  if (!skillsAreThin && !interestsAreThin && !goalsAreThin) {
+    aiConfidence = "high";
+  } else if (!skillsAreThin || !interestsAreThin) {
+    aiConfidence = "medium";
+  }
   const intelligenceGuidanceItems: IntelligenceGuidanceItem[] = [];
   if (onboardingComplete !== true) {
     intelligenceGuidanceItems.push({
@@ -509,6 +516,18 @@ export default function Intelligence(): JSX.Element {
       {getAIInsightSourceLabel(source)}
     </span>
   );
+
+  const getConfidenceLabel = (level: "high" | "medium" | "low"): string => {
+    if (level === "high") return "High confidence";
+    if (level === "medium") return "Moderate confidence";
+    return "Low confidence";
+  };
+
+  const getConfidenceClass = (level: "high" | "medium" | "low"): string => {
+    if (level === "high") return "bg-green-100 text-green-700";
+    if (level === "medium") return "bg-amber-100 text-amber-700";
+    return "bg-red-100 text-red-700";
+  };
 
   const getLastActionClassName = (
     status: "success" | "error" | "info",
@@ -890,22 +909,16 @@ export default function Intelligence(): JSX.Element {
     intelligenceBootstrapStarted.current = true;
 
     const bootstrap = async (): Promise<void> => {
-      const tasks: Promise<unknown>[] = [];
-
       if (aiInsightMissing) {
-        tasks.push(loadLatestAIInsight());
+        await loadLatestAIInsight();
       }
 
       if (recommendationsMissing) {
-        tasks.push(loadRecommendations());
+        await loadRecommendations();
       }
 
       if (matchesMissing) {
-        tasks.push(loadMatches());
-      }
-
-      if (tasks.length > 0) {
-        await Promise.all(tasks);
+        await loadMatches();
       }
     };
 
@@ -1244,6 +1257,11 @@ export default function Intelligence(): JSX.Element {
                   <p className={`mt-1 text-xs ${subtle}`}>
                     Source: {getAIInsightSourceLabel(aiInsightSource)}
                   </p>
+                  {aiInsight && aiInsightIsCached && (
+                    <p className={`mt-1 text-xs ${subtle}`}>
+                      Using cached data
+                    </p>
+                  )}
                   {(skillsAreThin || interestsAreThin || goalsAreThin) && (
                     <p className={`mt-1 text-xs ${subtle}`}>
                       Insight quality may be limited until your skills, interests, and goals are more complete.
@@ -1253,6 +1271,13 @@ export default function Intelligence(): JSX.Element {
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
                   {aiInsight ? renderAIInsightSourceBadge(aiInsightSource) : null}
+                  {aiInsight ? (
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getConfidenceClass(aiConfidence)}`}
+                    >
+                      {getConfidenceLabel(aiConfidence)}
+                    </span>
+                  ) : null}
                   {renderSectionBadge(aiInsightState)}
                   <div className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--color-primary)]">
                     {aiStatusLabel}
@@ -1275,6 +1300,13 @@ export default function Intelligence(): JSX.Element {
                 </div>
               ) : aiInsight ? (
                 <div className="space-y-5">
+                  <p className={`mt-1 text-xs ${subtle}`}>
+                    {aiConfidence === "high"
+                      ? "Your profile data is strong, so this insight is highly personalised."
+                      : aiConfidence === "medium"
+                        ? "This insight is based on limited data. Adding more details will improve accuracy."
+                        : "This insight has low confidence due to limited profile data."}
+                  </p>
                   <p className={`mb-3 text-xs ${subtle}`}>
                     {aiInsightSource === "fresh"
                       ? "This insight was generated during your current session."
