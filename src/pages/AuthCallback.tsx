@@ -38,6 +38,7 @@ export default function AuthCallback(): JSX.Element {
   const { setUser, refreshProfile } = useAuth();
   const [message, setMessage] = useState("Verifying your account...");
   const [error, setError] = useState<string | null>(null);
+  const [showLoginAction, setShowLoginAction] = useState(false);
 
   useEffect(() => {
     const finishAuth = async () => {
@@ -61,6 +62,12 @@ export default function AuthCallback(): JSX.Element {
 
         clearCallbackUrlArtifacts();
 
+        if (!callbackPayload.accessToken && !callbackPayload.refreshToken) {
+          setMessage("You have been verified. Login now to continue.");
+          setShowLoginAction(true);
+          return;
+        }
+
         const me = (await api.me()) as AuthSessionResponse["user"];
         setUser(me);
         storeSession({
@@ -74,7 +81,7 @@ export default function AuthCallback(): JSX.Element {
         const profileState = await refreshProfile();
         const isComplete = profileState?.isOnboardingComplete ?? false;
 
-        setMessage("Email verified. Redirecting...");
+        setMessage("You have been verified. Redirecting to your workspace...");
         navigate(isComplete ? "/intelligence" : "/onboarding", { replace: true });
       } catch (err) {
         setError(
@@ -84,6 +91,7 @@ export default function AuthCallback(): JSX.Element {
           ),
         );
         setMessage("Email verification could not be completed.");
+        setShowLoginAction(true);
       }
     };
 
@@ -92,16 +100,16 @@ export default function AuthCallback(): JSX.Element {
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-surface px-6">
-      <div className="max-w-lg text-center">
-        <p className="text-on-surface-variant">{message}</p>
-        {error ? (
-          <div className="mt-4 space-y-3">
-            <p className="text-sm text-red-700">{error}</p>
+      <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+        <p className="text-on-surface text-base font-semibold">{message}</p>
+        {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
+        {showLoginAction ? (
+          <div className="mt-5">
             <Link
               to="/login"
-              className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
-              Back to login
+              Login now
             </Link>
           </div>
         ) : null}
