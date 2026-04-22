@@ -9,10 +9,87 @@ export type OnboardingData = {
   force_refresh?: boolean;
 };
 
+export type AIGenerationReadinessStatus =
+  | "ready"
+  | "blocked"
+  | "incomplete_onboarding"
+  | "provider_unavailable"
+  | "missing_profile_insight"
+  | "missing_pathway_catalog";
+
+export type AISectionStatus =
+  | "ready"
+  | "empty"
+  | "blocked"
+  | "incomplete_onboarding";
+
 export type AIInsightResponse = {
   summary: string;
   skill_gaps: string[];
   next_steps: string[];
+};
+
+export type AIStateResponse = {
+  onboarding: {
+    status: AISectionStatus;
+    onboarding_stage: string | null;
+    is_email_verified: boolean;
+    message: string | null;
+  };
+  profile_insight: {
+    status: AISectionStatus;
+    data: AIInsightResponse | null;
+    generated_at: string | null;
+    message: string | null;
+  };
+  recommendations: {
+    status: AISectionStatus;
+    data: AIRecommendationsResponse | null;
+    generated_at: string | null;
+    message: string | null;
+  };
+  matches: {
+    status: AISectionStatus;
+    data: AIMatchesResponse | null;
+    generated_at: string | null;
+    message: string | null;
+  };
+};
+
+export type AIGenerationReadinessResponse = {
+  provider: {
+    provider: string;
+    model: string;
+    configured: boolean;
+  };
+  profile_insight: {
+    status: AIGenerationReadinessStatus;
+    can_generate: boolean;
+    message: string;
+  };
+  recommendations: {
+    status: AIGenerationReadinessStatus;
+    can_generate: boolean;
+    message: string;
+  };
+};
+
+export type AIRecommendationEventType =
+  | "viewed"
+  | "clicked"
+  | "saved"
+  | "dismissed"
+  | "started"
+  | "completed";
+
+export type AIRecommendationActionState = {
+  viewed: boolean;
+  clicked: boolean;
+  saved: boolean;
+  dismissed: boolean;
+  started: boolean;
+  completed: boolean;
+  last_event_type: AIRecommendationEventType | null;
 };
 
 // ACL: Recommendation item returned by backend recommendation engine
@@ -30,6 +107,7 @@ export type AIRecommendationItem = {
   event_type?: string;
   is_completed?: boolean;
   completed?: boolean;
+  action_state?: AIRecommendationActionState;
 };
 
 // ACL: Recommendation response for Intelligence page
@@ -51,4 +129,18 @@ export type AIMatchItem = {
 // ACL: Matching response for Intelligence page
 export type AIMatchesResponse = {
   matches: AIMatchItem[];
+};
+
+export type AIRecommendationEventItem = {
+  event_id: string;
+  recommendation_id: string;
+  pathway_id: string;
+  event_type: AIRecommendationEventType;
+  metadata: Record<string, unknown>;
+  occurred_at: string;
+};
+
+export type AIRecommendationEventsResponse = {
+  recommendation_id: string;
+  events: AIRecommendationEventItem[];
 };
