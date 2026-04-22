@@ -96,8 +96,8 @@ export default function OnboardingWalkthroughSlideshow(): JSX.Element {
   const goNext = () => setActiveIndex((prev) => (prev + 1) % slides.length);
 
   return (
-    <section className="relative overflow-hidden border-t border-slate-200 bg-[#ece2ff] px-6 py-20 md:px-12 lg:px-16">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_14%,rgba(31,9,84,0.3),transparent_40%),radial-gradient(circle_at_88%_22%,rgba(31,9,84,0.24),transparent_38%),linear-gradient(180deg,rgba(31,9,84,0.12)_0%,rgba(31,9,84,0.06)_100%)]" />
+    <section className="relative overflow-hidden border-t border-slate-200 bg-[#f0e8ff] px-6 py-20 md:px-12 lg:px-16">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_14%,rgba(31,9,84,0.24),transparent_40%),radial-gradient(circle_at_88%_22%,rgba(31,9,84,0.18),transparent_38%),linear-gradient(180deg,rgba(31,9,84,0.09)_0%,rgba(31,9,84,0.04)_100%)]" />
       <div className="mx-auto max-w-6xl space-y-10">
         <div className="space-y-3 text-center">
           <p className="font-label text-[11px] font-bold uppercase tracking-[0.3em] text-[#1f0954]">
@@ -111,7 +111,7 @@ export default function OnboardingWalkthroughSlideshow(): JSX.Element {
           </p>
         </div>
 
-        <div className="rounded-3xl border border-[#bda7f4] bg-white/100 via-[#e9ddff] to-[#f2eaff] p-4 shadow-sm md:p-6">
+        <div className="rounded-3xl border border-[#cab8f8] bg-[#f6f0ff] p-4 shadow-sm md:p-6">
           <div className="grid gap-6 lg:grid-cols-[1.45fr_1fr]">
             <div className="rounded-2xl border border-[#e6defc] bg-white">
               <div
