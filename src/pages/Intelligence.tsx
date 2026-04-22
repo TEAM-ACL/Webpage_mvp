@@ -55,6 +55,7 @@ type RecommendationCard = {
   type: string;
   level: string;
   reason: string;
+  badges?: string[];
 };
 
 // ACL: section status options for lightweight intelligence state badges
@@ -212,12 +213,21 @@ export default function Intelligence(): JSX.Element {
     aiInsightLastAction,
     refreshAIInsight,
     loadLatestAIInsight,
+    loadAIState,
+    aiState,
+    aiStateLoading,
+    aiStateError,
+    loadAIReadiness,
+    aiReadiness,
+    aiReadinessLoading,
+    aiReadinessError,
     recommendations,
     recommendationsLoading,
     recommendationsError,
     recommendationsUpdatedAt,
     recommendationsLastAction,
     loadRecommendations,
+    refreshRecommendations,
     matches,
     matchesLoading,
     matchesError,
@@ -383,6 +393,16 @@ export default function Intelligence(): JSX.Element {
       type: "Pathway",
       level: item.skill_level,
       reason: item.match_reason || item.summary,
+      badges: item.action_state
+        ? [
+          item.action_state.viewed ? "Viewed" : null,
+          item.action_state.clicked ? "Clicked" : null,
+          item.action_state.saved ? "Saved" : null,
+          item.action_state.dismissed ? "Dismissed" : null,
+          item.action_state.started ? "Started" : null,
+          item.action_state.completed ? "Completed" : null,
+        ].filter((badge): badge is string => Boolean(badge))
+        : [],
     }));
   }, [recommendations, hasStructuredRecommendationFields, activeRecommendations]);
 
@@ -425,6 +445,18 @@ export default function Intelligence(): JSX.Element {
     pageReady &&
     !intelligenceLoading &&
     (insightReady || recommendationsReady || matchesReady);
+
+  const profileInsightCanGenerate = aiReadiness?.profile_insight.can_generate ?? false;
+  const profileInsightReadinessStatus = aiReadiness?.profile_insight.status ?? null;
+  const profileInsightReadinessMessage = aiReadiness?.profile_insight.message ?? null;
+  const recommendationsCanGenerate = aiReadiness?.recommendations.can_generate ?? false;
+  const recommendationsReadinessStatus = aiReadiness?.recommendations.status ?? null;
+  const recommendationsReadinessMessage = aiReadiness?.recommendations.message ?? null;
+
+  const onboardingBlockedByAIState = aiState?.onboarding.status === "incomplete_onboarding";
+  const emailNotVerified = aiState?.onboarding.is_email_verified === false;
+  const refreshIntelligenceBlocked =
+    aiReadiness !== null && (!profileInsightCanGenerate || !recommendationsCanGenerate);
 
   const getSectionState = (
     loading: boolean,
@@ -682,6 +714,12 @@ export default function Intelligence(): JSX.Element {
   // ACL: manually load backend recommendations
   const handleLoadRecommendations = async (): Promise<void> => {
     const result = await loadRecommendations();
+    showActionFeedback(result, result.success ? "info" : "error");
+  };
+
+  // ACL: manually generate fresh recommendations
+  const handleRefreshRecommendations = async (): Promise<void> => {
+    const result = await refreshRecommendations();
     showActionFeedback(result, result.success ? "success" : "error");
   };
 
@@ -716,7 +754,12 @@ export default function Intelligence(): JSX.Element {
       onClick: () => {
         void handleRefreshAIInsight();
       },
-      disabled: aiInsightLoading || intelligenceRefreshing,
+      disabled:
+        aiInsightLoading
+        || intelligenceRefreshing
+        || aiReadinessLoading
+        || aiReadiness === null
+        || !profileInsightCanGenerate,
     });
   } else {
     aiInsightRecoveryActions.push({
@@ -733,7 +776,12 @@ export default function Intelligence(): JSX.Element {
       onClick: () => {
         void handleRefreshAIInsight();
       },
-      disabled: aiInsightLoading || intelligenceRefreshing,
+      disabled:
+        aiInsightLoading
+        || intelligenceRefreshing
+        || aiReadinessLoading
+        || aiReadiness === null
+        || !profileInsightCanGenerate,
     });
   }
 
@@ -752,20 +800,30 @@ export default function Intelligence(): JSX.Element {
     });
     recommendationsRecoveryActions.push({
       id: "recommendations-refresh",
-      label: "Load recommendations",
+      label: "Refresh recommendations",
       onClick: () => {
-        void handleLoadRecommendations();
+        void handleRefreshRecommendations();
       },
-      disabled: recommendationsLoading || intelligenceRefreshing,
+      disabled:
+        recommendationsLoading
+        || intelligenceRefreshing
+        || aiReadinessLoading
+        || aiReadiness === null
+        || !recommendationsCanGenerate,
     });
   } else {
     recommendationsRecoveryActions.push({
       id: "recommendations-refresh",
-      label: "Load recommendations",
+      label: "Refresh recommendations",
       onClick: () => {
-        void handleLoadRecommendations();
+        void handleRefreshRecommendations();
       },
-      disabled: recommendationsLoading || intelligenceRefreshing,
+      disabled:
+        recommendationsLoading
+        || intelligenceRefreshing
+        || aiReadinessLoading
+        || aiReadiness === null
+        || !recommendationsCanGenerate,
     });
     recommendationsRecoveryActions.push({
       id: "recommendations-refresh-all",
@@ -832,7 +890,12 @@ export default function Intelligence(): JSX.Element {
       onClick: () => {
         void handleRefreshAIInsight();
       },
-      disabled: aiInsightLoading || intelligenceRefreshing,
+      disabled:
+        aiInsightLoading
+        || intelligenceRefreshing
+        || aiReadinessLoading
+        || aiReadiness === null
+        || !profileInsightCanGenerate,
     },
     {
       id: "ai-refresh-all",
@@ -859,9 +922,14 @@ export default function Intelligence(): JSX.Element {
       id: "recommendations-retry",
       label: "Retry recommendations",
       onClick: () => {
-        void handleLoadRecommendations();
+        void handleRefreshRecommendations();
       },
-      disabled: recommendationsLoading || intelligenceRefreshing,
+      disabled:
+        recommendationsLoading
+        || intelligenceRefreshing
+        || aiReadinessLoading
+        || aiReadiness === null
+        || !recommendationsCanGenerate,
     },
     {
       id: "recommendations-refresh-all",
@@ -902,22 +970,37 @@ export default function Intelligence(): JSX.Element {
       return;
     }
 
-    if (!profile || !onboardingComplete) {
-      return;
-    }
-
     intelligenceBootstrapStarted.current = true;
 
     const bootstrap = async (): Promise<void> => {
-      if (aiInsightMissing) {
+      const state = await loadAIState();
+      await loadAIReadiness();
+
+      const onboardingStatus = state?.onboarding.status;
+      const isVerified = state?.onboarding.is_email_verified ?? true;
+      const blocked =
+        onboardingStatus === "blocked" || onboardingStatus === "incomplete_onboarding" || !isVerified;
+
+      if (blocked) {
+        return;
+      }
+
+      const profileInsightStatus = state?.profile_insight.status;
+      const recommendationsStatus = state?.recommendations.status;
+      const matchesStatus = state?.matches.status;
+
+      if (aiInsightMissing && (profileInsightStatus === "ready" || profileInsightStatus === "empty" || !state)) {
         await loadLatestAIInsight();
       }
 
-      if (recommendationsMissing) {
+      if (
+        recommendationsMissing
+        && (recommendationsStatus === "ready" || recommendationsStatus === "empty" || !state)
+      ) {
         await loadRecommendations();
       }
 
-      if (matchesMissing) {
+      if (matchesMissing && (matchesStatus === "ready" || matchesStatus === "empty" || !state)) {
         await loadMatches();
       }
     };
@@ -931,6 +1014,8 @@ export default function Intelligence(): JSX.Element {
     aiInsightMissing,
     recommendationsMissing,
     matchesMissing,
+    loadAIState,
+    loadAIReadiness,
     loadLatestAIInsight,
     loadRecommendations,
     loadMatches,
@@ -997,7 +1082,7 @@ export default function Intelligence(): JSX.Element {
             <button
               type="button"
               onClick={() => void handleRefreshIntelligence()}
-              disabled={!pageReady || intelligenceRefreshing}
+              disabled={!pageReady || intelligenceRefreshing || aiReadinessLoading || refreshIntelligenceBlocked}
               className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Sparkles className="mr-2 h-4 w-4" />
@@ -1059,6 +1144,26 @@ export default function Intelligence(): JSX.Element {
           </div>
         </div>
       </div>
+      {aiStateLoading ? (
+        <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+          Checking intelligence readiness...
+        </div>
+      ) : null}
+      {aiState?.onboarding.message && (onboardingBlockedByAIState || emailNotVerified) ? (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          {aiState.onboarding.message}
+        </div>
+      ) : null}
+      {aiReadinessError ? (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {aiReadinessError}
+        </div>
+      ) : null}
+      {aiStateError ? (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {aiStateError}
+        </div>
+      ) : null}
       {hasRecoverableSectionErrors ? (
         <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
           <p className="text-sm font-semibold text-red-800">
@@ -1285,7 +1390,13 @@ export default function Intelligence(): JSX.Element {
                   <button
                     type="button"
                     onClick={() => void handleRefreshAIInsight()}
-                    disabled={aiInsightLoading || intelligenceRefreshing}
+                    disabled={
+                      aiInsightLoading
+                      || intelligenceRefreshing
+                      || aiReadinessLoading
+                      || aiReadiness === null
+                      || !profileInsightCanGenerate
+                    }
                     className="inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Sparkles className="mr-2 h-4 w-4" />
@@ -1293,6 +1404,11 @@ export default function Intelligence(): JSX.Element {
                   </button>
                 </div>
               </div>
+              {!profileInsightCanGenerate && profileInsightReadinessMessage ? (
+                <p className={`mb-4 text-xs ${subtle}`}>
+                  {profileInsightReadinessMessage} ({profileInsightReadinessStatus ?? "blocked"})
+                </p>
+              ) : null}
 
               {aiInsightLoading ? (
                 <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
@@ -1411,6 +1527,11 @@ export default function Intelligence(): JSX.Element {
                       Recommendations improve when your profile includes enough skills and goals.
                     </p>
                   )}
+                  {!recommendationsCanGenerate && recommendationsReadinessMessage ? (
+                    <p className={`mt-1 text-xs ${subtle}`}>
+                      {recommendationsReadinessMessage} ({recommendationsReadinessStatus ?? "blocked"})
+                    </p>
+                  ) : null}
                   {renderLastAction(recommendationsLastAction)}
                 </div>
                 <div className="shrink-0">
@@ -1458,6 +1579,18 @@ export default function Intelligence(): JSX.Element {
                             <p className={`mt-1 text-xs ${subtle}`}>
                               {item.type} - {item.level}
                             </p>
+                            {item.badges && item.badges.length > 0 ? (
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {item.badges.map((badge) => (
+                                  <span
+                                    key={`${item.id}-${badge}`}
+                                    className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-medium text-slate-600"
+                                  >
+                                    {badge}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null}
                             <p className={`mt-3 text-sm ${subtle}`}>{item.reason}</p>
                           </div>
                         ))}

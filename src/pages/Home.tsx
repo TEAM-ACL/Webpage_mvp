@@ -2,6 +2,7 @@ import type { JSX } from "react";
 import { motion } from "motion/react";
 import { ArrowRight, Users, CheckCircle2, ChevronDown, Sparkles, Rocket, BrainCircuit } from "lucide-react";
 import OnboardingWalkthroughSlideshow from "../components/home/OnboardingWalkthroughSlideshow";
+import { useAuth } from "../context/AuthContext";
 
 type SocialLink = {
   label: string;
@@ -75,18 +76,21 @@ const faqs = [
 ];
 
 export default function Home(): JSX.Element {
+  const { user } = useAuth();
+  const intelligenceHref = user ? "/intelligence" : "/login";
+
   return (
     <div className="min-h-screen bg-[#f7f3ff] text-slate-900">
       <section id="home" className="relative overflow-hidden bg-gradient-to-b from-[#12063a] via-[#1a0b4b] to-[#26125f] px-6 pb-20 pt-24 md:px-12 lg:px-16">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(216,207,252,0.24),transparent_34%),radial-gradient(circle_at_82%_22%,rgba(255,255,255,0.08),transparent_30%),radial-gradient(circle_at_70%_85%,rgba(96,66,170,0.22),transparent_44%)]" />
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,3,22,0.32)_0%,rgba(10,4,30,0.18)_40%,rgba(10,4,30,0.06)_100%)]" />
         <motion.div
-          className="pointer-events-none absolute left-[6%] top-[20%] h-24 w-24 rounded-full border border-[#d8cffc] bg-white/50"
+          className="pointer-events-none absolute left-[6%] top-[20%] hidden h-24 w-24 rounded-full border border-[#d8cffc] bg-white/50 md:block"
           animate={{ y: [0, -10, 0], rotate: [0, 3, 0] }}
           transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
-          className="pointer-events-none absolute right-[8%] top-[16%] h-16 w-16 rounded-xl border border-[#d8cffc] bg-[#f7f3ff]/90"
+          className="pointer-events-none absolute right-[8%] top-[16%] hidden h-16 w-16 rounded-xl border border-[#d8cffc] bg-[#f7f3ff]/90 md:block"
           animate={{ y: [0, 12, 0], rotate: [0, -6, 0] }}
           transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
         />
@@ -119,7 +123,7 @@ export default function Home(): JSX.Element {
                 Join VisionTech <ArrowRight className="h-4 w-4" />
               </a>
               <a
-                href="/intelligence"
+                href={intelligenceHref}
                 className="inline-flex items-center rounded-xl border border-white/40 px-8 py-4 font-headline font-semibold text-white transition hover:border-white"
               >
                 Open Intelligence

@@ -1,6 +1,10 @@
 // ACL: Service for fetching AI insight from persisted backend profile
 
 import type {
+  AIGenerationReadinessResponse,
+  AIRecommendationEventType,
+  AIRecommendationEventsResponse,
+  AIStateResponse,
   AIInsightResponse,
   AIRecommendationsResponse,
   AIMatchesResponse,
@@ -19,7 +23,7 @@ export async function generateAIInsight(): Promise<AIInsightResponse> {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({}),
+    body: JSON.stringify({ force_refresh: true }),
   });
 
   if (!response.ok) {
@@ -28,6 +32,42 @@ export async function generateAIInsight(): Promise<AIInsightResponse> {
   }
 
   const data: AIInsightResponse = await response.json();
+  return data;
+}
+
+export async function getAIState(): Promise<AIStateResponse> {
+  const response = await fetch(`${API_BASE_URL}/ai/state`, {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`AI state request failed: ${errorText}`);
+  }
+
+  const data: AIStateResponse = await response.json();
+  return data;
+}
+
+export async function getAIGenerationReadiness(): Promise<AIGenerationReadinessResponse> {
+  const response = await fetch(`${API_BASE_URL}/ai/readiness`, {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`AI readiness request failed: ${errorText}`);
+  }
+
+  const data: AIGenerationReadinessResponse = await response.json();
   return data;
 }
 
@@ -73,6 +113,25 @@ export async function getAIRecommendations(): Promise<AIRecommendationsResponse>
   return data;
 }
 
+export async function generateAIRecommendations(): Promise<AIRecommendationsResponse> {
+  const response = await fetch(`${API_BASE_URL}/ai/recommendations`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ force_refresh: true }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`AI recommendations generation failed: ${errorText}`);
+  }
+
+  const data: AIRecommendationsResponse = await response.json();
+  return data;
+}
+
 // ACL: Service for fetching backend-driven matches
 export async function getAIMatches(): Promise<AIMatchesResponse> {
   const response = await fetch(`${API_BASE_URL}/ai/match`, {
@@ -90,4 +149,48 @@ export async function getAIMatches(): Promise<AIMatchesResponse> {
 
   const data: AIMatchesResponse = await response.json();
   return data;
+}
+
+export async function getAIRecommendationEvents(
+  recommendationId: string,
+): Promise<AIRecommendationEventsResponse> {
+  const response = await fetch(`${API_BASE_URL}/ai/recommendations/${recommendationId}/events`, {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`AI recommendation events request failed: ${errorText}`);
+  }
+
+  const data: AIRecommendationEventsResponse = await response.json();
+  return data;
+}
+
+export async function recordAIRecommendationEvent(payload: {
+  recommendation_id: string;
+  pathway_id: string;
+  event_type: AIRecommendationEventType;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/ai/recommendations/events`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      ...payload,
+      metadata: payload.metadata ?? { surface: "dashboard" },
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`AI recommendation event record failed: ${errorText}`);
+  }
 }
