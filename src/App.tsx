@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Header, Footer } from './components/Layout';
 import Home from './pages/Home';
 import Workspace from './pages/Workspace';
@@ -96,6 +96,7 @@ export default function App() {
                           </RequireAuth>
                         }
                       />
+                      <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                   </main>
                   <Footer />

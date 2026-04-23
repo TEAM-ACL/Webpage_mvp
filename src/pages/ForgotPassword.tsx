@@ -5,6 +5,9 @@ import { api } from "../lib/api";
 import { useToast } from "../context/ToastContext";
 import { toUserMessage } from "../lib/userErrors";
 
+const passwordResetRedirectUrl =
+  import.meta.env.VITE_AUTH_PASSWORD_RESET_REDIRECT_URL || `${window.location.origin}/reset-password`;
+
 export default function ForgotPassword(): JSX.Element {
   const { showError, showSuccess } = useToast();
   const [email, setEmail] = useState("");
@@ -17,7 +20,7 @@ export default function ForgotPassword(): JSX.Element {
     setError(null);
     setLoading(true);
     try {
-      await api.requestPasswordReset(email, window.location.origin + "/reset-password");
+      await api.requestPasswordReset(email, passwordResetRedirectUrl);
       setSent(true);
       showSuccess("If an account exists for that email, a reset link is on its way.");
     } catch (err) {
