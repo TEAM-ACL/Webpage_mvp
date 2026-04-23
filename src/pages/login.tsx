@@ -31,6 +31,11 @@ export default function Login(): JSX.Element {
     const state = location.state as { email?: string; password?: string } | null;
     if (state?.email) setEmail(state.email);
     if (state?.password) setPassword(state.password);
+    if (state && "verificationMessage" in state && typeof (state as { verificationMessage?: unknown }).verificationMessage === "string") {
+      const verificationMessage = (state as { verificationMessage: string }).verificationMessage;
+      setNotice(verificationMessage);
+      showSuccess(verificationMessage);
+    }
   }, [location.state]);
 
   const isVerificationError = (message: string) => {

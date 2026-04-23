@@ -9,6 +9,7 @@ type CallbackAuthPayload = {
   refreshToken: string | null;
   errorDescription: string | null;
   errorCode: string | null;
+  verificationType: string | null;
 };
 
 function getCallbackAuthPayload(): CallbackAuthPayload {
@@ -22,6 +23,7 @@ function getCallbackAuthPayload(): CallbackAuthPayload {
     refreshToken: readParam("refresh_token"),
     errorDescription: readParam("error_description"),
     errorCode: readParam("error"),
+    verificationType: readParam("type"),
   };
 }
 
@@ -63,7 +65,11 @@ export default function AuthCallback(): JSX.Element {
         clearCallbackUrlArtifacts();
 
         if (!callbackPayload.accessToken && !callbackPayload.refreshToken) {
-          setMessage("You have been verified. Login now to continue.");
+          const successMessage =
+            callbackPayload.verificationType === "signup"
+              ? "Your email has been verified successfully. Please log in to continue."
+              : "Verification complete. Please log in to continue.";
+          setMessage(successMessage);
           setShowLoginAction(true);
           return;
         }
@@ -99,14 +105,15 @@ export default function AuthCallback(): JSX.Element {
   }, [navigate, refreshProfile, setUser]);
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-surface px-6">
+    <main className="min-h-screen flex items-center justify-center bg-slate-50 px-6">
       <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-        <p className="text-on-surface text-base font-semibold">{message}</p>
+        <p className="text-base font-semibold text-slate-900">{message}</p>
         {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
         {showLoginAction ? (
           <div className="mt-5">
             <Link
               to="/login"
+              state={{ verificationMessage: "Your email has been verified. You can now log in." }}
               className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
               Login now

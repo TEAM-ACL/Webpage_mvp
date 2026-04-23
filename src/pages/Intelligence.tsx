@@ -19,6 +19,7 @@ import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
 import SummaryGrid, { type SummaryItem } from "../components/dashboard/SummaryGrid";
 import { useAuth } from "../context/AuthContext";
+import { testAIBackendCall } from "../services/aiService";
 
 // Static data (kept colocated for easy extraction into components later)
 type PathwayStep = {
@@ -735,6 +736,30 @@ export default function Intelligence(): JSX.Element {
     showActionFeedback(result, result.success ? "info" : "error");
   };
 
+  // ACL: smoke test backend AI provider connectivity via /ai/readiness
+  const handleTestAIConnection = async (): Promise<void> => {
+    try {
+      const data = await testAIBackendCall("Explain VisionTech in one sentence");
+      const output =
+        typeof data?.message === "string"
+          ? data.message
+          : typeof data?.output === "string"
+            ? data.output
+            : "AI test call succeeded.";
+      setActionFeedback({
+        type: "success",
+        message: `AI connection test succeeded: ${output}`,
+      });
+      // Keep full payload available for quick debugging
+      console.log("AI test response:", data);
+    } catch (error) {
+      setActionFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : "AI test call failed.",
+      });
+    }
+  };
+
   const aiInsightRecoveryActions: IntelligenceRecoveryAction[] = [];
   if (onboardingComplete !== true) {
     aiInsightRecoveryActions.push({
@@ -1087,6 +1112,14 @@ export default function Intelligence(): JSX.Element {
             >
               <Sparkles className="mr-2 h-4 w-4" />
               {intelligenceRefreshing ? "Refreshing..." : "Refresh Intelligence"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleTestAIConnection()}
+              disabled={!user || profileLoading}
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Test AI Connection
             </button>
             <button
               type="button"

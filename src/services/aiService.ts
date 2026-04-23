@@ -194,3 +194,22 @@ export async function recordAIRecommendationEvent(payload: {
     throw new Error(`AI recommendation event record failed: ${errorText}`);
   }
 }
+
+// ACL: lightweight frontend smoke test call using the backend readiness contract
+export async function testAIBackendCall(_prompt: string): Promise<Record<string, unknown>> {
+  const response = await fetch(`${API_BASE_URL}/ai/readiness`, {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`AI readiness request failed: ${errorText}`);
+  }
+
+  const data = (await response.json()) as Record<string, unknown>;
+  return data;
+}
