@@ -11,17 +11,24 @@ import type {
   AIInsightResponse,
   AIRecommendationsResponse,
   AIMatchesResponse,
+  CreateCustomPathwayPayload,
+  CustomPathwayItem,
+  UpdateCustomPathwayPayload,
 } from "../types/ai";
 import {
+  archiveCustomPathway as archiveCustomPathwayRequest,
+  createCustomPathway as createCustomPathwayRequest,
   generateAIRecommendations,
   getAIGenerationReadiness,
   getAIRecommendationEvents,
   getAIState,
   generateAIInsight,
+  getCustomPathways,
   getLatestAIInsight,
   getAIRecommendations,
   getAIMatches,
   recordAIRecommendationEvent,
+  updateCustomPathway as updateCustomPathwayRequest,
 } from "../services/aiService";
 import { toUserMessage } from "../lib/userErrors";
 
@@ -64,6 +71,10 @@ type AuthContextValue = {
   matchesError: string | null;
   matchesUpdatedAt: string | null;
   matchesLastAction: IntelligenceSectionAction | null;
+  customPathways: CustomPathwayItem[];
+  customPathwaysLoading: boolean;
+  customPathwaysError: string | null;
+  customPathwaysUpdatedAt: string | null;
   intelligenceRefreshing: boolean;
   intelligenceUpdatedAt: string | null;
   intelligenceLastAction: IntelligenceSectionAction | null;
@@ -86,6 +97,17 @@ type AuthContextValue = {
   loadRecommendations: () => Promise<IntelligenceActionResult>;
   refreshRecommendations: () => Promise<IntelligenceActionResult>;
   loadMatches: () => Promise<IntelligenceActionResult>;
+  loadCustomPathways: () => Promise<IntelligenceActionResult>;
+  createCustomPathway: (
+    payload: CreateCustomPathwayPayload,
+  ) => Promise<IntelligenceActionResult>;
+  updateCustomPathway: (
+    customPathwayId: string,
+    payload: UpdateCustomPathwayPayload,
+  ) => Promise<IntelligenceActionResult>;
+  archiveCustomPathway: (
+    customPathwayId: string,
+  ) => Promise<IntelligenceActionResult>;
   refreshIntelligence: () => Promise<IntelligenceActionResult>;
   recordRecommendationEvent: (payload: {
     recommendation_id: string;
@@ -125,6 +147,10 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const [matchesError, setMatchesError] = useState<string | null>(null);
   const [matchesUpdatedAt, setMatchesUpdatedAt] = useState<string | null>(null);
   const [matchesLastAction, setMatchesLastAction] = useState<IntelligenceSectionAction | null>(null);
+  const [customPathways, setCustomPathways] = useState<CustomPathwayItem[]>([]);
+  const [customPathwaysLoading, setCustomPathwaysLoading] = useState(false);
+  const [customPathwaysError, setCustomPathwaysError] = useState<string | null>(null);
+  const [customPathwaysUpdatedAt, setCustomPathwaysUpdatedAt] = useState<string | null>(null);
   const [intelligenceRefreshing, setIntelligenceRefreshing] = useState(false);
   const [intelligenceUpdatedAt, setIntelligenceUpdatedAt] = useState<string | null>(null);
   const [intelligenceLastAction, setIntelligenceLastAction] = useState<IntelligenceSectionAction | null>(null);
@@ -140,6 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const aiInsightRequestInFlight = useRef(false);
   const recommendationsRequestInFlight = useRef(false);
   const matchesRequestInFlight = useRef(false);
+  const customPathwaysRequestInFlight = useRef(false);
   const intelligenceRefreshInFlight = useRef(false);
 
   const buildRecommendationActionStateMap = (
@@ -226,6 +253,9 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setMatchesError(null);
       setMatchesUpdatedAt(null);
       setMatchesLastAction(null);
+      setCustomPathways([]);
+      setCustomPathwaysError(null);
+      setCustomPathwaysUpdatedAt(null);
       setIntelligenceUpdatedAt(null);
       setIntelligenceLastAction(null);
       setAIState(null);
@@ -235,6 +265,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       aiInsightRequestInFlight.current = false;
       recommendationsRequestInFlight.current = false;
       matchesRequestInFlight.current = false;
+      customPathwaysRequestInFlight.current = false;
       intelligenceRefreshInFlight.current = false;
       setProfileError(getErrorMessage(err));
       return null;
@@ -574,6 +605,154 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     }
   };
 
+  const loadCustomPathways = async (): Promise<IntelligenceActionResult> => {
+    if (customPathwaysRequestInFlight.current) {
+      return {
+        success: false,
+        message: "Custom pathways are already loading.",
+      };
+    }
+
+    customPathwaysRequestInFlight.current = true;
+    setCustomPathwaysLoading(true);
+    setCustomPathwaysError(null);
+
+    try {
+      const actionTimestamp = new Date().toISOString();
+      const data = await getCustomPathways();
+      setCustomPathways(data.items);
+      setCustomPathwaysUpdatedAt(actionTimestamp);
+      return {
+        success: true,
+        message:
+          data.items.length > 0
+            ? "Custom pathways loaded successfully."
+            : "No custom pathways found yet.",
+      };
+    } catch (error) {
+      const message = getErrorMessage(error);
+      setCustomPathwaysError(message);
+      return {
+        success: false,
+        message: "Custom pathways failed to load.",
+      };
+    } finally {
+      setCustomPathwaysLoading(false);
+      customPathwaysRequestInFlight.current = false;
+    }
+  };
+
+  const createCustomPathway = async (
+    payload: CreateCustomPathwayPayload,
+  ): Promise<IntelligenceActionResult> => {
+    if (customPathwaysRequestInFlight.current) {
+      return {
+        success: false,
+        message: "A custom pathway action is already in progress.",
+      };
+    }
+
+    customPathwaysRequestInFlight.current = true;
+    setCustomPathwaysLoading(true);
+    setCustomPathwaysError(null);
+
+    try {
+      const actionTimestamp = new Date().toISOString();
+      const created = await createCustomPathwayRequest(payload);
+      setCustomPathways((current) => [created, ...current.filter((item) => item.id !== created.id)]);
+      setCustomPathwaysUpdatedAt(actionTimestamp);
+      return {
+        success: true,
+        message: "Custom pathway created successfully.",
+      };
+    } catch (error) {
+      const message = getErrorMessage(error);
+      setCustomPathwaysError(message);
+      return {
+        success: false,
+        message: "Custom pathway could not be created.",
+      };
+    } finally {
+      setCustomPathwaysLoading(false);
+      customPathwaysRequestInFlight.current = false;
+    }
+  };
+
+  const updateCustomPathway = async (
+    customPathwayId: string,
+    payload: UpdateCustomPathwayPayload,
+  ): Promise<IntelligenceActionResult> => {
+    if (customPathwaysRequestInFlight.current) {
+      return {
+        success: false,
+        message: "A custom pathway action is already in progress.",
+      };
+    }
+
+    customPathwaysRequestInFlight.current = true;
+    setCustomPathwaysLoading(true);
+    setCustomPathwaysError(null);
+
+    try {
+      const actionTimestamp = new Date().toISOString();
+      const updated = await updateCustomPathwayRequest(customPathwayId, payload);
+      setCustomPathways((current) =>
+        current.map((item) => (item.id === customPathwayId ? updated : item)),
+      );
+      setCustomPathwaysUpdatedAt(actionTimestamp);
+      return {
+        success: true,
+        message: "Custom pathway updated successfully.",
+      };
+    } catch (error) {
+      const message = getErrorMessage(error);
+      setCustomPathwaysError(message);
+      return {
+        success: false,
+        message: "Custom pathway update failed.",
+      };
+    } finally {
+      setCustomPathwaysLoading(false);
+      customPathwaysRequestInFlight.current = false;
+    }
+  };
+
+  const archiveCustomPathway = async (
+    customPathwayId: string,
+  ): Promise<IntelligenceActionResult> => {
+    if (customPathwaysRequestInFlight.current) {
+      return {
+        success: false,
+        message: "A custom pathway action is already in progress.",
+      };
+    }
+
+    customPathwaysRequestInFlight.current = true;
+    setCustomPathwaysLoading(true);
+    setCustomPathwaysError(null);
+
+    try {
+      const actionTimestamp = new Date().toISOString();
+      await archiveCustomPathwayRequest(customPathwayId);
+      setCustomPathways((current) => current.filter((item) => item.id !== customPathwayId));
+      setCustomPathwaysUpdatedAt(actionTimestamp);
+      return {
+        success: true,
+        message: "Custom pathway archived successfully.",
+      };
+    } catch (error) {
+      const message = getErrorMessage(error);
+      setCustomPathwaysError(message);
+      return {
+        success: false,
+        message: "Custom pathway archive failed.",
+      };
+    } finally {
+      setCustomPathwaysLoading(false);
+      customPathwaysRequestInFlight.current = false;
+    }
+  };
+
   // ACL: refresh all intelligence sections together for the authenticated user
   const refreshIntelligence = async (): Promise<IntelligenceActionResult> => {
     if (intelligenceRefreshInFlight.current) {
@@ -679,6 +858,10 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setMatchesLoading(false);
       setMatchesUpdatedAt(null);
       setMatchesLastAction(null);
+      setCustomPathways([]);
+      setCustomPathwaysError(null);
+      setCustomPathwaysLoading(false);
+      setCustomPathwaysUpdatedAt(null);
       setIntelligenceRefreshing(false);
       setIntelligenceUpdatedAt(null);
       setIntelligenceLastAction(null);
@@ -691,6 +874,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       aiInsightRequestInFlight.current = false;
       recommendationsRequestInFlight.current = false;
       matchesRequestInFlight.current = false;
+      customPathwaysRequestInFlight.current = false;
       intelligenceRefreshInFlight.current = false;
     }
   };
@@ -717,12 +901,16 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
         matches,
         matchesUpdatedAt,
         matchesLastAction,
+        customPathways,
+        customPathwaysUpdatedAt,
         aiInsightLoading,
         aiInsightError,
         recommendationsLoading,
         recommendationsError,
         matchesLoading,
         matchesError,
+        customPathwaysLoading,
+        customPathwaysError,
         intelligenceUpdatedAt,
         intelligenceLastAction,
         aiState,
@@ -744,6 +932,10 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
         loadRecommendations,
         refreshRecommendations,
         loadMatches,
+        loadCustomPathways,
+        createCustomPathway,
+        updateCustomPathway,
+        archiveCustomPathway,
         intelligenceRefreshing,
         refreshIntelligence,
         recordRecommendationEvent,

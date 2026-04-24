@@ -20,6 +20,7 @@ import PageHeader from "../components/dashboard/PageHeader";
 import SummaryGrid, { type SummaryItem } from "../components/dashboard/SummaryGrid";
 import { useAuth } from "../context/AuthContext";
 import { testAIBackendCall } from "../services/aiService";
+import type { CreateCustomPathwayPayload } from "../types/ai";
 
 // Static data (kept colocated for easy extraction into components later)
 type PathwayStep = {
@@ -73,6 +74,7 @@ type IntelligenceRecoveryAction = {
   onClick?: () => void;
   disabled?: boolean;
 };
+type CustomPathwayFormState = CreateCustomPathwayPayload;
 
 function buildStats(skillsCount: number | null, aiCount: number | null): SummaryItem[] {
   return [
@@ -235,6 +237,14 @@ export default function Intelligence(): JSX.Element {
     matchesUpdatedAt,
     matchesLastAction,
     loadMatches,
+    customPathways,
+    customPathwaysLoading,
+    customPathwaysError,
+    customPathwaysUpdatedAt,
+    loadCustomPathways,
+    createCustomPathway,
+    updateCustomPathway,
+    archiveCustomPathway,
     intelligenceRefreshing,
     intelligenceUpdatedAt,
     intelligenceLastAction,
@@ -245,6 +255,15 @@ export default function Intelligence(): JSX.Element {
     type: "success" | "error" | "info";
     message: string;
   } | null>(null);
+  const [showCustomPathwayForm, setShowCustomPathwayForm] = useState(false);
+  const [editingCustomPathwayId, setEditingCustomPathwayId] = useState<string | null>(null);
+  const [customPathwayForm, setCustomPathwayForm] = useState<CustomPathwayFormState>({
+    title: "",
+    description: "",
+    desired_outcome: "",
+    current_skill_level: "",
+    reason_for_interest: "",
+  });
   // ACL: ensure intelligence bootstrap runs once per stable page mount context
   const intelligenceBootstrapStarted = useRef(false);
 
@@ -760,6 +779,91 @@ export default function Intelligence(): JSX.Element {
     }
   };
 
+  const resetCustomPathwayForm = (): void => {
+    setCustomPathwayForm({
+      title: "",
+      description: "",
+      desired_outcome: "",
+      current_skill_level: "",
+      reason_for_interest: "",
+    });
+    setEditingCustomPathwayId(null);
+    setShowCustomPathwayForm(false);
+  };
+
+  const handleLoadCustomPathways = async (): Promise<void> => {
+    const result = await loadCustomPathways();
+    showActionFeedback(result, result.success ? "info" : "error");
+  };
+
+  const handleCustomPathwayFieldChange = (
+    field: keyof CustomPathwayFormState,
+    value: string,
+  ): void => {
+    setCustomPathwayForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const handleStartEditingCustomPathway = (pathway: {
+    id: string;
+    title: string;
+    description: string;
+    desired_outcome: string;
+    current_skill_level: string;
+    reason_for_interest: string;
+  }): void => {
+    setEditingCustomPathwayId(pathway.id);
+    setShowCustomPathwayForm(true);
+    setCustomPathwayForm({
+      title: pathway.title,
+      description: pathway.description,
+      desired_outcome: pathway.desired_outcome,
+      current_skill_level: pathway.current_skill_level,
+      reason_for_interest: pathway.reason_for_interest,
+    });
+  };
+
+  const handleSubmitCustomPathway = async (): Promise<void> => {
+    const payload: CreateCustomPathwayPayload = {
+      title: customPathwayForm.title.trim(),
+      description: customPathwayForm.description.trim(),
+      desired_outcome: customPathwayForm.desired_outcome.trim(),
+      current_skill_level: customPathwayForm.current_skill_level.trim(),
+      reason_for_interest: customPathwayForm.reason_for_interest.trim(),
+    };
+
+    if (
+      !payload.title
+      || !payload.description
+      || !payload.desired_outcome
+      || !payload.current_skill_level
+      || !payload.reason_for_interest
+    ) {
+      setActionFeedback({
+        type: "error",
+        message: "Please complete all custom pathway fields before submitting.",
+      });
+      return;
+    }
+
+    const result = editingCustomPathwayId
+      ? await updateCustomPathway(editingCustomPathwayId, payload)
+      : await createCustomPathway(payload);
+
+    showActionFeedback(result, result.success ? "success" : "error");
+
+    if (result.success) {
+      resetCustomPathwayForm();
+    }
+  };
+
+  const handleArchiveCustomPathway = async (customPathwayId: string): Promise<void> => {
+    const result = await archiveCustomPathway(customPathwayId);
+    showActionFeedback(result, result.success ? "info" : "error");
+  };
+
   const aiInsightRecoveryActions: IntelligenceRecoveryAction[] = [];
   if (onboardingComplete !== true) {
     aiInsightRecoveryActions.push({
@@ -836,6 +940,15 @@ export default function Intelligence(): JSX.Element {
         || aiReadiness === null
         || !recommendationsCanGenerate,
     });
+    recommendationsRecoveryActions.push({
+      id: "recommendations-custom-pathway",
+      label: "Other (Custom)",
+      onClick: () => {
+        setShowCustomPathwayForm(true);
+        setEditingCustomPathwayId(null);
+      },
+      disabled: customPathwaysLoading || intelligenceRefreshing,
+    });
   } else {
     recommendationsRecoveryActions.push({
       id: "recommendations-refresh",
@@ -857,6 +970,15 @@ export default function Intelligence(): JSX.Element {
         void handleRefreshIntelligence();
       },
       disabled: intelligenceRefreshing,
+    });
+    recommendationsRecoveryActions.push({
+      id: "recommendations-custom-pathway",
+      label: "Other (Custom)",
+      onClick: () => {
+        setShowCustomPathwayForm(true);
+        setEditingCustomPathwayId(null);
+      },
+      disabled: customPathwaysLoading || intelligenceRefreshing,
     });
   }
 
@@ -1028,6 +1150,8 @@ export default function Intelligence(): JSX.Element {
       if (matchesMissing && (matchesStatus === "ready" || matchesStatus === "empty" || !state)) {
         await loadMatches();
       }
+
+      await loadCustomPathways();
     };
 
     void bootstrap();
@@ -1044,12 +1168,14 @@ export default function Intelligence(): JSX.Element {
     loadLatestAIInsight,
     loadRecommendations,
     loadMatches,
+    loadCustomPathways,
   ]);
 
   useEffect(() => {
     if (!user) {
       intelligenceBootstrapStarted.current = false;
       setActionFeedback(null);
+      resetCustomPathwayForm();
     }
   }, [user]);
 
@@ -1663,6 +1789,169 @@ export default function Intelligence(): JSX.Element {
                         : "You can load recommendations now using your current intelligence profile."}
                   </p>
                   {renderRecoveryActions(recommendationsRecoveryActions)}
+                </div>
+              )}
+            </div>
+
+            {/* Custom pathways section */}
+            <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
+              <div className="mb-6 flex items-start justify-between gap-3">
+                <div>
+                  <p className={`text-sm font-semibold ${subtle}`}>Custom Pathways</p>
+                  <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Build your own pathway</h3>
+                  <p className={`mt-2 text-sm ${subtle}`}>
+                    If official pathways do not fit your goal, define a custom pathway and keep it in your intelligence workspace.
+                  </p>
+                  <p className={`mt-2 text-xs ${subtle}`}>
+                    Last updated: {formatTimestamp(customPathwaysUpdatedAt)}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleLoadCustomPathways()}
+                    disabled={customPathwaysLoading || intelligenceRefreshing}
+                    className="inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {customPathwaysLoading ? "Loading..." : "Load custom pathways"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomPathwayForm((current) => !current)}
+                    disabled={customPathwaysLoading || intelligenceRefreshing}
+                    className="inline-flex h-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {showCustomPathwayForm ? "Close form" : "Create custom pathway"}
+                  </button>
+                </div>
+              </div>
+
+              {customPathwaysError ? (
+                <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  {customPathwaysError}
+                </div>
+              ) : null}
+
+              {showCustomPathwayForm ? (
+                <div className="mb-5 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4">
+                  <p className="text-sm font-semibold text-[var(--color-on-surface)]">
+                    {editingCustomPathwayId ? "Edit custom pathway" : "Create a custom pathway"}
+                  </p>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <input
+                      type="text"
+                      value={customPathwayForm.title}
+                      onChange={(event) => handleCustomPathwayFieldChange("title", event.target.value)}
+                      className="rounded-xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 text-sm text-[var(--color-on-surface)]"
+                      placeholder="Pathway title"
+                    />
+                    <input
+                      type="text"
+                      value={customPathwayForm.current_skill_level}
+                      onChange={(event) => handleCustomPathwayFieldChange("current_skill_level", event.target.value)}
+                      className="rounded-xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 text-sm text-[var(--color-on-surface)]"
+                      placeholder="Current skill level"
+                    />
+                    <input
+                      type="text"
+                      value={customPathwayForm.desired_outcome}
+                      onChange={(event) => handleCustomPathwayFieldChange("desired_outcome", event.target.value)}
+                      className="rounded-xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 text-sm text-[var(--color-on-surface)] md:col-span-2"
+                      placeholder="Desired outcome"
+                    />
+                    <textarea
+                      value={customPathwayForm.description}
+                      onChange={(event) => handleCustomPathwayFieldChange("description", event.target.value)}
+                      className="min-h-[96px] rounded-xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 text-sm text-[var(--color-on-surface)] md:col-span-2"
+                      placeholder="Describe this custom pathway"
+                    />
+                    <textarea
+                      value={customPathwayForm.reason_for_interest}
+                      onChange={(event) => handleCustomPathwayFieldChange("reason_for_interest", event.target.value)}
+                      className="min-h-[96px] rounded-xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 text-sm text-[var(--color-on-surface)] md:col-span-2"
+                      placeholder="Why this pathway matters to you"
+                    />
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void handleSubmitCustomPathway()}
+                      disabled={customPathwaysLoading || intelligenceRefreshing}
+                      className="inline-flex items-center justify-center rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {editingCustomPathwayId ? "Save updates" : "Save custom pathway"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetCustomPathwayForm}
+                      disabled={customPathwaysLoading || intelligenceRefreshing}
+                      className="inline-flex items-center justify-center rounded-xl border border-[var(--color-outline-variant)] bg-white px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {customPathwaysLoading && customPathways.length === 0 ? (
+                <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
+                  Loading custom pathways...
+                </div>
+              ) : customPathways.length > 0 ? (
+                <div className="space-y-3">
+                  {customPathways.map((pathway) => (
+                    <div
+                      key={pathway.id}
+                      className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h4 className="text-base font-semibold text-[var(--color-on-surface)]">{pathway.title}</h4>
+                          <p className={`mt-1 text-xs uppercase tracking-wide ${subtle}`}>
+                            {pathway.current_skill_level} - {pathway.status}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditingCustomPathway(pathway)}
+                            disabled={customPathwaysLoading || intelligenceRefreshing}
+                            className="inline-flex items-center justify-center rounded-lg border border-[var(--color-outline-variant)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-lowest)] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void handleArchiveCustomPathway(pathway.id);
+                            }}
+                            disabled={customPathwaysLoading || intelligenceRefreshing}
+                            className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Archive
+                          </button>
+                        </div>
+                      </div>
+                      <p className={`mt-3 text-sm ${subtle}`}>{pathway.description}</p>
+                      <p className={`mt-2 text-sm ${subtle}`}>
+                        <span className="font-semibold text-[var(--color-on-surface)]">Outcome:</span>{" "}
+                        {pathway.desired_outcome}
+                      </p>
+                      <p className={`mt-1 text-sm ${subtle}`}>
+                        <span className="font-semibold text-[var(--color-on-surface)]">Reason:</span>{" "}
+                        {pathway.reason_for_interest}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm font-medium text-slate-800">
+                    No custom pathways yet.
+                  </p>
+                  <p className={`mt-1 text-sm ${subtle}`}>
+                    Use "Create custom pathway" when official pathways do not match your direction.
+                  </p>
                 </div>
               )}
             </div>

@@ -8,6 +8,10 @@ import type {
   AIInsightResponse,
   AIRecommendationsResponse,
   AIMatchesResponse,
+  CreateCustomPathwayPayload,
+  CustomPathwayItem,
+  CustomPathwaysListResponse,
+  UpdateCustomPathwayPayload,
 } from "../types/ai";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -212,4 +216,90 @@ export async function testAIBackendCall(_prompt: string): Promise<Record<string,
 
   const data = (await response.json()) as Record<string, unknown>;
   return data;
+}
+
+export async function getCustomPathways(params?: {
+  page?: number;
+  pageSize?: number;
+  includeArchived?: boolean;
+}): Promise<CustomPathwaysListResponse> {
+  const page = params?.page ?? 1;
+  const pageSize = params?.pageSize ?? 20;
+  const includeArchived = params?.includeArchived ?? false;
+  const response = await fetch(
+    `${API_BASE_URL}/ai/custom-pathways/?page=${page}&page_size=${pageSize}&include_archived=${includeArchived ? "true" : "false"}`,
+    {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Custom pathways request failed: ${errorText}`);
+  }
+
+  const data: CustomPathwaysListResponse = await response.json();
+  return data;
+}
+
+export async function createCustomPathway(
+  payload: CreateCustomPathwayPayload,
+): Promise<CustomPathwayItem> {
+  const response = await fetch(`${API_BASE_URL}/ai/custom-pathways/`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Custom pathway creation failed: ${errorText}`);
+  }
+
+  const data: CustomPathwayItem = await response.json();
+  return data;
+}
+
+export async function updateCustomPathway(
+  customPathwayId: string,
+  payload: UpdateCustomPathwayPayload,
+): Promise<CustomPathwayItem> {
+  const response = await fetch(`${API_BASE_URL}/ai/custom-pathways/${customPathwayId}`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Custom pathway update failed: ${errorText}`);
+  }
+
+  const data: CustomPathwayItem = await response.json();
+  return data;
+}
+
+export async function archiveCustomPathway(customPathwayId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/ai/custom-pathways/${customPathwayId}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Custom pathway archive failed: ${errorText}`);
+  }
 }

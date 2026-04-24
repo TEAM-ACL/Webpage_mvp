@@ -144,3 +144,43 @@ export type AIRecommendationEventsResponse = {
   recommendation_id: string;
   events: AIRecommendationEventItem[];
 };
+
+export type CustomPathwayStatus =
+  | "private"
+  | "pending_review"
+  | "approved"
+  | "rejected"
+  | "archived";
+
+export type CustomPathwayItem = {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  desired_outcome: string;
+  current_skill_level: string;
+  reason_for_interest: string;
+  status: CustomPathwayStatus;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  updated_by: string | null;
+};
+
+export type CustomPathwaysListResponse = {
+  items: CustomPathwayItem[];
+  page: number;
+  page_size: number;
+  total: number;
+};
+
+export type CreateCustomPathwayPayload = {
+  title: string;
+  description: string;
+  desired_outcome: string;
+  current_skill_level: string;
+  reason_for_interest: string;
+};
+
+export type UpdateCustomPathwayPayload = Partial<CreateCustomPathwayPayload>;
