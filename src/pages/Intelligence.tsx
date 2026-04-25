@@ -22,33 +22,18 @@ import { useAuth } from "../context/AuthContext";
 import { testAIBackendCall } from "../services/aiService";
 import type { CreateCustomPathwayPayload } from "../types/ai";
 
-// Static data (kept colocated for easy extraction into components later)
 type PathwayStep = {
-  id: number;
+  id: string;
   title: string;
   description: string;
   status: "completed" | "active" | "locked";
 };
 
-type Insight = {
-  id: number;
-  title: string;
-  description: string;
-};
-
-type MatchCard = {
-  id: string;
-  name: string;
-  role: string;
-  matchScore: number;
-  reason: string;
-};
-
 type ActivityItem = {
-  id: number;
+  id: string;
   title: string;
   time: string;
-  status: "done" | "in-progress" | "upcoming";
+  status: "done" | "in-progress" | "upcoming" | "error";
 };
 
 type RecommendationCard = {
@@ -76,94 +61,50 @@ type IntelligenceRecoveryAction = {
 };
 type CustomPathwayFormState = CreateCustomPathwayPayload;
 
-function buildStats(skillsCount: number | null, aiCount: number | null): SummaryItem[] {
+function buildStats({
+  pathwayProgressPercent,
+  skillsCount,
+  activeMatchesCount,
+  aiNextStepCount,
+}: {
+  pathwayProgressPercent: number;
+  skillsCount: number | null;
+  activeMatchesCount: number;
+  aiNextStepCount: number | null;
+}): SummaryItem[] {
   return [
-    { title: "Pathway Progress", value: "45%", note: "Moving steadily toward your goal", icon: TrendingUp },
+    {
+      title: "Pathway Progress",
+      value: `${pathwayProgressPercent}%`,
+      note:
+        pathwayProgressPercent >= 80
+          ? "Strong momentum across intelligence sections"
+          : "Progress reflects current readiness and loaded intelligence data",
+      icon: TrendingUp,
+    },
     {
       title: "Skills Identified",
       value: skillsCount !== null ? String(skillsCount) : "-",
       note: skillsCount !== null ? "Captured from onboarding" : "Add skills in onboarding to unlock precision",
       icon: Target,
     },
-    { title: "Active Matches", value: "8", note: "Potential collaborators and mentors", icon: Users },
+    {
+      title: "Active Matches",
+      value: String(activeMatchesCount),
+      note:
+        activeMatchesCount > 0
+          ? "Potential collaborators and mentors"
+          : "Load matching data to reveal active opportunities",
+      icon: Users,
+    },
     {
       title: "AI Insights",
-      value: aiCount !== null ? String(aiCount) : "-",
-      note: aiCount !== null ? "Fresh recommendations ready" : "Complete onboarding to see insights",
+      value: aiNextStepCount !== null ? String(aiNextStepCount) : "-",
+      note: aiNextStepCount !== null ? "AI next steps currently available" : "Complete onboarding to see insights",
       icon: Lightbulb,
     },
   ];
 }
-
-
-const pathwaySteps: PathwayStep[] = [
-  {
-    id: 1,
-    title: "Networking Fundamentals",
-    description: "Strengthen your understanding of core networking concepts.",
-    status: "completed",
-  },
-  {
-    id: 2,
-    title: "Linux Security Basics",
-    description: "Build confidence with permissions, logs, and hardening basics.",
-    status: "completed",
-  },
-  {
-    id: 3,
-    title: "Cloud IAM and Access Control",
-    description: "Focus on identity, least privilege, and policy management.",
-    status: "active",
-  },
-  {
-    id: 4,
-    title: "Security Monitoring and SIEM",
-    description: "Learn alerting, log review, and security event analysis.",
-    status: "locked",
-  },
-];
-
-const insights: Insight[] = [
-  {
-    id: 1,
-    title: "Recommended next move",
-    description:
-      "Complete a mini project on cloud identity and access management to strengthen your current pathway stage.",
-  },
-  {
-    id: 2,
-    title: "Growth gap spotted",
-    description:
-      "Kubernetes and container security are emerging as useful next-step skills for users on similar cloud security tracks.",
-  },
-  {
-    id: 3,
-    title: "Momentum insight",
-    description:
-      "Users who complete 3 pathway tasks in one month usually improve their match quality and opportunity readiness.",
-  },
-];
-
-const activities: ActivityItem[] = [
-  {
-    id: 1,
-    title: "Completed Networking Fundamentals module",
-    time: "2 days ago",
-    status: "done",
-  },
-  {
-    id: 2,
-    title: "Started Cloud IAM pathway task",
-    time: "Today",
-    status: "in-progress",
-  },
-  {
-    id: 3,
-    title: "AI suggested a mini project for practical growth",
-    time: "Today",
-    status: "upcoming",
-  },
-];
 
 function statusStyles(status: PathwayStep["status"]) {
   if (status === "completed") {
@@ -178,6 +119,7 @@ function statusStyles(status: PathwayStep["status"]) {
 function activityDot(status: ActivityItem["status"]) {
   if (status === "done") return "bg-green-500";
   if (status === "in-progress") return "bg-blue-500";
+  if (status === "error") return "bg-red-500";
   return "bg-zinc-400";
 }
 
@@ -199,6 +141,18 @@ function isCompletedRecommendationItem(item: {
 }
 
 const subtle = "text-[var(--color-on-surface-variant)]";
+
+function formatRelativeTime(value: string): string {
+  const target = new Date(value).getTime();
+  if (Number.isNaN(target)) return "Recently";
+  const deltaMinutes = Math.max(0, Math.floor((Date.now() - target) / 60000));
+  if (deltaMinutes < 1) return "Just now";
+  if (deltaMinutes < 60) return `${deltaMinutes} minute${deltaMinutes === 1 ? "" : "s"} ago`;
+  const deltaHours = Math.floor(deltaMinutes / 60);
+  if (deltaHours < 24) return `${deltaHours} hour${deltaHours === 1 ? "" : "s"} ago`;
+  const deltaDays = Math.floor(deltaHours / 24);
+  return `${deltaDays} day${deltaDays === 1 ? "" : "s"} ago`;
+}
 
 export default function Intelligence(): JSX.Element {
   const navigate = useNavigate();
@@ -268,7 +222,6 @@ export default function Intelligence(): JSX.Element {
   const intelligenceBootstrapStarted = useRef(false);
 
   const field = profile?.fieldOfInterest || "Cloud Security Pathway";
-  const headlineGoal = profile?.goals?.[0] || "Become opportunity-ready in cloud security";
   const skillsCount = profile?.skills ? profile.skills.length : null;
   const summaryGoal = profile?.goals?.[0] || "Grow in your chosen pathway";
   const summaryTask = profile?.interests?.[0]
@@ -328,8 +281,6 @@ export default function Intelligence(): JSX.Element {
     !interestsAreThin,
     !goalsAreThin,
   ].filter(Boolean).length;
-
-  const stats = useMemo(() => buildStats(skillsCount, aiInsight ? aiInsight.next_steps.length : null), [skillsCount, aiInsight]);
 
   const aiStatusLabel = aiInsight
     ? "Live"
@@ -465,6 +416,99 @@ export default function Intelligence(): JSX.Element {
     pageReady &&
     !intelligenceLoading &&
     (insightReady || recommendationsReady || matchesReady);
+
+  const dynamicPathwaySteps = useMemo<PathwayStep[]>(() => {
+    const recommendationItems = recommendations?.recommendations ?? [];
+    if (recommendationItems.length === 0) {
+      return [];
+    }
+
+    return recommendationItems.slice(0, 4).map((item, index) => {
+      let status: PathwayStep["status"] = "locked";
+      if (item.action_state?.completed || isCompletedRecommendationItem(item)) {
+        status = "completed";
+      } else if (item.action_state?.started || item.action_state?.clicked || index === 0) {
+        status = "active";
+      }
+
+      return {
+        id: item.pathway_id || `pathway-${index}`,
+        title: item.title || `Pathway ${index + 1}`,
+        description:
+          item.match_reason || item.summary || "Recommended pathway based on your current profile data.",
+        status,
+      };
+    });
+  }, [recommendations]);
+
+  const recentActivities = useMemo<ActivityItem[]>(() => {
+    const entries = [
+      {
+        id: "ai-insight-action",
+        action: aiInsightLastAction,
+      },
+      {
+        id: "recommendations-action",
+        action: recommendationsLastAction,
+      },
+      {
+        id: "matches-action",
+        action: matchesLastAction,
+      },
+      {
+        id: "refresh-action",
+        action: intelligenceLastAction,
+      },
+    ]
+      .filter((entry): entry is { id: string; action: NonNullable<typeof aiInsightLastAction> } => Boolean(entry.action))
+      .map((entry) => ({
+        id: entry.id,
+        title: entry.action.message,
+        time: formatRelativeTime(entry.action.timestamp),
+        status:
+          entry.action.status === "success"
+            ? "done"
+            : entry.action.status === "error"
+              ? "error"
+              : "in-progress",
+        timestamp: new Date(entry.action.timestamp).getTime(),
+      }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 5)
+      .map(({ timestamp: _timestamp, ...rest }) => rest);
+
+    return entries;
+  }, [aiInsightLastAction, recommendationsLastAction, matchesLastAction, intelligenceLastAction]);
+
+  const completionPercent = useMemo(() => {
+    let score = 0;
+    if (onboardingComplete === true) score += 40;
+    if (insightReady) score += 20;
+    if (recommendationsReady) score += 20;
+    if (matchesReady) score += 20;
+    return score;
+  }, [onboardingComplete, insightReady, recommendationsReady, matchesReady]);
+
+  const activePathwayTitle =
+    dynamicPathwaySteps.find((step) => step.status === "active")?.title ?? null;
+
+  const completionMessage =
+    completionPercent >= 80
+      ? "Strong momentum across your intelligence profile."
+      : activePathwayTitle
+        ? `Keep building. Your next milestone is ${activePathwayTitle}.`
+        : "Keep building. Load recommendations to reveal your next milestone.";
+
+  const stats = useMemo(
+    () =>
+      buildStats({
+        pathwayProgressPercent: completionPercent,
+        skillsCount,
+        activeMatchesCount: displayMatches.length,
+        aiNextStepCount: aiInsight ? aiInsight.next_steps.length : null,
+      }),
+    [completionPercent, skillsCount, displayMatches.length, aiInsight],
+  );
 
   const profileInsightCanGenerate = aiReadiness?.profile_insight.can_generate ?? false;
   const profileInsightReadinessStatus = aiReadiness?.profile_insight.status ?? null;
@@ -1425,8 +1469,8 @@ export default function Intelligence(): JSX.Element {
 
             <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-5">
               <p className="text-sm text-[var(--color-on-surface-variant)]">Completion</p>
-              <p className="mt-1 text-3xl font-bold text-[var(--color-on-surface)]">45%</p>
-              <p className="mt-2 text-sm text-[var(--color-on-surface-variant)]">Keep building. Your next milestone is Cloud IAM.</p>
+              <p className="mt-1 text-3xl font-bold text-[var(--color-on-surface)]">{completionPercent}%</p>
+              <p className="mt-2 text-sm text-[var(--color-on-surface-variant)]">{completionMessage}</p>
             </div>
           </div>
         </div>
@@ -1474,12 +1518,12 @@ export default function Intelligence(): JSX.Element {
                 </button>
               </div>
               <div className="space-y-4">
-                {pathwaySteps.map((step, index) => (
+                {dynamicPathwaySteps.map((step, index) => (
                   <div key={step.id} className="relative rounded-2xl border border-[var(--color-outline-variant)] p-4">
-                    {index !== pathwaySteps.length - 1 && <div className="absolute left-7 top-14 h-10 w-px bg-[var(--color-outline-variant)]" />}
+                    {index !== dynamicPathwaySteps.length - 1 && <div className="absolute left-7 top-14 h-10 w-px bg-[var(--color-outline-variant)]" />}
                     <div className="flex gap-4">
                       <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white bg-[var(--color-primary)]">
-                        {step.status === "completed" ? <CheckCircle2 className="h-4 w-4" /> : step.status === "active" ? <Clock3 className="h-4 w-4" /> : <span className="text-xs font-bold">{step.id}</span>}
+                        {step.status === "completed" ? <CheckCircle2 className="h-4 w-4" /> : step.status === "active" ? <Clock3 className="h-4 w-4" /> : <span className="text-xs font-bold">{index + 1}</span>}
                       </div>
                       <div className="flex-1">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1493,6 +1537,11 @@ export default function Intelligence(): JSX.Element {
                     </div>
                   </div>
                 ))}
+                {dynamicPathwaySteps.length === 0 && (
+                  <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
+                    No guided pathway steps yet. Load recommendations to populate this journey.
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1639,32 +1688,18 @@ export default function Intelligence(): JSX.Element {
                   actions: aiInsightErrorRecoveryActions,
                 })
               ) : (
-                <div className="space-y-4">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-medium text-slate-800">
-                      AI insight is not available yet.
-                    </p>
-                    <p className={`mt-1 text-sm ${subtle}`}>
-                      {onboardingComplete !== true
-                        ? "Complete onboarding to unlock AI-generated insight."
-                        : onboardingDataIsThin
-                          ? "Your profile data is still too limited for stronger AI insight generation."
-                          : "You can retrieve the latest saved insight or generate a fresh one now."}
-                    </p>
-                    {renderRecoveryActions(aiInsightRecoveryActions)}
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-3">
-                    {insights.map((item) => (
-                      <div key={item.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
-                        <div className="mb-3 inline-flex rounded-xl bg-[var(--color-surface-container-lowest)] p-2">
-                          <Sparkles className="h-4 w-4 text-[var(--color-on-surface)]" />
-                        </div>
-                        <h4 className="font-semibold text-[var(--color-primary)]">{item.title}</h4>
-                        <p className={`mt-2 text-sm leading-6 ${subtle}`}>{item.description}</p>
-                      </div>
-                    ))}
-                  </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm font-medium text-slate-800">
+                    AI insight is not available yet.
+                  </p>
+                  <p className={`mt-1 text-sm ${subtle}`}>
+                    {onboardingComplete !== true
+                      ? "Complete onboarding to unlock AI-generated insight."
+                      : onboardingDataIsThin
+                        ? "Your profile data is still too limited for stronger AI insight generation."
+                        : "You can retrieve the latest saved insight or generate a fresh one now."}
+                  </p>
+                  {renderRecoveryActions(aiInsightRecoveryActions)}
                 </div>
               )}
             </div>
@@ -2088,7 +2123,7 @@ export default function Intelligence(): JSX.Element {
               <p className={`text-sm font-semibold ${subtle}`}>Recent Activity</p>
               <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Your momentum</h3>
               <div className="mt-5 space-y-4">
-                {activities.map((activity) => (
+                {recentActivities.map((activity) => (
                   <div key={activity.id} className="flex gap-3">
                     <div className="pt-2">
                       <span className={`block h-3 w-3 rounded-full ${activityDot(activity.status)}`} />
@@ -2099,6 +2134,11 @@ export default function Intelligence(): JSX.Element {
                     </div>
                   </div>
                 ))}
+                {recentActivities.length === 0 && (
+                  <p className={`text-sm ${subtle}`}>
+                    No activity recorded yet. Intelligence actions will appear here as you use the dashboard.
+                  </p>
+                )}
               </div>
             </div>
 
