@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
-import SummaryGrid, { type SummaryItem } from "../components/dashboard/SummaryGrid";
+import { type SummaryItem } from "../components/dashboard/SummaryGrid";
 import { useAuth } from "../context/AuthContext";
 import { testAIBackendCall } from "../services/aiService";
 import type { CreateCustomPathwayPayload } from "../types/ai";
@@ -152,6 +152,68 @@ function formatRelativeTime(value: string): string {
   if (deltaHours < 24) return `${deltaHours} hour${deltaHours === 1 ? "" : "s"} ago`;
   const deltaDays = Math.floor(deltaHours / 24);
   return `${deltaDays} day${deltaDays === 1 ? "" : "s"} ago`;
+}
+
+function getStateScore(state: IntelligenceSectionState): number {
+  if (state === "ready") return 100;
+  if (state === "loading") return 55;
+  if (state === "error") return 20;
+  return 35;
+}
+
+function renderMiniBarChart({
+  values,
+  colorClassName,
+}: {
+  values: number[];
+  colorClassName: string;
+}): JSX.Element {
+  const max = Math.max(1, ...values);
+  return (
+    <div className="flex h-16 items-end gap-1">
+      {values.map((value, index) => (
+        <div key={`${index}-${value}`} className="flex-1 rounded-t-sm bg-slate-200/70">
+          <div
+            className={`w-full rounded-t-sm ${colorClassName}`}
+            style={{ height: `${Math.max(8, (value / max) * 64)}px` }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function renderWaveChart({
+  values,
+  stroke,
+  fill,
+}: {
+  values: number[];
+  stroke: string;
+  fill: string;
+}): JSX.Element {
+  if (values.length === 0) {
+    return (
+      <div className="h-16 rounded-xl border border-dashed border-slate-300 bg-slate-50" />
+    );
+  }
+  const width = 220;
+  const height = 64;
+  const max = Math.max(1, ...values);
+  const points = values
+    .map((value, index) => {
+      const x = values.length === 1 ? 0 : (index / (values.length - 1)) * width;
+      const y = height - (value / max) * height;
+      return `${x},${y}`;
+    })
+    .join(" ");
+  const areaPoints = `0,${height} ${points} ${width},${height}`;
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="h-16 w-full overflow-visible rounded-xl">
+      <polygon points={areaPoints} fill={fill} />
+      <polyline points={points} fill="none" stroke={stroke} strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
 }
 
 export default function Intelligence(): JSX.Element {
@@ -461,18 +523,21 @@ export default function Intelligence(): JSX.Element {
       },
     ]
       .filter((entry): entry is { id: string; action: NonNullable<typeof aiInsightLastAction> } => Boolean(entry.action))
-      .map((entry) => ({
-        id: entry.id,
-        title: entry.action.message,
-        time: formatRelativeTime(entry.action.timestamp),
-        status:
+      .map((entry) => {
+        const status: ActivityItem["status"] =
           entry.action.status === "success"
             ? "done"
             : entry.action.status === "error"
               ? "error"
-              : "in-progress",
-        timestamp: new Date(entry.action.timestamp).getTime(),
-      }))
+              : "in-progress";
+        return {
+          id: entry.id,
+          title: entry.action.message,
+          time: formatRelativeTime(entry.action.timestamp),
+          status,
+          timestamp: new Date(entry.action.timestamp).getTime(),
+        };
+      })
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 5)
       .map(({ timestamp: _timestamp, ...rest }) => rest);
@@ -498,6 +563,53 @@ export default function Intelligence(): JSX.Element {
       : activePathwayTitle
         ? `Keep building. Your next milestone is ${activePathwayTitle}.`
         : "Keep building. Load recommendations to reveal your next milestone.";
+
+  const pathwayStatusDistribution = useMemo(() => {
+    const distribution = { completed: 0, active: 0, locked: 0 };
+    dynamicPathwaySteps.forEach((step) => {
+      distribution[step.status] += 1;
+    });
+    return distribution;
+  }, [dynamicPathwaySteps]);
+
+  const recommendationComposition = useMemo(
+    () => ({
+      resources: recommendationResources.length,
+      projects: recommendationProjects.length,
+    }),
+    [recommendationResources.length, recommendationProjects.length],
+  );
+
+  const customPathwayStatusDistribution = useMemo(() => {
+    const counts = { private: 0, pending_review: 0, approved: 0, rejected: 0 };
+    customPathways.forEach((pathway) => {
+      if (pathway.status in counts) {
+        counts[pathway.status as keyof typeof counts] += 1;
+      }
+    });
+    return counts;
+  }, [customPathways]);
+
+  const matchScoreTrend = useMemo(
+    () => displayMatches.slice(0, 6).map((match) => match.matchScore),
+    [displayMatches],
+  );
+  const recommendationWaveValues = useMemo(
+    () => [
+      recommendationComposition.resources,
+      recommendationComposition.projects,
+      recommendations?.recommendations.length ?? 0,
+    ],
+    [recommendationComposition.resources, recommendationComposition.projects, recommendations],
+  );
+  const aiConfidenceScore = aiConfidence === "high" ? 100 : aiConfidence === "medium" ? 60 : 30;
+  const aiInsightWaveValues = useMemo(
+    () =>
+      aiInsight
+        ? [aiInsight.skill_gaps.length, aiInsight.next_steps.length, aiConfidenceScore]
+        : [],
+    [aiInsight, aiConfidenceScore],
+  );
 
   const stats = useMemo(
     () =>
@@ -719,6 +831,52 @@ export default function Intelligence(): JSX.Element {
   const errorSectionCount = sectionStates.filter((state) => state === "error").length;
   const loadingSectionCount = sectionStates.filter((state) => state === "loading").length;
   const emptySectionCount = sectionStates.filter((state) => state === "empty").length;
+  const overallHealthScore = Math.round(
+    (getStateScore(aiInsightState) + getStateScore(recommendationsState) + getStateScore(matchesState)) / 3,
+  );
+  const readinessTrend = [
+    {
+      id: "ai",
+      label: "AI Insight",
+      score: getStateScore(aiInsightState),
+      state: aiInsightState,
+    },
+    {
+      id: "recommendations",
+      label: "Recommendations",
+      score: getStateScore(recommendationsState),
+      state: recommendationsState,
+    },
+    {
+      id: "matching",
+      label: "Smart Matching",
+      score: getStateScore(matchesState),
+      state: matchesState,
+    },
+  ];
+  const profileDepthSignals = [
+    {
+      id: "skills",
+      label: "Skills",
+      value: profileSkills.length,
+      target: minimumSkillsForStrongInsight,
+      tone: "bg-sky-500",
+    },
+    {
+      id: "interests",
+      label: "Interests",
+      value: profileInterests.length,
+      target: minimumInterestsForStrongInsight,
+      tone: "bg-violet-500",
+    },
+    {
+      id: "goals",
+      label: "Goals",
+      value: profileGoals.length,
+      target: minimumGoalsForStrongInsight,
+      tone: "bg-emerald-500",
+    },
+  ];
 
   const aiInsightMissing = !aiInsight && !aiInsightLoading;
   const recommendationsMissing = !recommendations && !recommendationsLoading;
@@ -1268,17 +1426,26 @@ export default function Intelligence(): JSX.Element {
 
   return (
     <DashboardShell>
-      <PageHeader
-        eyebrow="VisionTech Intelligence"
-        title="Your personalised guidance and growth direction"
-        description="Track pathway progress, understand next steps, and receive intelligent recommendations tailored to your saved goals and profile."
-        actions={
-          <>
+      <section className="mb-6 overflow-hidden rounded-3xl border border-indigo-200/70 bg-gradient-to-br from-indigo-100 via-fuchsia-50 to-cyan-50 p-6 shadow-sm">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-indigo-700">
+              VisionTech Intelligence
+            </p>
+            <h1 className="mt-1 text-3xl font-bold tracking-tight text-indigo-950 sm:text-4xl">
+              Your personalised guidance and growth direction
+            </h1>
+            <p className="mt-3 max-w-3xl text-sm text-indigo-950/75">
+              Track pathway progress, understand next steps, and receive intelligent recommendations tailored to your saved goals and profile.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
             <button
               type="button"
               onClick={() => void handleRefreshIntelligence()}
               disabled={!pageReady || intelligenceRefreshing || aiReadinessLoading || refreshIntelligenceBlocked}
-              className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-indigo-300 bg-white px-4 text-sm font-semibold text-indigo-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Sparkles className="mr-2 h-4 w-4" />
               {intelligenceRefreshing ? "Refreshing..." : "Refresh Intelligence"}
@@ -1287,54 +1454,168 @@ export default function Intelligence(): JSX.Element {
               type="button"
               onClick={() => void handleTestAIConnection()}
               disabled={!user || profileLoading}
-              className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-cyan-300 bg-white px-4 text-sm font-semibold text-cyan-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Test AI Connection
             </button>
             <button
               type="button"
               disabled
-              className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white opacity-50"
+              className="inline-flex h-11 items-center justify-center rounded-2xl bg-gradient-to-r from-[var(--color-primary)] to-indigo-700 px-4 text-sm font-semibold text-white opacity-50"
             >
               <Bell className="mr-2 h-4 w-4" />
               Notifications
             </button>
-          </>
-        }
-      />
-
-      <SummaryGrid items={stats} />
-      <div className="mb-6 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm">
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="font-semibold text-[var(--color-on-surface)]">System status</p>
-            <p className={`mt-1 ${subtle}`}>
-              {intelligenceLoading
-                ? "Refreshing intelligence services..."
-                : hasRecoverableSectionErrors
-                  ? "Some intelligence services need recovery."
-                  : intelligenceReady
-                    ? "Intelligence services are active and responding."
-                    : "Intelligence services are waiting for available backend data."}
-            </p>
-            <p className={`mt-1 text-xs ${subtle}`}>
-              Last full refresh: {formatTimestamp(intelligenceUpdatedAt)}
-            </p>
-            {intelligenceLastAction ? (
-              <p className={`mt-1 text-xs ${getLastActionClassName(intelligenceLastAction.status)}`}>
-                Last refresh action: {intelligenceLastAction.message} ({formatTimestamp(intelligenceLastAction.timestamp)})
-              </p>
-            ) : (
-              <p className={`mt-1 text-xs ${subtle}`}>
-                Last refresh action: No refresh action recorded yet.
-              </p>
-            )}
-            <p className={`mt-1 text-xs ${subtle}`}>
-              Sections: {readySectionCount} ready, {loadingSectionCount} loading, {emptySectionCount} empty, {errorSectionCount} error.
-            </p>
           </div>
+        </div>
+      </section>
 
-          <div className="flex flex-wrap gap-2">
+      <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map((item, index) => (
+          <div
+            key={item.title}
+            className={`rounded-3xl border p-5 shadow-sm ${
+              index === 0
+                ? "border-indigo-200 bg-gradient-to-br from-indigo-50 to-white"
+                : index === 1
+                  ? "border-sky-200 bg-gradient-to-br from-sky-50 to-white"
+                  : index === 2
+                    ? "border-emerald-200 bg-gradient-to-br from-emerald-50 to-white"
+                    : "border-fuchsia-200 bg-gradient-to-br from-fuchsia-50 to-white"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm font-semibold text-[var(--color-on-surface-variant)]">{item.title}</p>
+              <div
+                className={`rounded-xl p-2 ${
+                  index === 0
+                    ? "bg-indigo-100 text-indigo-700"
+                    : index === 1
+                      ? "bg-sky-100 text-sky-700"
+                      : index === 2
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-fuchsia-100 text-fuchsia-700"
+                }`}
+              >
+                <item.icon className="h-4 w-4" />
+              </div>
+            </div>
+            <p className="mt-3 text-3xl font-bold text-[var(--color-on-surface)]">{item.value}</p>
+            <p className="mt-2 text-sm text-[var(--color-on-surface-variant)]">{item.note}</p>
+            <div className="mt-4">
+              {renderWaveChart({
+                values:
+                  index === 0
+                    ? [completionPercent, overallHealthScore, readySectionCount, errorSectionCount + emptySectionCount]
+                    : index === 1
+                      ? [profileSkills.length, profileInterests.length, profileGoals.length]
+                      : index === 2
+                        ? (matchScoreTrend.length > 0 ? matchScoreTrend : [displayMatches.length])
+                        : [aiInsight?.next_steps.length ?? 0, aiInsight?.skill_gaps.length ?? 0, recommendations?.recommendations.length ?? 0],
+                stroke:
+                  index === 0
+                    ? "#4f46e5"
+                    : index === 1
+                      ? "#0284c7"
+                      : index === 2
+                        ? "#059669"
+                        : "#c026d3",
+                fill:
+                  index === 0
+                    ? "rgba(79,70,229,0.12)"
+                    : index === 1
+                      ? "rgba(2,132,199,0.12)"
+                      : index === 2
+                        ? "rgba(5,150,105,0.12)"
+                        : "rgba(192,38,211,0.12)",
+              })}
+            </div>
+          </div>
+        ))}
+      </section>
+      <section className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-gradient-to-br from-[var(--color-surface-container-low)] via-[var(--color-surface-container)] to-[var(--color-surface-container-low)] p-4 text-sm xl:col-span-2">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="font-semibold text-[var(--color-on-surface)]">System status</p>
+              <p className={`mt-1 ${subtle}`}>
+                {intelligenceLoading
+                  ? "Refreshing intelligence services..."
+                  : hasRecoverableSectionErrors
+                    ? "Some intelligence services need recovery."
+                    : intelligenceReady
+                      ? "Intelligence services are active and responding."
+                      : "Intelligence services are waiting for available backend data."}
+              </p>
+              <p className={`mt-1 text-xs ${subtle}`}>
+                Last full refresh: {formatTimestamp(intelligenceUpdatedAt)}
+              </p>
+              {intelligenceLastAction ? (
+                <p className={`mt-1 text-xs ${getLastActionClassName(intelligenceLastAction.status)}`}>
+                  Last refresh action: {intelligenceLastAction.message} ({formatTimestamp(intelligenceLastAction.timestamp)})
+                </p>
+              ) : (
+                <p className={`mt-1 text-xs ${subtle}`}>
+                  Last refresh action: No refresh action recorded yet.
+                </p>
+              )}
+              <p className={`mt-1 text-xs ${subtle}`}>
+                Sections: {readySectionCount} ready, {loadingSectionCount} loading, {emptySectionCount} empty, {errorSectionCount} error.
+              </p>
+            </div>
+
+            <div className="grid min-w-[220px] grid-cols-3 gap-2">
+              {readinessTrend.map((item) => (
+                <div key={item.id} className="rounded-xl border border-[var(--color-outline-variant)] bg-white/80 p-2">
+                  <p className="text-[11px] font-semibold text-[var(--color-on-surface-variant)]">{item.label}</p>
+                  <div className="mt-2 h-1.5 rounded-full bg-slate-200">
+                    <div
+                      className={`h-full rounded-full ${
+                        item.state === "ready"
+                          ? "bg-emerald-500"
+                          : item.state === "loading"
+                            ? "bg-amber-500"
+                            : item.state === "error"
+                              ? "bg-rose-500"
+                              : "bg-slate-400"
+                      }`}
+                      style={{ width: `${item.score}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs font-semibold text-[var(--color-on-surface)]">{item.score}%</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-gradient-to-b from-[#f6f2ff] to-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-on-surface-variant)]">
+            Intelligence Health
+          </p>
+          <div className="mt-3 flex items-center gap-4">
+            <div
+              className="grid h-20 w-20 place-items-center rounded-full"
+              style={{
+                background: `conic-gradient(#4f46e5 ${overallHealthScore * 3.6}deg, #e2e8f0 0deg)`,
+              }}
+            >
+              <div className="grid h-14 w-14 place-items-center rounded-full bg-white text-sm font-bold text-[var(--color-on-surface)]">
+                {overallHealthScore}%
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-[var(--color-on-surface)]">Operational confidence</p>
+              <p className={`mt-1 text-xs ${subtle}`}>
+                {overallHealthScore >= 80
+                  ? "Signals are strong across intelligence services."
+                  : overallHealthScore >= 60
+                    ? "Most systems are available, with minor gaps."
+                    : "Some sections need attention to raise quality."}
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
             <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-[var(--color-on-surface-variant)]">
               AI Insight: {aiInsightLoading ? "Loading" : aiInsightError ? "Error" : aiInsight ? "Ready" : "Empty"}
             </span>
@@ -1346,7 +1627,37 @@ export default function Intelligence(): JSX.Element {
             </span>
           </div>
         </div>
-      </div>
+      </section>
+
+      <section className="mb-6 rounded-2xl border border-[var(--color-outline-variant)] bg-gradient-to-r from-sky-50 via-white to-violet-50 p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-sm font-semibold text-[var(--color-on-surface)]">Profile Signal Depth</p>
+          <p className={`text-xs ${subtle}`}>Live onboarding data quality indicators</p>
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          {profileDepthSignals.map((item) => {
+            const score = Math.min(100, Math.round((item.value / item.target) * 100));
+            return (
+              <div key={item.id} className="rounded-xl border border-[var(--color-outline-variant)] bg-white p-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-on-surface-variant)]">
+                    {item.label}
+                  </p>
+                  <p className="text-sm font-bold text-[var(--color-on-surface)]">
+                    {item.value}/{item.target}
+                  </p>
+                </div>
+                <div className="mt-3 h-2 rounded-full bg-slate-200">
+                  <div className={`h-full rounded-full ${item.tone}`} style={{ width: `${score}%` }} />
+                </div>
+                <p className={`mt-2 text-xs ${subtle}`}>
+                  {score >= 100 ? "Strong" : "Needs enrichment"}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
       {aiStateLoading ? (
         <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
           Checking intelligence readiness...
@@ -1457,26 +1768,38 @@ export default function Intelligence(): JSX.Element {
 
       {/* Hero summary */}
       <section className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm lg:col-span-2">
+        <div className="rounded-3xl border border-fuchsia-200/70 bg-gradient-to-br from-fuchsia-50 via-white to-indigo-50 p-6 shadow-sm lg:col-span-2">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-sm font-semibold text-[var(--color-on-surface-variant)]">Current Focus</p>
-              <h2 className="mt-2 text-2xl font-bold text-[var(--color-primary)]">{field}</h2>
-              <p className="mt-2 max-w-xl text-sm text-[var(--color-on-surface-variant)]">
+              <p className="text-sm font-semibold text-fuchsia-700">Current Focus</p>
+              <h2 className="mt-2 text-2xl font-bold text-fuchsia-900">{field}</h2>
+              <p className="mt-2 max-w-xl text-sm text-fuchsia-900/75">
                 You are in the structured development stage. VisionTech is guiding you from skill awareness into practical readiness and stronger opportunity alignment.
               </p>
             </div>
 
-            <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-5">
-              <p className="text-sm text-[var(--color-on-surface-variant)]">Completion</p>
-              <p className="mt-1 text-3xl font-bold text-[var(--color-on-surface)]">{completionPercent}%</p>
-              <p className="mt-2 text-sm text-[var(--color-on-surface-variant)]">{completionMessage}</p>
+            <div className="rounded-2xl border border-fuchsia-200 bg-white/90 p-5">
+              <p className="text-sm text-fuchsia-700">Completion</p>
+              <p className="mt-1 text-3xl font-bold text-fuchsia-900">{completionPercent}%</p>
+              <p className="mt-2 text-sm text-fuchsia-900/70">{completionMessage}</p>
+              <div className="mt-3">
+                {renderWaveChart({
+                  values: [
+                    completionPercent,
+                    overallHealthScore,
+                    readySectionCount,
+                    loadingSectionCount + errorSectionCount + emptySectionCount,
+                  ],
+                  stroke: "#c026d3",
+                  fill: "rgba(192,38,211,0.12)",
+                })}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
-          <p className="text-sm font-semibold text-[var(--color-on-surface-variant)]">Quick Summary</p>
+        <div className="rounded-3xl border border-violet-200/80 bg-gradient-to-br from-violet-50 to-white p-6 shadow-sm">
+          <p className="text-sm font-semibold text-violet-700">Quick Summary</p>
 
           <div className="mt-4 space-y-4">
             <div>
@@ -1502,10 +1825,10 @@ export default function Intelligence(): JSX.Element {
           {/* Left and center content */}
           <div className="space-y-6 xl:col-span-2">
             {/* Pathway section */}
-            <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
+            <div className="rounded-3xl border border-indigo-200/70 bg-gradient-to-br from-indigo-50 via-white to-sky-50 p-6 shadow-sm">
               <div className="mb-6 flex items-center justify-between">
                 <div>
-                  <p className={`text-sm font-semibold ${subtle}`}>Intelligent Pathway</p>
+                  <p className="text-sm font-semibold text-indigo-700">Intelligent Pathway</p>
                   <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Your guided journey</h3>
                 </div>
                 <button
@@ -1516,6 +1839,35 @@ export default function Intelligence(): JSX.Element {
                   View full pathway
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
+              </div>
+              <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="rounded-xl border border-indigo-200 bg-white/90 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Pathway Phase Mix</p>
+                  <div className="mt-3">
+                    {renderMiniBarChart({
+                      values: [
+                        pathwayStatusDistribution.completed,
+                        pathwayStatusDistribution.active,
+                        pathwayStatusDistribution.locked,
+                      ],
+                      colorClassName: "bg-gradient-to-t from-indigo-500 to-sky-400",
+                    })}
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Done</p>
+                    <p className="mt-1 text-xl font-bold text-emerald-800">{pathwayStatusDistribution.completed}</p>
+                  </div>
+                  <div className="rounded-xl border border-sky-200 bg-sky-50 p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-sky-700">Active</p>
+                    <p className="mt-1 text-xl font-bold text-sky-800">{pathwayStatusDistribution.active}</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-700">Locked</p>
+                    <p className="mt-1 text-xl font-bold text-slate-800">{pathwayStatusDistribution.locked}</p>
+                  </div>
+                </div>
               </div>
               <div className="space-y-4">
                 {dynamicPathwaySteps.map((step, index) => (
@@ -1546,12 +1898,12 @@ export default function Intelligence(): JSX.Element {
             </div>
 
             {/* AI insights */}
-            <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
+            <div className="rounded-3xl border border-violet-200/80 bg-gradient-to-br from-violet-50 via-white to-indigo-50 p-6 shadow-sm">
               <div className="mb-6 flex items-start justify-between gap-4">
                 <div>
-                  <p className={`text-sm font-semibold ${subtle}`}>AI Insights</p>
+                  <p className="text-sm font-semibold text-violet-700">AI Insights</p>
                   <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Personalised growth guidance</h3>
-                  <p className={`mt-2 text-sm ${subtle}`}>
+                  <p className="mt-2 text-sm text-violet-900/75">
                     {aiInsight
                       ? "Generated from your latest onboarding profile."
                       : aiInsightLoading
@@ -1564,19 +1916,19 @@ export default function Intelligence(): JSX.Element {
                               ? "AI insight is ready to generate from your profile."
                               : "AI insight quality may be limited until onboarding data is stronger."}
                   </p>
-                  <p className={`mt-2 text-xs ${subtle}`}>
+                  <p className="mt-2 text-xs text-violet-900/60">
                     Last updated: {formatTimestamp(aiInsightUpdatedAt)}
                   </p>
-                  <p className={`mt-1 text-xs ${subtle}`}>
+                  <p className="mt-1 text-xs text-violet-900/60">
                     Source: {getAIInsightSourceLabel(aiInsightSource)}
                   </p>
                   {aiInsight && aiInsightIsCached && (
-                    <p className={`mt-1 text-xs ${subtle}`}>
+                    <p className="mt-1 text-xs text-violet-900/60">
                       Using cached data
                     </p>
                   )}
                   {(skillsAreThin || interestsAreThin || goalsAreThin) && (
-                    <p className={`mt-1 text-xs ${subtle}`}>
+                    <p className="mt-1 text-xs text-violet-900/60">
                       Insight quality may be limited until your skills, interests, and goals are more complete.
                     </p>
                   )}
@@ -1592,7 +1944,7 @@ export default function Intelligence(): JSX.Element {
                     </span>
                   ) : null}
                   {renderSectionBadge(aiInsightState)}
-                  <div className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--color-primary)]">
+                  <div className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">
                     {aiStatusLabel}
                   </div>
                   <button
@@ -1605,7 +1957,7 @@ export default function Intelligence(): JSX.Element {
                       || aiReadiness === null
                       || !profileInsightCanGenerate
                     }
-                    className="inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex h-10 items-center justify-center rounded-2xl border border-violet-200 bg-white px-4 text-sm font-medium text-violet-700 transition hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Sparkles className="mr-2 h-4 w-4" />
                     {aiInsightLoading ? "Refreshing..." : "Refresh AI Insight"}
@@ -1624,53 +1976,80 @@ export default function Intelligence(): JSX.Element {
                 </div>
               ) : aiInsight ? (
                 <div className="space-y-5">
-                  <p className={`mt-1 text-xs ${subtle}`}>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className="rounded-xl border border-violet-200 bg-white/90 p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">Insight Signal Curve</p>
+                      <div className="mt-2">
+                        {renderWaveChart({
+                          values: aiInsightWaveValues,
+                          stroke: "#7c3aed",
+                          fill: "rgba(124,58,237,0.12)",
+                        })}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-violet-200 bg-white/90 p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">Gap vs Action Distribution</p>
+                      <div className="mt-3">
+                        {renderMiniBarChart({
+                          values: [aiInsight.skill_gaps.length, aiInsight.next_steps.length],
+                          colorClassName: "bg-gradient-to-t from-violet-600 to-fuchsia-400",
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="mt-1 text-xs text-violet-900/60">
                     {aiConfidence === "high"
                       ? "Your profile data is strong, so this insight is highly personalised."
                       : aiConfidence === "medium"
                         ? "This insight is based on limited data. Adding more details will improve accuracy."
                         : "This insight has low confidence due to limited profile data."}
                   </p>
-                  <p className={`mb-3 text-xs ${subtle}`}>
+                  <p className="mb-3 text-xs text-violet-900/60">
                     {aiInsightSource === "fresh"
                       ? "This insight was generated during your current session."
                       : aiInsightSource === "saved"
                         ? "This insight was retrieved from your saved intelligence data."
                         : "Source information is not available."}
                   </p>
-                  <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
-                    <div className="mb-2 inline-flex rounded-xl bg-[var(--color-surface-container-lowest)] p-2">
-                      <Sparkles className="h-4 w-4 text-[var(--color-on-surface)]" />
+                  <div className="rounded-2xl border border-violet-200/70 bg-gradient-to-r from-violet-100/60 to-indigo-100/50 p-4">
+                    <div className="mb-2 inline-flex rounded-xl bg-white/85 p-2 shadow-sm">
+                      <Sparkles className="h-4 w-4 text-violet-700" />
                     </div>
-                    <h4 className="font-semibold text-[var(--color-primary)]">Profile summary</h4>
-                    <p className={`mt-2 text-sm leading-6 ${subtle}`}>{aiInsight.summary}</p>
+                    <h4 className="font-semibold text-violet-700">Profile summary</h4>
+                    <p className="mt-2 text-sm leading-6 text-violet-950/80">{aiInsight.summary}</p>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
-                    <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
-                      <p className="text-sm font-semibold text-[var(--color-on-surface)]">Skill gaps</p>
+                    <div className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-cyan-50 p-4">
+                      <p className="text-sm font-semibold text-sky-800">Skill gaps</p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {aiInsight.skill_gaps.map((gap, idx) => (
-                          <span key={idx} className="rounded-full bg-white px-3 py-2 text-xs font-medium text-[var(--color-on-surface-variant)]">
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-white px-3 py-2 text-xs font-medium text-sky-800 shadow-sm"
+                          >
+                            <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
                             {gap}
                           </span>
                         ))}
                         {aiInsight.skill_gaps.length === 0 && (
-                          <span className={`text-sm ${subtle}`}>No gaps detected</span>
+                          <span className="text-sm text-sky-800/70">No gaps detected</span>
                         )}
                       </div>
                     </div>
 
-                    <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
-                      <p className="text-sm font-semibold text-[var(--color-on-surface)]">Next steps</p>
-                      <ul className="mt-3 space-y-2 text-sm text-[var(--color-on-surface-variant)]">
+                    <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-lime-50 p-4">
+                      <p className="text-sm font-semibold text-emerald-800">Next steps</p>
+                      <ul className="mt-3 space-y-2 text-sm text-emerald-900/80">
                         {aiInsight.next_steps.map((step, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span className="mt-1 h-2 w-2 rounded-full bg-[var(--color-primary)]" />
+                          <li key={idx} className="flex items-start gap-2 rounded-xl border border-emerald-200/80 bg-white/80 px-3 py-2">
+                            <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white">
+                              {idx + 1}
+                            </span>
                             <span>{step}</span>
                           </li>
                         ))}
-                        {aiInsight.next_steps.length === 0 && <li className={subtle}>Next steps will appear here</li>}
+                        {aiInsight.next_steps.length === 0 && <li className="text-emerald-800/70">Next steps will appear here</li>}
                       </ul>
                     </div>
                   </div>
@@ -1705,19 +2084,19 @@ export default function Intelligence(): JSX.Element {
             </div>
 
             {/* Recommendations section */}
-            <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
+            <div className="rounded-3xl border border-cyan-200/70 bg-gradient-to-br from-cyan-50 via-white to-sky-50 p-6 shadow-sm">
               <div className="mb-6 flex items-start justify-between gap-3">
                 <div>
-                  <p className={`text-sm font-semibold ${subtle}`}>Recommendations</p>
+                  <p className="text-sm font-semibold text-cyan-700">Recommendations</p>
                   <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Suggested pathways and next steps</h3>
-                  <p className={`mt-2 text-sm ${subtle}`}>
+                  <p className="mt-2 text-sm text-cyan-900/75">
                     Practical recommendations aligned with your saved profile and AI guidance.
                   </p>
-                  <p className={`mt-2 text-xs ${subtle}`}>
+                  <p className="mt-2 text-xs text-cyan-900/60">
                     Last updated: {formatTimestamp(recommendationsUpdatedAt)}
                   </p>
                   {(skillsAreThin || goalsAreThin) && (
-                    <p className={`mt-1 text-xs ${subtle}`}>
+                    <p className="mt-1 text-xs text-cyan-900/60">
                       Recommendations improve when your profile includes enough skills and goals.
                     </p>
                   )}
@@ -1740,6 +2119,27 @@ export default function Intelligence(): JSX.Element {
               ) : recommendations ? (
                 hasRecommendationData ? (
                   <div className="space-y-6">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <div className="rounded-xl border border-cyan-200 bg-white/90 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700">Recommendation Mix</p>
+                        <div className="mt-3">
+                          {renderMiniBarChart({
+                            values: [recommendationComposition.resources, recommendationComposition.projects],
+                            colorClassName: "bg-gradient-to-t from-cyan-600 to-sky-400",
+                          })}
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-sky-200 bg-white/90 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Priority Wave</p>
+                        <div className="mt-2">
+                          {renderWaveChart({
+                            values: recommendationWaveValues,
+                            stroke: "#0284c7",
+                            fill: "rgba(2,132,199,0.14)",
+                          })}
+                        </div>
+                      </div>
+                    </div>
                     {!hasStructuredRecommendationFields && hasFilteredCompletedRecommendations && (
                       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
                         Completed tasks were excluded from this list.
@@ -1747,15 +2147,21 @@ export default function Intelligence(): JSX.Element {
                     )}
 
                     <div>
-                      <h4 className="font-semibold text-[var(--color-primary)]">Recommended Resources</h4>
+                      <h4 className="font-semibold text-cyan-700">Recommended Resources</h4>
                       <div className="mt-3 grid gap-4 md:grid-cols-2">
                         {recommendationResources.map((item) => (
-                          <div key={item.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                          <div
+                            key={item.id}
+                            className="group rounded-2xl border border-cyan-200 bg-gradient-to-br from-white to-cyan-50 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                          >
+                            <div className="mb-3 inline-flex rounded-full bg-cyan-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-cyan-700">
+                              Resource
+                            </div>
                             <p className="text-sm font-semibold text-[var(--color-on-surface)]">{item.title}</p>
-                            <p className={`mt-1 text-xs ${subtle}`}>
+                            <p className="mt-1 text-xs text-cyan-900/65">
                               {item.type} - {item.level}
                             </p>
-                            <p className={`mt-3 text-sm ${subtle}`}>{item.reason}</p>
+                            <p className="mt-3 text-sm text-cyan-950/75">{item.reason}</p>
                           </div>
                         ))}
                         {recommendationResources.length === 0 && (
@@ -1765,12 +2171,18 @@ export default function Intelligence(): JSX.Element {
                     </div>
 
                     <div>
-                      <h4 className="font-semibold text-[var(--color-primary)]">Recommended Projects</h4>
+                      <h4 className="font-semibold text-cyan-700">Recommended Projects</h4>
                       <div className="mt-3 grid gap-4 md:grid-cols-2">
                         {recommendationProjects.map((item) => (
-                          <div key={item.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                          <div
+                            key={item.id}
+                            className="group rounded-2xl border border-sky-200 bg-gradient-to-br from-white to-sky-50 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                          >
+                            <div className="mb-3 inline-flex rounded-full bg-sky-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700">
+                              Project
+                            </div>
                             <p className="text-sm font-semibold text-[var(--color-on-surface)]">{item.title}</p>
-                            <p className={`mt-1 text-xs ${subtle}`}>
+                            <p className="mt-1 text-xs text-sky-900/65">
                               {item.type} - {item.level}
                             </p>
                             {item.badges && item.badges.length > 0 ? (
@@ -1778,14 +2190,14 @@ export default function Intelligence(): JSX.Element {
                                 {item.badges.map((badge) => (
                                   <span
                                     key={`${item.id}-${badge}`}
-                                    className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-medium text-slate-600"
+                                    className="rounded-full border border-cyan-200 bg-white px-2 py-1 text-[10px] font-medium text-cyan-700"
                                   >
                                     {badge}
                                   </span>
                                 ))}
                               </div>
                             ) : null}
-                            <p className={`mt-3 text-sm ${subtle}`}>{item.reason}</p>
+                            <p className="mt-3 text-sm text-sky-950/75">{item.reason}</p>
                           </div>
                         ))}
                         {recommendationProjects.length === 0 && (
@@ -1829,15 +2241,15 @@ export default function Intelligence(): JSX.Element {
             </div>
 
             {/* Custom pathways section */}
-            <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
+            <div className="rounded-3xl border border-amber-200/80 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-6 shadow-sm">
               <div className="mb-6 flex items-start justify-between gap-3">
                 <div>
-                  <p className={`text-sm font-semibold ${subtle}`}>Custom Pathways</p>
+                  <p className="text-sm font-semibold text-amber-700">Custom Pathways</p>
                   <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Build your own pathway</h3>
-                  <p className={`mt-2 text-sm ${subtle}`}>
+                  <p className="mt-2 text-sm text-amber-900/75">
                     If official pathways do not fit your goal, define a custom pathway and keep it in your intelligence workspace.
                   </p>
-                  <p className={`mt-2 text-xs ${subtle}`}>
+                  <p className="mt-2 text-xs text-amber-900/60">
                     Last updated: {formatTimestamp(customPathwaysUpdatedAt)}
                   </p>
                 </div>
@@ -1860,6 +2272,47 @@ export default function Intelligence(): JSX.Element {
                   </button>
                 </div>
               </div>
+              <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="rounded-xl border border-amber-200 bg-white/90 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Status Distribution</p>
+                  <div className="mt-3">
+                    {renderMiniBarChart({
+                      values: [
+                        customPathwayStatusDistribution.private,
+                        customPathwayStatusDistribution.pending_review,
+                        customPathwayStatusDistribution.approved,
+                        customPathwayStatusDistribution.rejected,
+                      ],
+                      colorClassName: "bg-gradient-to-t from-amber-500 to-orange-400",
+                    })}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-orange-200 bg-white/90 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">Portfolio Split</p>
+                  <div className="mt-3 flex items-center gap-4">
+                    <div
+                      className="grid h-16 w-16 place-items-center rounded-full"
+                      style={{
+                        background: `conic-gradient(#f59e0b ${
+                          customPathways.length > 0
+                            ? Math.round((customPathwayStatusDistribution.private / customPathways.length) * 360)
+                            : 0
+                        }deg, #fde68a 0deg)`,
+                      }}
+                    >
+                      <div className="grid h-11 w-11 place-items-center rounded-full bg-white text-[10px] font-bold text-amber-800">
+                        {customPathways.length}
+                      </div>
+                    </div>
+                    <div className="space-y-1 text-xs text-amber-900/70">
+                      <p>Private: {customPathwayStatusDistribution.private}</p>
+                      <p>Review: {customPathwayStatusDistribution.pending_review}</p>
+                      <p>Approved: {customPathwayStatusDistribution.approved}</p>
+                      <p>Rejected: {customPathwayStatusDistribution.rejected}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {customPathwaysError ? (
                 <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -1868,7 +2321,7 @@ export default function Intelligence(): JSX.Element {
               ) : null}
 
               {showCustomPathwayForm ? (
-                <div className="mb-5 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4">
+                <div className="mb-5 rounded-2xl border border-amber-200 bg-white/90 p-4">
                   <p className="text-sm font-semibold text-[var(--color-on-surface)]">
                     {editingCustomPathwayId ? "Edit custom pathway" : "Create a custom pathway"}
                   </p>
@@ -1937,12 +2390,12 @@ export default function Intelligence(): JSX.Element {
                   {customPathways.map((pathway) => (
                     <div
                       key={pathway.id}
-                      className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4"
+                      className="rounded-2xl border border-amber-200 bg-gradient-to-br from-white to-amber-50 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <h4 className="text-base font-semibold text-[var(--color-on-surface)]">{pathway.title}</h4>
-                          <p className={`mt-1 text-xs uppercase tracking-wide ${subtle}`}>
+                          <p className="mt-1 text-xs uppercase tracking-wide text-amber-900/70">
                             {pathway.current_skill_level} - {pathway.status}
                           </p>
                         </div>
@@ -1992,12 +2445,12 @@ export default function Intelligence(): JSX.Element {
             </div>
 
             {/* Match section */}
-            <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
+            <div className="rounded-3xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-6 shadow-sm">
               <div className="mb-6 flex items-center justify-between">
                 <div>
-                  <p className={`text-sm font-semibold ${subtle}`}>Smart Matching</p>
+                  <p className="text-sm font-semibold text-emerald-700">Smart Matching</p>
                   <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">People and collaboration fits</h3>
-                  <p className={`mt-2 text-sm ${subtle}`}>
+                  <p className="mt-2 text-sm text-emerald-900/75">
                     {matchesLoading
                       ? "Loading backend-driven matches..."
                       : hasRealMatches
@@ -2008,11 +2461,11 @@ export default function Intelligence(): JSX.Element {
                             ? "No smart matches have been loaded yet."
                             : "No matches are available yet for your current profile."}
                   </p>
-                  <p className={`mt-2 text-xs ${subtle}`}>
+                  <p className="mt-2 text-xs text-emerald-900/60">
                     Last updated: {formatTimestamp(matchesUpdatedAt)}
                   </p>
                   {(skillsAreThin || interestsAreThin) && (
-                    <p className={`mt-1 text-xs ${subtle}`}>
+                    <p className="mt-1 text-xs text-emerald-900/60">
                       Smart matching works better when both skills and interests are well defined.
                     </p>
                   )}
@@ -2028,6 +2481,16 @@ export default function Intelligence(): JSX.Element {
                     Explore all matches
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </button>
+                </div>
+              </div>
+              <div className="mb-5 rounded-xl border border-emerald-200 bg-white/90 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Match Strength Wave</p>
+                <div className="mt-2">
+                  {renderWaveChart({
+                    values: matchScoreTrend,
+                    stroke: "#059669",
+                    fill: "rgba(5,150,105,0.14)",
+                  })}
                 </div>
               </div>
               {matchesLoading ? (
@@ -2049,21 +2512,21 @@ export default function Intelligence(): JSX.Element {
               ) : displayMatches.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-3">
                   {displayMatches.map((match) => (
-                    <div key={match.id} className="rounded-2xl border border-[var(--color-outline-variant)] p-4">
+                    <div key={match.id} className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-white to-emerald-50 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <h4 className="font-semibold text-[var(--color-on-surface)]">{match.name}</h4>
-                          <p className={`mt-1 text-sm ${subtle}`}>{match.role}</p>
+                          <p className="mt-1 text-sm text-emerald-900/70">{match.role}</p>
                         </div>
-                        <div className="rounded-xl px-3 py-2 text-sm font-bold bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+                        <div className="rounded-xl bg-emerald-100 px-3 py-2 text-sm font-bold text-emerald-700">
                           {match.matchScore}%
                         </div>
                       </div>
-                      <p className={`mt-4 text-sm ${subtle}`}>{match.reason}</p>
+                      <p className="mt-4 text-sm text-emerald-950/75">{match.reason}</p>
                       <button
                         type="button"
                         disabled
-                        className="mt-4 inline-flex h-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white opacity-50"
+                        className="mt-4 inline-flex h-10 items-center justify-center rounded-2xl bg-emerald-600 px-4 text-sm font-medium text-white opacity-50"
                       >
                         Connect
                       </button>
@@ -2093,8 +2556,8 @@ export default function Intelligence(): JSX.Element {
           {/* Right sidebar content */}
           <aside className="space-y-6">
             {/* Quick actions */}
-            <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
-              <p className={`text-sm font-semibold ${subtle}`}>Quick Actions</p>
+            <div className="rounded-3xl border border-rose-200/80 bg-gradient-to-br from-rose-50 to-white p-6 shadow-sm">
+              <p className="text-sm font-semibold text-rose-700">Quick Actions</p>
               <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Move faster</h3>
               <div className="mt-5 space-y-3">
                 {[
@@ -2106,9 +2569,9 @@ export default function Intelligence(): JSX.Element {
                     key={action.label}
                     type="button"
                     disabled
-                    className={`${comingSoonButtonClass} w-full justify-between text-left`}
+                    className={`${comingSoonButtonClass} w-full justify-between border-rose-200 bg-white/80 text-left`}
                   >
-                    <span className="flex items-center gap-3 text-[var(--color-primary)]">
+                    <span className="flex items-center gap-3 text-rose-700">
                       <action.icon className="h-4 w-4" />
                       {action.label}
                     </span>
@@ -2119,9 +2582,24 @@ export default function Intelligence(): JSX.Element {
             </div>
 
             {/* Activity timeline */}
-            <div className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
-              <p className={`text-sm font-semibold ${subtle}`}>Recent Activity</p>
+            <div className="rounded-3xl border border-slate-200/80 bg-gradient-to-br from-slate-50 to-white p-6 shadow-sm">
+              <p className="text-sm font-semibold text-slate-700">Recent Activity</p>
               <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Your momentum</h3>
+              <div className="mt-3 rounded-xl border border-slate-200 bg-white p-2">
+                {renderWaveChart({
+                  values: recentActivities.map((activity) =>
+                    activity.status === "done"
+                      ? 100
+                      : activity.status === "in-progress"
+                        ? 60
+                        : activity.status === "error"
+                          ? 20
+                          : 40,
+                  ),
+                  stroke: "#475569",
+                  fill: "rgba(71,85,105,0.12)",
+                })}
+              </div>
               <div className="mt-5 space-y-4">
                 {recentActivities.map((activity) => (
                   <div key={activity.id} className="flex gap-3">
@@ -2143,7 +2621,7 @@ export default function Intelligence(): JSX.Element {
             </div>
 
             {/* Opportunity readiness box */}
-            <div className="rounded-3xl p-6 text-white shadow-sm bg-[var(--color-primary)]">
+            <div className="rounded-3xl bg-gradient-to-br from-[var(--color-primary)] via-[#2d0d72] to-[#0f766e] p-6 text-white shadow-sm">
               <p className="text-sm font-semibold text-white/80">VisionTech Signal</p>
               <h3 className="mt-1 text-xl font-bold">Opportunity readiness is improving</h3>
               <p className="mt-3 text-sm leading-6 text-white/90">
