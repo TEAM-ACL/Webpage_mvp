@@ -7,13 +7,13 @@ import { setOnboardingComplete } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { toUserMessage } from "../lib/userErrors";
+import { getEmailConfirmationRedirectUrl } from "../lib/authRedirects";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const hasUppercase = (value: string) => /[A-Z]/.test(value);
 const hasLowercase = (value: string) => /[a-z]/.test(value);
 const hasSpecialCharacter = (value: string) => /[^A-Za-z0-9]/.test(value);
-const emailConfirmationRedirectUrl =
-  import.meta.env.VITE_AUTH_EMAIL_CONFIRMATION_REDIRECT_URL || `${window.location.origin}/auth/callback`;
+const emailConfirmationRedirectUrl = getEmailConfirmationRedirectUrl();
 const duplicateEmailMessage = "This email is already registered. Try signing in or resending verification.";
 
 const isAlreadyRegisteredError = (message: string): boolean => {
