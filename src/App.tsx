@@ -37,6 +37,30 @@ function AuthHashBridge() {
     const accessToken = readParam('access_token');
     const refreshToken = readParam('refresh_token');
     const callbackType = readParam('type');
+    const callbackError = readParam('error');
+    const callbackErrorCode = readParam('error_code');
+    const callbackErrorDescription = readParam('error_description');
+
+    if (callbackError || callbackErrorCode) {
+      const nextParams = new URLSearchParams();
+      if (callbackError) nextParams.set('error', callbackError);
+      if (callbackErrorCode) nextParams.set('error_code', callbackErrorCode);
+      if (callbackErrorDescription) nextParams.set('error_description', callbackErrorDescription);
+      if (callbackType) nextParams.set('type', callbackType);
+
+      const recoveryErrorTarget = `/reset-password?${nextParams.toString()}`;
+      const callbackErrorTarget = `/auth/callback?${nextParams.toString()}`;
+
+      if (callbackType === 'recovery' && location.pathname !== '/reset-password') {
+        navigate(recoveryErrorTarget, { replace: true });
+        return;
+      }
+
+      if (location.pathname !== '/auth/callback') {
+        navigate(callbackErrorTarget, { replace: true });
+      }
+      return;
+    }
 
     if (!accessToken && !refreshToken) {
       return;
