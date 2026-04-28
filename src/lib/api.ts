@@ -89,6 +89,7 @@ export type AuthSessionResponse = {
     display_name: string | null;
     first_name: string | null;
     last_name: string | null;
+    role?: string | null;
   };
 };
 

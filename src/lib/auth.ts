@@ -11,6 +11,7 @@ type StoredUser = {
   display_name: string | null;
   first_name: string | null;
   last_name: string | null;
+  role?: string | null;
 };
 
 export function getUser(): StoredUser | null {
@@ -42,6 +43,10 @@ export function setAdminFlag(value: boolean): void {
 export function isAdmin(): boolean {
   if (sessionStorage.getItem(ADMIN_KEY) === "true") return true;
   const user = getUser();
+  const role = user?.role?.toLowerCase();
+  if (role === "admin" || role === "super_admin" || role === "superadmin") {
+    return true;
+  }
   return user?.email?.toLowerCase().endsWith("@visiontech.ai") ?? false;
 }
 
