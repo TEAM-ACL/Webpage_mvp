@@ -7,10 +7,10 @@ import { api, storeSession } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { toUserMessage } from "../lib/userErrors";
+import { getEmailConfirmationRedirectUrl } from "../lib/authRedirects";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const emailConfirmationRedirectUrl =
-  import.meta.env.VITE_AUTH_EMAIL_CONFIRMATION_REDIRECT_URL || `${window.location.origin}/auth/callback`;
+const emailConfirmationRedirectUrl = getEmailConfirmationRedirectUrl();
 
 export default function Login(): JSX.Element {
   const navigate = useNavigate();

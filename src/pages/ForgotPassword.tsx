@@ -4,9 +4,9 @@ import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import { useToast } from "../context/ToastContext";
 import { toUserMessage } from "../lib/userErrors";
+import { getPasswordResetRedirectUrl } from "../lib/authRedirects";
 
-const passwordResetRedirectUrl =
-  import.meta.env.VITE_AUTH_PASSWORD_RESET_REDIRECT_URL || `${window.location.origin}/reset-password`;
+const passwordResetRedirectUrl = getPasswordResetRedirectUrl();
 
 export default function ForgotPassword(): JSX.Element {
   const { showError, showSuccess } = useToast();

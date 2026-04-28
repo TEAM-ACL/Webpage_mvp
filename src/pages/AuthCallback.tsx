@@ -62,6 +62,15 @@ export default function AuthCallback(): JSX.Element {
           sessionStorage.setItem("refresh_token", callbackPayload.refreshToken);
         }
 
+        if (callbackPayload.verificationType === "recovery") {
+          clearCallbackUrlArtifacts();
+          if (!callbackPayload.accessToken) {
+            throw new Error("This password reset link is invalid or has expired. Please request a new one.");
+          }
+          navigate("/reset-password", { replace: true });
+          return;
+        }
+
         clearCallbackUrlArtifacts();
 
         if (!callbackPayload.accessToken && !callbackPayload.refreshToken) {

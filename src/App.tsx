@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Header, Footer } from './components/Layout';
 import Home from './pages/Home';
 import Workspace from './pages/Workspace';
@@ -22,11 +24,50 @@ import { ToastProvider } from './context/ToastContext';
 import ResetPassword from './pages/ResetPassword';
 import { RequireAdmin, RequireAuth, RequireOnboardingComplete, RedirectIfOnboarded } from './components/ProtectedRoute';
 
+function AuthHashBridge() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
+    const hashParams = new URLSearchParams(hash);
+    const queryParams = new URLSearchParams(window.location.search);
+    const readParam = (key: string): string | null => hashParams.get(key) ?? queryParams.get(key);
+
+    const accessToken = readParam('access_token');
+    const refreshToken = readParam('refresh_token');
+    const callbackType = readParam('type');
+
+    if (!accessToken && !refreshToken) {
+      return;
+    }
+
+    if (accessToken) {
+      sessionStorage.setItem('access_token', accessToken);
+    }
+    if (refreshToken) {
+      sessionStorage.setItem('refresh_token', refreshToken);
+    }
+
+    if (callbackType === 'recovery' && location.pathname !== '/reset-password') {
+      navigate('/reset-password', { replace: true });
+      return;
+    }
+
+    if (location.pathname !== '/auth/callback') {
+      navigate('/auth/callback', { replace: true });
+    }
+  }, [location.pathname, navigate]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <ToastProvider>
       <AuthProvider>
         <Router>
+          <AuthHashBridge />
           <div className="min-h-screen flex flex-col">
             <Routes>
             {/* Standalone layouts (no global header/footer) */}
