@@ -21,6 +21,12 @@ import { type SummaryItem } from "../components/dashboard/SummaryGrid";
 import { useAuth } from "../context/AuthContext";
 import { testAIBackendCall } from "../services/aiService";
 import type { CreateCustomPathwayPayload } from "../types/ai";
+import {
+  createLearningProgress,
+  getLearningProgress,
+  updateLearningProgress,
+} from "../services/learning";
+import type { LearningProgressItem, LearningStatus } from "../types/learning";
 
 type PathwayStep = {
   id: string;
@@ -273,6 +279,9 @@ export default function Intelligence(): JSX.Element {
   } | null>(null);
   const [showCustomPathwayForm, setShowCustomPathwayForm] = useState(false);
   const [editingCustomPathwayId, setEditingCustomPathwayId] = useState<string | null>(null);
+  const [learningItems, setLearningItems] = useState<LearningProgressItem[]>([]);
+  const [learningLoading, setLearningLoading] = useState(false);
+  const [learningError, setLearningError] = useState<string | null>(null);
   const [customPathwayForm, setCustomPathwayForm] = useState<CustomPathwayFormState>({
     title: "",
     description: "",
@@ -442,6 +451,13 @@ export default function Intelligence(): JSX.Element {
   const hasRecommendationData =
     !!recommendations &&
     (recommendationResources.length > 0 || recommendationProjects.length > 0);
+  const learningSummary = useMemo(() => {
+    const tracked = learningItems.length;
+    const completed = learningItems.filter((item) => item.status === "completed").length;
+    const inProgress = learningItems.filter((item) => item.status === "in_progress").length;
+    const completionRate = tracked > 0 ? Math.round((completed / tracked) * 100) : 0;
+    return { tracked, completed, inProgress, completionRate };
+  }, [learningItems]);
 
   const displayMatches = useMemo(() => {
     if (matches?.matches) {
@@ -1067,6 +1083,81 @@ export default function Intelligence(): JSX.Element {
     showActionFeedback(result, result.success ? "info" : "error");
   };
 
+  const loadLearningTracker = async (): Promise<void> => {
+    setLearningLoading(true);
+    setLearningError(null);
+    try {
+      const response = await getLearningProgress();
+      setLearningItems(response.items ?? []);
+    } catch (error) {
+      setLearningError(error instanceof Error ? error.message : "Learning progress could not be loaded.");
+    } finally {
+      setLearningLoading(false);
+    }
+  };
+
+  const trackRecommendation = async (item: RecommendationCard): Promise<void> => {
+    const alreadyTracked = learningItems.some(
+      (learningItem) => learningItem.title.trim().toLowerCase() === item.title.trim().toLowerCase(),
+    );
+    if (alreadyTracked) {
+      setActionFeedback({
+        type: "info",
+        message: `"${item.title}" is already in your learning tracker.`,
+      });
+      return;
+    }
+
+    try {
+      const created = await createLearningProgress({
+        title: item.title,
+        platform: item.type,
+        resource_url: "",
+      });
+      setLearningItems((current) => [created, ...current]);
+      setActionFeedback({
+        type: "success",
+        message: `"${item.title}" was added to your learning tracker.`,
+      });
+    } catch (error) {
+      setActionFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : "Unable to track this learning resource.",
+      });
+    }
+  };
+
+  const updateLearningItem = async (
+    id: string,
+    payload: { status?: LearningStatus; progress_percent?: number },
+  ): Promise<void> => {
+    try {
+      const updated = await updateLearningProgress(id, payload);
+      setLearningItems((current) =>
+        current.map((item) => (item.id === id ? updated : item)),
+      );
+    } catch (error) {
+      setActionFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : "Unable to update learning progress.",
+      });
+    }
+  };
+
+  const incrementLearningProgress = async (item: LearningProgressItem): Promise<void> => {
+    const nextPercent = Math.min(100, item.progress_percent + 10);
+    const nextStatus: LearningStatus =
+      nextPercent >= 100 ? "completed" : nextPercent > 0 ? "in_progress" : "not_started";
+    await updateLearningItem(item.id, {
+      progress_percent: nextPercent,
+      status: nextStatus,
+    });
+  };
+
+  const markLearningComplete = async (item: LearningProgressItem): Promise<void> => {
+    await updateLearningItem(item.id, { status: "completed", progress_percent: 100 });
+  };
+
   const aiInsightRecoveryActions: IntelligenceRecoveryAction[] = [];
   if (onboardingComplete !== true) {
     aiInsightRecoveryActions.push({
@@ -1354,6 +1445,7 @@ export default function Intelligence(): JSX.Element {
         await loadMatches();
       }
 
+      await loadLearningTracker();
       await loadCustomPathways();
     };
 
@@ -1371,6 +1463,7 @@ export default function Intelligence(): JSX.Element {
     loadLatestAIInsight,
     loadRecommendations,
     loadMatches,
+    loadLearningTracker,
     loadCustomPathways,
   ]);
 
@@ -1379,6 +1472,8 @@ export default function Intelligence(): JSX.Element {
       intelligenceBootstrapStarted.current = false;
       setActionFeedback(null);
       resetCustomPathwayForm();
+      setLearningItems([]);
+      setLearningError(null);
     }
   }, [user]);
 
@@ -2163,6 +2258,15 @@ export default function Intelligence(): JSX.Element {
                               {item.type} - {item.level}
                             </p>
                             <p className="mt-3 text-sm text-cyan-950/75">{item.reason}</p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void trackRecommendation(item);
+                              }}
+                              className="mt-4 inline-flex items-center rounded-xl border border-cyan-200 bg-white px-3 py-2 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-50"
+                            >
+                              Track Learning
+                            </button>
                           </div>
                         ))}
                         {recommendationResources.length === 0 && (
@@ -2199,6 +2303,15 @@ export default function Intelligence(): JSX.Element {
                               </div>
                             ) : null}
                             <p className="mt-3 text-sm text-sky-950/75">{item.reason}</p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void trackRecommendation(item);
+                              }}
+                              className="mt-4 inline-flex items-center rounded-xl border border-sky-200 bg-white px-3 py-2 text-xs font-semibold text-sky-700 transition hover:bg-sky-50"
+                            >
+                              Track Learning
+                            </button>
                           </div>
                         ))}
                         {recommendationProjects.length === 0 && (
@@ -2237,6 +2350,116 @@ export default function Intelligence(): JSX.Element {
                         : "You can load recommendations now using your current intelligence profile."}
                   </p>
                   {renderRecoveryActions(recommendationsRecoveryActions)}
+                </div>
+              )}
+            </div>
+
+            {/* Learning progress section */}
+            <div className="rounded-3xl border border-indigo-200/80 bg-gradient-to-br from-indigo-50 via-white to-blue-50 p-6 shadow-sm">
+              <div className="mb-6 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-indigo-700">Learning Progress</p>
+                  <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Track your growth loop</h3>
+                  <p className="mt-2 text-sm text-indigo-950/75">
+                    Save recommended learning resources and update your progress manually.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void loadLearningTracker();
+                  }}
+                  disabled={learningLoading}
+                  className="inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {learningLoading ? "Loading..." : "Reload"}
+                </button>
+              </div>
+              <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+                <div className="rounded-xl border border-indigo-200 bg-white/90 p-3">
+                  <p className="text-xs text-indigo-700/80">Courses Tracked</p>
+                  <p className="mt-1 text-2xl font-bold text-indigo-900">{learningSummary.tracked}</p>
+                </div>
+                <div className="rounded-xl border border-emerald-200 bg-white/90 p-3">
+                  <p className="text-xs text-emerald-700/80">Completed</p>
+                  <p className="mt-1 text-2xl font-bold text-emerald-800">{learningSummary.completed}</p>
+                </div>
+                <div className="rounded-xl border border-sky-200 bg-white/90 p-3">
+                  <p className="text-xs text-sky-700/80">In Progress</p>
+                  <p className="mt-1 text-2xl font-bold text-sky-800">{learningSummary.inProgress}</p>
+                </div>
+                <div className="rounded-xl border border-violet-200 bg-white/90 p-3">
+                  <p className="text-xs text-violet-700/80">Completion Rate</p>
+                  <p className="mt-1 text-2xl font-bold text-violet-800">{learningSummary.completionRate}%</p>
+                </div>
+              </div>
+              {learningError ? (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  {learningError}
+                </div>
+              ) : null}
+              {learningLoading && learningItems.length === 0 ? (
+                <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
+                  Loading tracked learning...
+                </div>
+              ) : learningItems.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {learningItems.map((item) => (
+                    <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <h4 className="font-semibold text-[var(--color-on-surface)]">{item.title}</h4>
+                      <p className="mt-1 text-sm text-slate-600">{item.platform}</p>
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                          {item.status.replace("_", " ")}
+                        </span>
+                        <span className="text-xs text-slate-500">{item.progress_percent}%</span>
+                      </div>
+                      <div className="mt-3 h-2 rounded-full bg-slate-200">
+                        <div
+                          className="h-2 rounded-full bg-indigo-500"
+                          style={{ width: `${Math.max(0, Math.min(100, item.progress_percent))}%` }}
+                        />
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void incrementLearningProgress(item);
+                          }}
+                          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          +10%
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void markLearningComplete(item);
+                          }}
+                          className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100"
+                        >
+                          Mark Complete
+                        </button>
+                        <select
+                          value={item.status}
+                          onChange={(event) => {
+                            void updateLearningItem(item.id, { status: event.target.value as LearningStatus });
+                          }}
+                          className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-700"
+                        >
+                          <option value="not_started">Not Started</option>
+                          <option value="in_progress">In Progress</option>
+                          <option value="completed">Completed</option>
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm font-medium text-slate-800">No tracked learning yet.</p>
+                  <p className={`mt-1 text-sm ${subtle}`}>
+                    Use Track Learning on recommendations to start your learn-track-improve loop.
+                  </p>
                 </div>
               )}
             </div>
