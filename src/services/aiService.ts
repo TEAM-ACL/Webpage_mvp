@@ -138,7 +138,7 @@ export async function generateAIRecommendations(): Promise<AIRecommendationsResp
 
 // ACL: Service for fetching backend-driven matches
 export async function getAIMatches(): Promise<AIMatchesResponse> {
-  const response = await fetch(`${API_BASE_URL}/ai/match`, {
+  const response = await fetch(`${API_BASE_URL}/ai/matches`, {
     method: "GET",
     credentials: "include",
     headers: {
