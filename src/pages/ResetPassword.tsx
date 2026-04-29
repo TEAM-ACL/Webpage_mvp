@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { JSX } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useToast } from "../context/ToastContext";
 import { toUserMessage } from "../lib/userErrors";
@@ -13,6 +13,7 @@ const hasSpecialCharacter = (value: string) => /[^A-Za-z0-9]/.test(value);
 const hasNoWhitespace = (value: string) => !/\s/.test(value);
 
 export default function ResetPassword(): JSX.Element {
+  const navigate = useNavigate();
   const { showError, showSuccess } = useToast();
   const [params] = useSearchParams();
   const callbackError = params.get("error");
@@ -35,6 +36,7 @@ export default function ResetPassword(): JSX.Element {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [redirectCountdown, setRedirectCountdown] = useState(2);
   const [tokenMissingMessage, setTokenMissingMessage] = useState<string | null>(null);
   const meetsMinLength = password.length >= 12;
   const meetsMaxLength = password.length <= 128;
@@ -72,6 +74,33 @@ export default function ResetPassword(): JSX.Element {
       window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
     }
   }, [callbackError, callbackErrorCode, callbackErrorDescription, callbackType, token]);
+
+  useEffect(() => {
+    if (!done) {
+      return;
+    }
+
+    // Clear temporary reset tokens after successful password update.
+    sessionStorage.removeItem("access_token");
+    sessionStorage.removeItem("refresh_token");
+
+    setRedirectCountdown(2);
+    const countdownInterval = window.setInterval(() => {
+      setRedirectCountdown((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    const timeout = window.setTimeout(() => {
+      navigate("/login", {
+        replace: true,
+        state: { verificationMessage: "Password updated successfully. Please sign in." },
+      });
+    }, 1800);
+
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(countdownInterval);
+    };
+  }, [done, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,8 +144,13 @@ export default function ResetPassword(): JSX.Element {
         <h1 className="text-2xl font-headline font-bold text-on-surface mb-3">Set a new password</h1>
         {done ? (
           <div className="space-y-4">
-            <p className="text-on-surface-variant">Your password has been updated.</p>
-            <Link to="/login" className="text-primary font-semibold hover:underline">Return to login</Link>
+            <p className="text-on-surface-variant">
+              Your password has been updated successfully via secure authentication services.
+            </p>
+            <p className="text-sm text-on-surface-variant">
+              Redirecting you to login in {redirectCountdown}s...
+            </p>
+            <Link to="/login" className="text-primary font-semibold hover:underline">Go to login now</Link>
           </div>
         ) : (
           <form className="space-y-4" onSubmit={handleSubmit}>
