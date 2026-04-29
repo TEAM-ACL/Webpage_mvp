@@ -117,12 +117,13 @@ export type AIRecommendationsResponse = {
   recommendations: AIRecommendationItem[];
 };
 
-// ACL: Match item returned by backend matching engine
+// ACL: VisionTech smart match response type
 export type AIMatchItem = {
-  id: string;
+  user_id: string;
   name: string;
-  role: string;
   match_score: number;
+  shared_skills: string[];
+  shared_interests: string[];
   reason: string;
 };
 
