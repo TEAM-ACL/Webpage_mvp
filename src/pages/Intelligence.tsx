@@ -27,6 +27,13 @@ import {
   updateLearningProgress,
 } from "../services/learning";
 import type { LearningProgressItem, LearningStatus } from "../types/learning";
+import {
+  createUserProject,
+  deleteUserProject,
+  getUserProjects,
+  updateUserProject,
+} from "../services/projects";
+import type { ProjectStatus, UserProject } from "../types/projects";
 
 type PathwayStep = {
   id: string;
@@ -66,6 +73,15 @@ type IntelligenceRecoveryAction = {
   disabled?: boolean;
 };
 type CustomPathwayFormState = CreateCustomPathwayPayload;
+type ProjectFormState = {
+  title: string;
+  description: string;
+  category: string;
+  skills_used: string;
+  github_url: string;
+  demo_url: string;
+  documentation_url: string;
+};
 
 function buildStats({
   pathwayProgressPercent,
@@ -282,6 +298,19 @@ export default function Intelligence(): JSX.Element {
   const [learningItems, setLearningItems] = useState<LearningProgressItem[]>([]);
   const [learningLoading, setLearningLoading] = useState(false);
   const [learningError, setLearningError] = useState<string | null>(null);
+  const [projects, setProjects] = useState<UserProject[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [projectsError, setProjectsError] = useState<string | null>(null);
+  const [showProjectForm, setShowProjectForm] = useState(false);
+  const [projectForm, setProjectForm] = useState<ProjectFormState>({
+    title: "",
+    description: "",
+    category: "",
+    skills_used: "",
+    github_url: "",
+    demo_url: "",
+    documentation_url: "",
+  });
   const [customPathwayForm, setCustomPathwayForm] = useState<CustomPathwayFormState>({
     title: "",
     description: "",
@@ -458,6 +487,13 @@ export default function Intelligence(): JSX.Element {
     const completionRate = tracked > 0 ? Math.round((completed / tracked) * 100) : 0;
     return { tracked, completed, inProgress, completionRate };
   }, [learningItems]);
+  const projectSummary = useMemo(() => {
+    const tracked = projects.length;
+    const completed = projects.filter((project) => project.status === "completed").length;
+    const inProgress = projects.filter((project) => project.status === "in_progress").length;
+    const appliedSkills = new Set(projects.flatMap((project) => project.skills_used)).size;
+    return { tracked, completed, inProgress, appliedSkills };
+  }, [projects]);
 
   const displayMatches = useMemo(() => {
     if (matches?.matches) {
@@ -1158,6 +1194,134 @@ export default function Intelligence(): JSX.Element {
     await updateLearningItem(item.id, { status: "completed", progress_percent: 100 });
   };
 
+  const loadProjects = async (): Promise<void> => {
+    setProjectsLoading(true);
+    setProjectsError(null);
+    try {
+      const response = await getUserProjects();
+      setProjects(response.items ?? []);
+    } catch (error) {
+      setProjectsError(error instanceof Error ? error.message : "Projects could not be loaded.");
+    } finally {
+      setProjectsLoading(false);
+    }
+  };
+
+  const handleProjectFieldChange = (field: keyof ProjectFormState, value: string): void => {
+    setProjectForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const resetProjectForm = (): void => {
+    setProjectForm({
+      title: "",
+      description: "",
+      category: "",
+      skills_used: "",
+      github_url: "",
+      demo_url: "",
+      documentation_url: "",
+    });
+    setShowProjectForm(false);
+  };
+
+  const handleCreateProject = async (): Promise<void> => {
+    const title = projectForm.title.trim();
+    const description = projectForm.description.trim();
+    const category = projectForm.category.trim();
+    const skillsUsed = projectForm.skills_used
+      .split(",")
+      .map((skill) => skill.trim())
+      .filter(Boolean);
+
+    if (!title || !description || !category || skillsUsed.length === 0) {
+      setActionFeedback({
+        type: "error",
+        message: "Please provide title, description, category, and at least one skill.",
+      });
+      return;
+    }
+
+    try {
+      const created = await createUserProject({
+        title,
+        description,
+        category,
+        skills_used: skillsUsed,
+        github_url: projectForm.github_url.trim() || undefined,
+        demo_url: projectForm.demo_url.trim() || undefined,
+        documentation_url: projectForm.documentation_url.trim() || undefined,
+      });
+      setProjects((current) => [created, ...current]);
+      setActionFeedback({
+        type: "success",
+        message: "Project added successfully.",
+      });
+      resetProjectForm();
+    } catch (error) {
+      setActionFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : "Unable to create project.",
+      });
+    }
+  };
+
+  const handleUpdateProject = async (
+    id: string,
+    payload: {
+      status?: ProjectStatus;
+      progress_percent?: number;
+    },
+  ): Promise<void> => {
+    try {
+      const updated = await updateUserProject(id, payload);
+      setProjects((current) =>
+        current.map((project) => (project.id === id ? updated : project)),
+      );
+    } catch (error) {
+      setActionFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : "Unable to update project.",
+      });
+    }
+  };
+
+  const handleIncrementProjectProgress = async (project: UserProject): Promise<void> => {
+    // TODO: Replace manual increments with automatic sync once external project links are accessible.
+    const nextPercent = Math.min(100, project.progress_percent + 10);
+    const nextStatus: ProjectStatus =
+      nextPercent >= 100 ? "completed" : nextPercent > 0 ? "in_progress" : "idea";
+    await handleUpdateProject(project.id, {
+      progress_percent: nextPercent,
+      status: nextStatus,
+    });
+  };
+
+  const handleCompleteProject = async (project: UserProject): Promise<void> => {
+    await handleUpdateProject(project.id, {
+      status: "completed",
+      progress_percent: 100,
+    });
+  };
+
+  const handleDeleteProject = async (projectId: string): Promise<void> => {
+    try {
+      await deleteUserProject(projectId);
+      setProjects((current) => current.filter((project) => project.id !== projectId));
+      setActionFeedback({
+        type: "info",
+        message: "Project removed from tracker.",
+      });
+    } catch (error) {
+      setActionFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : "Unable to remove project.",
+      });
+    }
+  };
+
   const aiInsightRecoveryActions: IntelligenceRecoveryAction[] = [];
   if (onboardingComplete !== true) {
     aiInsightRecoveryActions.push({
@@ -1446,6 +1610,7 @@ export default function Intelligence(): JSX.Element {
       }
 
       await loadLearningTracker();
+      await loadProjects();
       await loadCustomPathways();
     };
 
@@ -1464,6 +1629,7 @@ export default function Intelligence(): JSX.Element {
     loadRecommendations,
     loadMatches,
     loadLearningTracker,
+    loadProjects,
     loadCustomPathways,
   ]);
 
@@ -1474,6 +1640,9 @@ export default function Intelligence(): JSX.Element {
       resetCustomPathwayForm();
       setLearningItems([]);
       setLearningError(null);
+      setProjects([]);
+      setProjectsError(null);
+      resetProjectForm();
     }
   }, [user]);
 
@@ -2350,6 +2519,251 @@ export default function Intelligence(): JSX.Element {
                         : "You can load recommendations now using your current intelligence profile."}
                   </p>
                   {renderRecoveryActions(recommendationsRecoveryActions)}
+                </div>
+              )}
+            </div>
+
+            {/* Projects tracker section */}
+            <div className="rounded-3xl border border-blue-200/80 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6 shadow-sm">
+              <div className="mb-6 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-blue-700">Project Tracker</p>
+                  <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Build and track your portfolio</h3>
+                  <p className="mt-2 text-sm text-blue-950/75">
+                    Capture what you are building, which skills you are applying, and how far each project has progressed.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void loadProjects();
+                    }}
+                    disabled={projectsLoading}
+                    className="inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {projectsLoading ? "Loading..." : "Reload"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowProjectForm((current) => !current)}
+                    className="inline-flex h-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90"
+                  >
+                    {showProjectForm ? "Close form" : "Add project"}
+                  </button>
+                </div>
+              </div>
+              <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+                <div className="rounded-xl border border-blue-200 bg-white/90 p-3">
+                  <p className="text-xs text-blue-700/80">Projects Tracked</p>
+                  <p className="mt-1 text-2xl font-bold text-blue-900">{projectSummary.tracked}</p>
+                </div>
+                <div className="rounded-xl border border-emerald-200 bg-white/90 p-3">
+                  <p className="text-xs text-emerald-700/80">Completed</p>
+                  <p className="mt-1 text-2xl font-bold text-emerald-800">{projectSummary.completed}</p>
+                </div>
+                <div className="rounded-xl border border-amber-200 bg-white/90 p-3">
+                  <p className="text-xs text-amber-700/80">In Progress</p>
+                  <p className="mt-1 text-2xl font-bold text-amber-800">{projectSummary.inProgress}</p>
+                </div>
+                <div className="rounded-xl border border-violet-200 bg-white/90 p-3">
+                  <p className="text-xs text-violet-700/80">Skills Applied</p>
+                  <p className="mt-1 text-2xl font-bold text-violet-800">{projectSummary.appliedSkills}</p>
+                </div>
+              </div>
+
+              <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50/80 p-3">
+                <p className="text-sm font-medium text-amber-900">Progress updates are currently manual.</p>
+                <p className="mt-1 text-sm text-amber-800">
+                  Automatic tracking from external project links is planned for a future iteration.
+                </p>
+              </div>
+
+              {showProjectForm ? (
+                <div className="mb-5 rounded-2xl border border-blue-200 bg-white/90 p-4">
+                  <p className="text-sm font-semibold text-[var(--color-on-surface)]">Create project</p>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <input
+                      type="text"
+                      value={projectForm.title}
+                      onChange={(event) => handleProjectFieldChange("title", event.target.value)}
+                      className="rounded-xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 text-sm text-[var(--color-on-surface)]"
+                      placeholder="Project title"
+                    />
+                    <input
+                      type="text"
+                      value={projectForm.category}
+                      onChange={(event) => handleProjectFieldChange("category", event.target.value)}
+                      className="rounded-xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 text-sm text-[var(--color-on-surface)]"
+                      placeholder="Category (e.g. Cybersecurity)"
+                    />
+                    <textarea
+                      value={projectForm.description}
+                      onChange={(event) => handleProjectFieldChange("description", event.target.value)}
+                      className="min-h-[90px] rounded-xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 text-sm text-[var(--color-on-surface)] md:col-span-2"
+                      placeholder="Project description"
+                    />
+                    <input
+                      type="text"
+                      value={projectForm.skills_used}
+                      onChange={(event) => handleProjectFieldChange("skills_used", event.target.value)}
+                      className="rounded-xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 text-sm text-[var(--color-on-surface)] md:col-span-2"
+                      placeholder="Skills used (comma separated)"
+                    />
+                    <input
+                      type="url"
+                      value={projectForm.github_url}
+                      onChange={(event) => handleProjectFieldChange("github_url", event.target.value)}
+                      className="rounded-xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 text-sm text-[var(--color-on-surface)]"
+                      placeholder="GitHub URL (optional)"
+                    />
+                    <input
+                      type="url"
+                      value={projectForm.demo_url}
+                      onChange={(event) => handleProjectFieldChange("demo_url", event.target.value)}
+                      className="rounded-xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 text-sm text-[var(--color-on-surface)]"
+                      placeholder="Demo URL (optional)"
+                    />
+                    <input
+                      type="url"
+                      value={projectForm.documentation_url}
+                      onChange={(event) => handleProjectFieldChange("documentation_url", event.target.value)}
+                      className="rounded-xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 text-sm text-[var(--color-on-surface)] md:col-span-2"
+                      placeholder="Documentation URL (optional)"
+                    />
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleCreateProject();
+                      }}
+                      className="inline-flex items-center justify-center rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
+                    >
+                      Save project
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetProjectForm}
+                      className="inline-flex items-center justify-center rounded-xl border border-[var(--color-outline-variant)] bg-white px-4 py-2 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {projectsError ? (
+                <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  {projectsError}
+                </div>
+              ) : null}
+
+              {projectsLoading && projects.length === 0 ? (
+                <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
+                  Loading projects...
+                </div>
+              ) : projects.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {projects.map((project) => (
+                    <div key={project.id} className="rounded-xl border border-blue-200 bg-white p-4 shadow-sm">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h4 className="font-semibold text-[var(--color-on-surface)]">{project.title}</h4>
+                          <p className="mt-1 text-sm text-slate-600">{project.description}</p>
+                        </div>
+                        <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">
+                          {project.status.replace("_", " ")}
+                        </span>
+                      </div>
+                      <p className="mt-3 text-sm text-slate-700">Category: {project.category}</p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {project.skills_used.map((skill) => (
+                          <span
+                            key={`${project.id}-${skill}`}
+                            className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs text-indigo-700"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="mt-3">
+                        <p className="text-sm text-slate-700">Progress: {project.progress_percent}%</p>
+                        <div className="mt-1 h-2 rounded-full bg-slate-200">
+                          <div
+                            className="h-2 rounded-full bg-blue-500"
+                            style={{ width: `${Math.max(0, Math.min(100, project.progress_percent))}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-3 text-xs">
+                        {project.github_url ? (
+                          <a href={project.github_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                            GitHub
+                          </a>
+                        ) : null}
+                        {project.demo_url ? (
+                          <a href={project.demo_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                            Demo
+                          </a>
+                        ) : null}
+                        {project.documentation_url ? (
+                          <a href={project.documentation_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                            Documentation
+                          </a>
+                        ) : null}
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void handleIncrementProjectProgress(project);
+                          }}
+                          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          +10%
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void handleCompleteProject(project);
+                          }}
+                          className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100"
+                        >
+                          Mark Complete
+                        </button>
+                        <select
+                          value={project.status}
+                          onChange={(event) => {
+                            void handleUpdateProject(project.id, { status: event.target.value as ProjectStatus });
+                          }}
+                          className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-700"
+                        >
+                          <option value="idea">Idea</option>
+                          <option value="planning">Planning</option>
+                          <option value="in_progress">In Progress</option>
+                          <option value="completed">Completed</option>
+                          <option value="paused">Paused</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void handleDeleteProject(project.id);
+                          }}
+                          className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm font-medium text-slate-800">No projects tracked yet.</p>
+                  <p className={`mt-1 text-sm ${subtle}`}>
+                    Add a project to show what you are building and how your skills are being applied.
+                  </p>
                 </div>
               )}
             </div>
