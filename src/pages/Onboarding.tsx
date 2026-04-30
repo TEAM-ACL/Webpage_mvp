@@ -30,6 +30,7 @@ type OptionGroup = {
 type FormState = {
   preferredNickname: string;
   fullName: string;
+  gender: string;
   fieldOfInterest: string;
   experienceLevel: string;
   preferredWorkStyle: string;
@@ -41,6 +42,14 @@ type FormState = {
   interests: string[];
   skills: string[];
 };
+
+const GENDER_OPTIONS = [
+  "Female",
+  "Male",
+  "Non-binary",
+  "Prefer not to say",
+  "Other",
+];
 
 const FIELD_OPTIONS = [
   "Technology and IT",
@@ -715,11 +724,12 @@ export default function OnboardingPage(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
   const { showError } = useToast();
-  const { user, refreshProfile, refreshAIInsight } = useAuth();
+  const { user, refreshProfile, refreshAIInsight, markIntelligenceNeedsRefresh } = useAuth();
   const reminder = (location.state as { reminder?: string } | null)?.reminder;
   const [form, setForm] = useState<FormState>({
     preferredNickname: "",
     fullName: "",
+    gender: "",
     fieldOfInterest: "",
     experienceLevel: "",
     preferredWorkStyle: "",
@@ -932,6 +942,7 @@ export default function OnboardingPage(): JSX.Element {
     try {
       // Persist onboarding to backend (source of truth)
       await api.saveOnboardingProfile(form);
+      markIntelligenceNeedsRefresh();
 
       // Optionally generate AI insight after persistence; backend profile remains the source of truth.
       await refreshAIInsight();
@@ -1101,6 +1112,22 @@ export default function OnboardingPage(): JSX.Element {
                 placeholder="Your full name"
                 className="h-11 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm outline-none transition focus:border-[var(--color-primary)]/70"
               />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[var(--color-on-surface)]/80">Gender</label>
+              <select
+                value={form.gender}
+                onChange={(e) => updateField("gender", e.target.value)}
+                className="h-11 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm outline-none transition focus:border-[var(--color-primary)]/70"
+              >
+                <option value="">Select gender</option>
+                {GENDER_OPTIONS.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -1361,6 +1388,13 @@ export default function OnboardingPage(): JSX.Element {
                   <p className="text-xs uppercase tracking-wide text-[var(--color-on-surface-variant)]">Field</p>
                   <p className="mt-2 text-sm font-semibold text-[var(--color-on-surface)]">
                     {form.fieldOfInterest || "Not set yet"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                  <p className="text-xs uppercase tracking-wide text-[var(--color-on-surface-variant)]">Gender</p>
+                  <p className="mt-2 text-sm font-semibold text-[var(--color-on-surface)]">
+                    {form.gender || "Not set yet"}
                   </p>
                 </div>
 

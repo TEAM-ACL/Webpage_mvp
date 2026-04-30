@@ -24,9 +24,21 @@ export type AISectionStatus =
   | "incomplete_onboarding";
 
 export type AIInsightResponse = {
+  career_paths?: string[];
+  recommended_skills?: string[];
+  learning_resources?: Array<{
+    title: string;
+    url: string;
+    platform: string;
+  }>;
   summary: string;
-  skill_gaps: string[];
-  next_steps: string[];
+  confidence_level?: "high" | "medium" | "low";
+  confidence_reason?: string;
+  next_best_actions?: string[];
+  evidence_summary?: string;
+  // ACL: Backward compatibility fields for legacy insight payloads.
+  skill_gaps?: string[];
+  next_steps?: string[];
 };
 
 export type AIStateResponse = {
