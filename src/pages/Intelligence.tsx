@@ -55,7 +55,16 @@ type RecommendationCard = {
   type: string;
   level: string;
   reason: string;
+  kind: "learning" | "project";
   badges?: string[];
+  sources?: RecommendationSourceLink[];
+};
+
+type RecommendationSourceLink = {
+  platform: string;
+  title: string;
+  url: string;
+  progress_summary?: string;
 };
 
 // ACL: section status options for lightweight intelligence state badges
@@ -174,6 +183,34 @@ function formatRelativeTime(value: string): string {
   if (deltaHours < 24) return `${deltaHours} hour${deltaHours === 1 ? "" : "s"} ago`;
   const deltaDays = Math.floor(deltaHours / 24);
   return `${deltaDays} day${deltaDays === 1 ? "" : "s"} ago`;
+}
+
+function buildPlatformSearchLinks(item: {
+  title: string;
+  level: string;
+  reason: string;
+}): RecommendationSourceLink[] {
+  const query = encodeURIComponent(`${item.title} ${item.level} ${item.reason}`.trim());
+  return [
+    {
+      platform: "YouTube",
+      title: "Search YouTube",
+      url: `https://www.youtube.com/results?search_query=${query}`,
+      progress_summary: "Use short videos to quickly understand concepts and unblock your next practical step.",
+    },
+    {
+      platform: "Coursera",
+      title: "Search Coursera",
+      url: `https://www.coursera.org/search?query=${query}`,
+      progress_summary: "Follow structured coursework to build deeper skills with guided progression.",
+    },
+    {
+      platform: "Udemy",
+      title: "Search Udemy",
+      url: `https://www.udemy.com/courses/search/?q=${query}`,
+      progress_summary: "Apply hands-on tutorials and projects to convert theory into portfolio-ready outcomes.",
+    },
+  ];
 }
 
 function getStateScore(state: IntelligenceSectionState): number {
@@ -296,9 +333,11 @@ export default function Intelligence(): JSX.Element {
   const [showCustomPathwayForm, setShowCustomPathwayForm] = useState(false);
   const [editingCustomPathwayId, setEditingCustomPathwayId] = useState<string | null>(null);
   const [learningItems, setLearningItems] = useState<LearningProgressItem[]>([]);
+  const [learningManualProgress, setLearningManualProgress] = useState<Record<string, string>>({});
   const [learningLoading, setLearningLoading] = useState(false);
   const [learningError, setLearningError] = useState<string | null>(null);
   const [projects, setProjects] = useState<UserProject[]>([]);
+  const [projectManualProgress, setProjectManualProgress] = useState<Record<string, string>>({});
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [projectsError, setProjectsError] = useState<string | null>(null);
   const [showProjectForm, setShowProjectForm] = useState(false);
@@ -413,49 +452,78 @@ export default function Intelligence(): JSX.Element {
     if (!recommendations) return [];
 
     if (hasStructuredRecommendationFields) {
-      const payload = recommendations as unknown as {
+      const payload = recommendations as {
         recommended_resources?: Array<{
           id?: string;
           title?: string;
           type?: string;
           level?: string;
           reason?: string;
+          sources?: RecommendationSourceLink[];
         }>;
       };
 
-      return (payload.recommended_resources ?? []).map((item, index) => ({
-        id: item.id ?? `resource-${index}`,
-        title: item.title ?? "Untitled resource",
-        type: item.type ?? "Resource",
-        level: item.level ?? "General",
-        reason: item.reason ?? "Recommended for your profile.",
-      }));
+      return (payload.recommended_resources ?? []).map((item, index) => {
+        const card = {
+          id: item.id ?? `resource-${index}`,
+          title: item.title ?? "Untitled resource",
+          type: item.type ?? "Resource",
+          level: item.level ?? "General",
+          reason: item.reason ?? "Recommended for your profile.",
+          kind: "learning" as const,
+        };
+        return {
+          ...card,
+          sources: item.sources && item.sources.length > 0 ? item.sources : buildPlatformSearchLinks(card),
+        };
+      });
     }
 
-    return [];
-  }, [recommendations, hasStructuredRecommendationFields]);
+    return activeRecommendations.map((item) => {
+      const card = {
+        id: item.pathway_id,
+        title: item.title,
+        type: "Learning Resource",
+        level: item.skill_level,
+        reason: item.match_reason || item.summary,
+        kind: "learning" as const,
+      };
+      return {
+        ...card,
+        sources: buildPlatformSearchLinks(card),
+      };
+    });
+  }, [recommendations, hasStructuredRecommendationFields, activeRecommendations]);
 
   const recommendationProjects = useMemo<RecommendationCard[]>(() => {
     if (!recommendations) return [];
 
     if (hasStructuredRecommendationFields) {
-      const payload = recommendations as unknown as {
+      const payload = recommendations as {
         recommended_projects?: Array<{
           id?: string;
           title?: string;
           type?: string;
           level?: string;
           reason?: string;
+          sources?: RecommendationSourceLink[];
         }>;
       };
 
-      return (payload.recommended_projects ?? []).map((item, index) => ({
-        id: item.id ?? `project-${index}`,
-        title: item.title ?? "Untitled project",
-        type: item.type ?? "Project",
-        level: item.level ?? "General",
-        reason: item.reason ?? "Recommended for your profile.",
-      }));
+      return (payload.recommended_projects ?? []).map((item, index) => {
+        const card = {
+          id: item.id ?? `project-${index}`,
+          title: item.title ?? "Untitled project",
+          type: item.type ?? "Project",
+          level: item.level ?? "General",
+          reason: item.reason ?? "Recommended for your profile.",
+          kind: "project" as const,
+        };
+        return {
+          ...card,
+          sources: item.sources && item.sources.length > 0 ? item.sources : buildPlatformSearchLinks(card),
+        };
+      });
     }
 
     return activeRecommendations.map((item) => ({
@@ -464,6 +532,12 @@ export default function Intelligence(): JSX.Element {
       type: "Pathway",
       level: item.skill_level,
       reason: item.match_reason || item.summary,
+      kind: "project" as const,
+      sources: buildPlatformSearchLinks({
+        title: item.title,
+        level: item.skill_level,
+        reason: item.match_reason || item.summary,
+      }),
       badges: item.action_state
         ? [
           item.action_state.viewed ? "Viewed" : null,
@@ -480,6 +554,42 @@ export default function Intelligence(): JSX.Element {
   const hasRecommendationData =
     !!recommendations &&
     (recommendationResources.length > 0 || recommendationProjects.length > 0);
+  const unifiedRecommendations = useMemo<RecommendationCard[]>(
+    () => {
+      const merged = [
+        ...recommendationResources.map((item) => ({ ...item, id: `learning-${item.id}` })),
+        ...recommendationProjects.map((item) => ({ ...item, id: `project-${item.id}` })),
+      ];
+
+      const byContentKey = new Map<string, RecommendationCard>();
+      for (const item of merged) {
+        const contentKey = `${item.title.trim().toLowerCase()}::${item.reason.trim().toLowerCase()}`;
+        const existing = byContentKey.get(contentKey);
+        if (!existing) {
+          byContentKey.set(contentKey, item);
+          continue;
+        }
+
+        const mergedBadges = [...new Set([...(existing.badges ?? []), ...(item.badges ?? [])])];
+        const mergedSources = [...(existing.sources ?? []), ...(item.sources ?? [])];
+        const dedupedSources = mergedSources.filter(
+          (source, index, arr) =>
+            arr.findIndex((candidate) => candidate.platform === source.platform && candidate.url === source.url) === index,
+        );
+
+        byContentKey.set(contentKey, {
+          ...existing,
+          badges: mergedBadges,
+          sources: dedupedSources,
+          // Prefer project label if one duplicate is project, because it is generally more outcome-focused.
+          kind: existing.kind === "project" || item.kind === "project" ? "project" : "learning",
+        });
+      }
+
+      return Array.from(byContentKey.values());
+    },
+    [recommendationResources, recommendationProjects],
+  );
   const learningSummary = useMemo(() => {
     const tracked = learningItems.length;
     const completed = learningItems.filter((item) => item.status === "completed").length;
@@ -1148,7 +1258,7 @@ export default function Intelligence(): JSX.Element {
       const created = await createLearningProgress({
         title: item.title,
         platform: item.type,
-        resource_url: "",
+        resource_url: item.sources?.[0]?.url ?? "",
       });
       setLearningItems((current) => [created, ...current]);
       setActionFeedback({
@@ -1188,6 +1298,23 @@ export default function Intelligence(): JSX.Element {
       progress_percent: nextPercent,
       status: nextStatus,
     });
+  };
+
+  const applyManualLearningProgress = async (item: LearningProgressItem): Promise<void> => {
+    const rawValue = learningManualProgress[item.id] ?? String(item.progress_percent);
+    const parsed = Number(rawValue);
+    if (!Number.isFinite(parsed)) {
+      setActionFeedback({ type: "error", message: "Enter a valid learning progress percentage." });
+      return;
+    }
+    const nextPercent = Math.max(0, Math.min(100, Math.round(parsed)));
+    const nextStatus: LearningStatus =
+      nextPercent >= 100 ? "completed" : nextPercent > 0 ? "in_progress" : "not_started";
+    await updateLearningItem(item.id, {
+      progress_percent: nextPercent,
+      status: nextStatus,
+    });
+    setLearningManualProgress((current) => ({ ...current, [item.id]: String(nextPercent) }));
   };
 
   const markLearningComplete = async (item: LearningProgressItem): Promise<void> => {
@@ -1297,6 +1424,23 @@ export default function Intelligence(): JSX.Element {
       progress_percent: nextPercent,
       status: nextStatus,
     });
+  };
+
+  const applyManualProjectProgress = async (project: UserProject): Promise<void> => {
+    const rawValue = projectManualProgress[project.id] ?? String(project.progress_percent);
+    const parsed = Number(rawValue);
+    if (!Number.isFinite(parsed)) {
+      setActionFeedback({ type: "error", message: "Enter a valid project progress percentage." });
+      return;
+    }
+    const nextPercent = Math.max(0, Math.min(100, Math.round(parsed)));
+    const nextStatus: ProjectStatus =
+      nextPercent >= 100 ? "completed" : nextPercent > 0 ? "in_progress" : "idea";
+    await handleUpdateProject(project.id, {
+      progress_percent: nextPercent,
+      status: nextStatus,
+    });
+    setProjectManualProgress((current) => ({ ...current, [project.id]: String(nextPercent) }));
   };
 
   const handleCompleteProject = async (project: UserProject): Promise<void> => {
@@ -2384,79 +2528,40 @@ export default function Intelligence(): JSX.Element {
               ) : recommendations ? (
                 hasRecommendationData ? (
                   <div className="space-y-6">
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                      <div className="rounded-xl border border-cyan-200 bg-white/90 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700">Recommendation Mix</p>
-                        <div className="mt-3">
-                          {renderMiniBarChart({
-                            values: [recommendationComposition.resources, recommendationComposition.projects],
-                            colorClassName: "bg-gradient-to-t from-cyan-600 to-sky-400",
-                          })}
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-sky-200 bg-white/90 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Priority Wave</p>
-                        <div className="mt-2">
-                          {renderWaveChart({
-                            values: recommendationWaveValues,
-                            stroke: "#0284c7",
-                            fill: "rgba(2,132,199,0.14)",
-                          })}
-                        </div>
-                      </div>
-                    </div>
                     {!hasStructuredRecommendationFields && hasFilteredCompletedRecommendations && (
                       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
                         Completed tasks were excluded from this list.
                       </div>
                     )}
 
-                    <div>
-                      <h4 className="font-semibold text-cyan-700">Recommended Resources</h4>
-                      <div className="mt-3 grid gap-4 md:grid-cols-2">
-                        {recommendationResources.map((item) => (
-                          <div
-                            key={item.id}
-                            className="group rounded-2xl border border-cyan-200 bg-gradient-to-br from-white to-cyan-50 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                          >
-                            <div className="mb-3 inline-flex rounded-full bg-cyan-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-cyan-700">
-                              Resource
-                            </div>
-                            <p className="text-sm font-semibold text-[var(--color-on-surface)]">{item.title}</p>
-                            <p className="mt-1 text-xs text-cyan-900/65">
-                              {item.type} - {item.level}
-                            </p>
-                            <p className="mt-3 text-sm text-cyan-950/75">{item.reason}</p>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                void trackRecommendation(item);
-                              }}
-                              className="mt-4 inline-flex items-center rounded-xl border border-cyan-200 bg-white px-3 py-2 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-50"
-                            >
-                              Track Learning
-                            </button>
-                          </div>
-                        ))}
-                        {recommendationResources.length === 0 && (
-                          <p className={`text-sm ${subtle}`}>No resource recommendations available yet.</p>
-                        )}
+                    <section className="rounded-2xl border border-cyan-200/70 bg-white/85 p-4">
+                      <div className="mb-3">
+                        <h4 className="font-semibold text-cyan-700">Recommended Next Moves</h4>
+                        <p className="mt-1 text-xs text-cyan-900/70">
+                          A single prioritized feed combining learning materials and practical projects for steady growth.
+                        </p>
                       </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-semibold text-cyan-700">Recommended Projects</h4>
-                      <div className="mt-3 grid gap-4 md:grid-cols-2">
-                        {recommendationProjects.map((item) => (
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {unifiedRecommendations.map((item) => (
                           <div
                             key={item.id}
-                            className="group rounded-2xl border border-sky-200 bg-gradient-to-br from-white to-sky-50 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                            className={`group rounded-2xl border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+                              item.kind === "learning"
+                                ? "border-cyan-200 bg-gradient-to-br from-white to-cyan-50"
+                                : "border-sky-200 bg-gradient-to-br from-white to-sky-50"
+                            }`}
                           >
-                            <div className="mb-3 inline-flex rounded-full bg-sky-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700">
-                              Project
+                            <div
+                              className={`mb-3 inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+                                item.kind === "learning"
+                                  ? "bg-cyan-100 text-cyan-700"
+                                  : "bg-sky-100 text-sky-700"
+                              }`}
+                            >
+                              {item.kind === "learning" ? "Learning" : "Project"}
                             </div>
                             <p className="text-sm font-semibold text-[var(--color-on-surface)]">{item.title}</p>
-                            <p className="mt-1 text-xs text-sky-900/65">
+                            <p className={`mt-1 text-xs ${item.kind === "learning" ? "text-cyan-900/65" : "text-sky-900/65"}`}>
                               {item.type} - {item.level}
                             </p>
                             {item.badges && item.badges.length > 0 ? (
@@ -2471,23 +2576,55 @@ export default function Intelligence(): JSX.Element {
                                 ))}
                               </div>
                             ) : null}
-                            <p className="mt-3 text-sm text-sky-950/75">{item.reason}</p>
+                            <p className={`mt-3 text-sm ${item.kind === "learning" ? "text-cyan-950/75" : "text-sky-950/75"}`}>{item.reason}</p>
+                            {item.sources && item.sources.length > 0 ? (
+                              <div className="mt-3 space-y-2">
+                                {item.sources.map((source) => (
+                                  <div
+                                    key={`${item.id}-${source.platform}-${source.url}`}
+                                    className={`rounded-xl border bg-white/90 p-2 ${
+                                      item.kind === "learning" ? "border-cyan-200/80" : "border-sky-200/80"
+                                    }`}
+                                  >
+                                    <a
+                                      href={source.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className={`inline-flex items-center rounded-full border bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition ${
+                                        item.kind === "learning"
+                                          ? "border-cyan-200 text-cyan-700 hover:bg-cyan-50"
+                                          : "border-sky-200 text-sky-700 hover:bg-sky-50"
+                                      }`}
+                                    >
+                                      {source.platform}
+                                    </a>
+                                    <p className={`mt-1 text-xs ${item.kind === "learning" ? "text-cyan-900/80" : "text-sky-900/80"}`}>
+                                      {source.progress_summary ?? "Recommended to support your next growth milestone."}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : null}
                             <button
                               type="button"
                               onClick={() => {
                                 void trackRecommendation(item);
                               }}
-                              className="mt-4 inline-flex items-center rounded-xl border border-sky-200 bg-white px-3 py-2 text-xs font-semibold text-sky-700 transition hover:bg-sky-50"
+                              className={`mt-4 inline-flex items-center rounded-xl border bg-white px-3 py-2 text-xs font-semibold transition ${
+                                item.kind === "learning"
+                                  ? "border-cyan-200 text-cyan-700 hover:bg-cyan-50"
+                                  : "border-sky-200 text-sky-700 hover:bg-sky-50"
+                              }`}
                             >
                               Track Learning
                             </button>
                           </div>
                         ))}
-                        {recommendationProjects.length === 0 && (
-                          <p className={`text-sm ${subtle}`}>No project recommendations available yet.</p>
+                        {unifiedRecommendations.length === 0 && (
+                          <p className={`text-sm ${subtle}`}>No recommendations available yet.</p>
                         )}
                       </div>
-                    </div>
+                    </section>
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
@@ -2732,6 +2869,31 @@ export default function Intelligence(): JSX.Element {
                         >
                           Mark Complete
                         </button>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={projectManualProgress[project.id] ?? String(project.progress_percent)}
+                            onChange={(event) => {
+                              setProjectManualProgress((current) => ({
+                                ...current,
+                                [project.id]: event.target.value,
+                              }));
+                            }}
+                            className="w-20 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-700"
+                            aria-label={`Set manual progress for ${project.title}`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void applyManualProjectProgress(project);
+                            }}
+                            className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 transition hover:bg-blue-100"
+                          >
+                            Apply %
+                          </button>
+                        </div>
                         <select
                           value={project.status}
                           onChange={(event) => {
@@ -2853,6 +3015,31 @@ export default function Intelligence(): JSX.Element {
                         >
                           Mark Complete
                         </button>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={learningManualProgress[item.id] ?? String(item.progress_percent)}
+                            onChange={(event) => {
+                              setLearningManualProgress((current) => ({
+                                ...current,
+                                [item.id]: event.target.value,
+                              }));
+                            }}
+                            className="w-20 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-700"
+                            aria-label={`Set manual progress for ${item.title}`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void applyManualLearningProgress(item);
+                            }}
+                            className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100"
+                          >
+                            Apply %
+                          </button>
+                        </div>
                         <select
                           value={item.status}
                           onChange={(event) => {

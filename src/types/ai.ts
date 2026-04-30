@@ -92,6 +92,13 @@ export type AIRecommendationActionState = {
   last_event_type: AIRecommendationEventType | null;
 };
 
+export type AIRecommendationSource = {
+  title: string;
+  platform: string;
+  url: string;
+  progress_summary?: string;
+};
+
 // ACL: Recommendation item returned by backend recommendation engine
 export type AIRecommendationItem = {
   pathway_id: string;
@@ -115,6 +122,22 @@ export type AIRecommendationsResponse = {
   recommendation_id: string;
   generated_at: string;
   recommendations: AIRecommendationItem[];
+  recommended_resources?: Array<{
+    id?: string;
+    title?: string;
+    type?: string;
+    level?: string;
+    reason?: string;
+    sources?: AIRecommendationSource[];
+  }>;
+  recommended_projects?: Array<{
+    id?: string;
+    title?: string;
+    type?: string;
+    level?: string;
+    reason?: string;
+    sources?: AIRecommendationSource[];
+  }>;
 };
 
 // ACL: VisionTech smart match response type
