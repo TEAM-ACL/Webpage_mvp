@@ -321,9 +321,11 @@ export default function Intelligence(): JSX.Element {
     updateCustomPathway,
     archiveCustomPathway,
     intelligenceRefreshing,
+    intelligenceNeedsRefresh,
     intelligenceUpdatedAt,
     intelligenceLastAction,
     refreshIntelligence,
+    markIntelligenceNeedsRefresh,
   } = useAuth();
   // ACL: local feedback state for intelligence actions on this page
   const [actionFeedback, setActionFeedback] = useState<{
@@ -586,9 +588,45 @@ export default function Intelligence(): JSX.Element {
         });
       }
 
-      return Array.from(byContentKey.values());
+      const hasCompletedLearning = learningItems.some((item) => item.status === "completed");
+      const hasAnyProject = projects.length > 0;
+      const hasCompletedProject = projects.some((project) => project.status === "completed");
+      const projectSkillSet = new Set(
+        projects.flatMap((project) => project.skills_used.map((skill) => skill.trim().toLowerCase())),
+      );
+
+      return Array.from(byContentKey.values())
+        .map((item) => {
+          let adaptiveScore = 0;
+          const adaptiveBadges = [...(item.badges ?? [])];
+
+          if (item.kind === "project" && !hasAnyProject) {
+            adaptiveScore += 25;
+            adaptiveBadges.push("Build first project");
+          }
+          if (item.kind === "project" && !hasCompletedProject) {
+            adaptiveScore += 15;
+          }
+          if (item.kind === "learning" && !hasCompletedLearning) {
+            adaptiveScore += 20;
+            adaptiveBadges.push("Complete learning milestone");
+          }
+          if (item.kind === "project") {
+            const titleTerms = item.title.toLowerCase().split(/\s+/);
+            const overlappingTerms = titleTerms.filter((term) => projectSkillSet.has(term)).length;
+            adaptiveScore += overlappingTerms * 3;
+          }
+
+          return {
+            ...item,
+            badges: [...new Set(adaptiveBadges)],
+            matchPriority: adaptiveScore,
+          } as RecommendationCard & { matchPriority: number };
+        })
+        .sort((a, b) => b.matchPriority - a.matchPriority)
+        .map(({ matchPriority: _matchPriority, ...item }) => item);
     },
-    [recommendationResources, recommendationProjects],
+    [recommendationResources, recommendationProjects, learningItems, projects],
   );
   const learningSummary = useMemo(() => {
     const tracked = learningItems.length;
@@ -607,18 +645,30 @@ export default function Intelligence(): JSX.Element {
 
   const displayMatches = useMemo(() => {
     if (matches?.matches) {
+      const projectSkillSet = new Set(
+        projects.flatMap((project) => project.skills_used.map((skill) => skill.trim().toLowerCase())),
+      );
+      const completedLearningEvidence = learningItems.filter((item) => item.status === "completed").length;
       return matches.matches.map((match) => ({
         id: match.user_id,
         name: match.name,
-        matchScore: match.match_score,
+        matchScore: Math.min(
+          100,
+          match.match_score
+            + (match.shared_skills ?? []).filter((skill) => projectSkillSet.has(skill.trim().toLowerCase())).length * 8
+            + Math.min(10, completedLearningEvidence * 2),
+        ),
         sharedSkills: match.shared_skills ?? [],
         sharedInterests: match.shared_interests ?? [],
-        reason: match.reason,
+        reason:
+          completedLearningEvidence > 0
+            ? `${match.reason} Completed learning evidence is improving practical match confidence.`
+            : match.reason,
       }));
     }
 
     return [];
-  }, [matches]);
+  }, [matches, projects, learningItems]);
   const hasRealMatches = !!matches && matches.matches.length > 0;
 
   const onboardingIncomplete = onboardingComplete === false;
@@ -766,12 +816,16 @@ export default function Intelligence(): JSX.Element {
     [recommendationComposition.resources, recommendationComposition.projects, recommendations],
   );
   const aiConfidenceScore = aiConfidence === "high" ? 100 : aiConfidence === "medium" ? 60 : 30;
+  const aiInsightSkillGaps = aiInsight?.skill_gaps ?? [];
+  const aiInsightNextSteps = aiInsight?.next_steps ?? [];
+  const aiInsightNextBestActions = aiInsight?.next_best_actions ?? aiInsightNextSteps;
+  const aiInsightConfidenceLevel = aiInsight?.confidence_level ?? aiConfidence;
   const aiInsightWaveValues = useMemo(
     () =>
       aiInsight
-        ? [aiInsight.skill_gaps.length, aiInsight.next_steps.length, aiConfidenceScore]
+        ? [aiInsightSkillGaps.length, aiInsightNextBestActions.length, aiConfidenceScore]
         : [],
-    [aiInsight, aiConfidenceScore],
+    [aiInsight, aiConfidenceScore, aiInsightSkillGaps.length, aiInsightNextBestActions.length],
   );
 
   const stats = useMemo(
@@ -780,9 +834,9 @@ export default function Intelligence(): JSX.Element {
         pathwayProgressPercent: completionPercent,
         skillsCount,
         activeMatchesCount: displayMatches.length,
-        aiNextStepCount: aiInsight ? aiInsight.next_steps.length : null,
+        aiNextStepCount: aiInsight ? aiInsightNextBestActions.length : null,
       }),
-    [completionPercent, skillsCount, displayMatches.length, aiInsight],
+    [completionPercent, skillsCount, displayMatches.length, aiInsight, aiInsightNextBestActions.length],
   );
 
   const profileInsightCanGenerate = aiReadiness?.profile_insight.can_generate ?? false;
@@ -1261,6 +1315,7 @@ export default function Intelligence(): JSX.Element {
         resource_url: item.sources?.[0]?.url ?? "",
       });
       setLearningItems((current) => [created, ...current]);
+      markIntelligenceNeedsRefresh();
       setActionFeedback({
         type: "success",
         message: `"${item.title}" was added to your learning tracker.`,
@@ -1282,6 +1337,7 @@ export default function Intelligence(): JSX.Element {
       setLearningItems((current) =>
         current.map((item) => (item.id === id ? updated : item)),
       );
+      markIntelligenceNeedsRefresh();
     } catch (error) {
       setActionFeedback({
         type: "error",
@@ -1382,6 +1438,7 @@ export default function Intelligence(): JSX.Element {
         documentation_url: projectForm.documentation_url.trim() || undefined,
       });
       setProjects((current) => [created, ...current]);
+      markIntelligenceNeedsRefresh();
       setActionFeedback({
         type: "success",
         message: "Project added successfully.",
@@ -1407,6 +1464,7 @@ export default function Intelligence(): JSX.Element {
       setProjects((current) =>
         current.map((project) => (project.id === id ? updated : project)),
       );
+      markIntelligenceNeedsRefresh();
     } catch (error) {
       setActionFeedback({
         type: "error",
@@ -1920,7 +1978,7 @@ export default function Intelligence(): JSX.Element {
                       ? [profileSkills.length, profileInterests.length, profileGoals.length]
                       : index === 2
                         ? (matchScoreTrend.length > 0 ? matchScoreTrend : [displayMatches.length])
-                        : [aiInsight?.next_steps.length ?? 0, aiInsight?.skill_gaps.length ?? 0, recommendations?.recommendations.length ?? 0],
+                        : [aiInsightNextBestActions.length, aiInsightSkillGaps.length, recommendations?.recommendations.length ?? 0],
                 stroke:
                   index === 0
                     ? "#4f46e5"
@@ -2123,6 +2181,25 @@ export default function Intelligence(): JSX.Element {
           className={`mb-6 rounded-xl px-4 py-3 text-sm ${getActionFeedbackClassName(actionFeedback.type)}`}
         >
           {actionFeedback.message}
+        </div>
+      ) : null}
+      {intelligenceNeedsRefresh ? (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-semibold text-amber-800">
+            Intelligence may need refreshing
+          </p>
+          <p className="mt-1 text-sm text-amber-700">
+            Your learning or project activity has changed. Refresh intelligence to update your recommendations.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              void handleRefreshIntelligence();
+            }}
+            className="mt-3 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-amber-700"
+          >
+            Refresh intelligence
+          </button>
         </div>
       ) : null}
       {shouldShowIntelligenceGuidance ? (
@@ -2347,9 +2424,9 @@ export default function Intelligence(): JSX.Element {
                   {aiInsight ? renderAIInsightSourceBadge(aiInsightSource) : null}
                   {aiInsight ? (
                     <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getConfidenceClass(aiConfidence)}`}
+                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getConfidenceClass(aiInsightConfidenceLevel)}`}
                     >
-                      {getConfidenceLabel(aiConfidence)}
+                      {getConfidenceLabel(aiInsightConfidenceLevel)}
                     </span>
                   ) : null}
                   {renderSectionBadge(aiInsightState)}
@@ -2400,16 +2477,23 @@ export default function Intelligence(): JSX.Element {
                       <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">Gap vs Action Distribution</p>
                       <div className="mt-3">
                         {renderMiniBarChart({
-                          values: [aiInsight.skill_gaps.length, aiInsight.next_steps.length],
+                          values: [aiInsightSkillGaps.length, aiInsightNextBestActions.length],
                           colorClassName: "bg-gradient-to-t from-violet-600 to-fuchsia-400",
                         })}
                       </div>
                     </div>
                   </div>
+                  <p className="text-sm font-semibold text-violet-900">
+                    Confidence: {aiInsightConfidenceLevel}
+                  </p>
+                  <p className={`mt-1 text-sm ${subtle}`}>
+                    {aiInsight.confidence_reason
+                      ?? "Confidence is based on your onboarding profile and current activity evidence."}
+                  </p>
                   <p className="mt-1 text-xs text-violet-900/60">
-                    {aiConfidence === "high"
+                    {aiInsightConfidenceLevel === "high"
                       ? "Your profile data is strong, so this insight is highly personalised."
-                      : aiConfidence === "medium"
+                      : aiInsightConfidenceLevel === "medium"
                         ? "This insight is based on limited data. Adding more details will improve accuracy."
                         : "This insight has low confidence due to limited profile data."}
                   </p>
@@ -2427,12 +2511,19 @@ export default function Intelligence(): JSX.Element {
                     <h4 className="font-semibold text-violet-700">Profile summary</h4>
                     <p className="mt-2 text-sm leading-6 text-violet-950/80">{aiInsight.summary}</p>
                   </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-sm font-semibold text-slate-800">Evidence Summary</p>
+                    <p className={`mt-1 text-sm ${subtle}`}>
+                      {aiInsight.evidence_summary
+                        ?? "Evidence tracking is active. Complete learning and project updates to strengthen insight precision."}
+                    </p>
+                  </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-cyan-50 p-4">
                       <p className="text-sm font-semibold text-sky-800">Skill gaps</p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {aiInsight.skill_gaps.map((gap, idx) => (
+                        {aiInsightSkillGaps.map((gap, idx) => (
                           <span
                             key={idx}
                             className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-white px-3 py-2 text-xs font-medium text-sky-800 shadow-sm"
@@ -2441,16 +2532,16 @@ export default function Intelligence(): JSX.Element {
                             {gap}
                           </span>
                         ))}
-                        {aiInsight.skill_gaps.length === 0 && (
+                        {aiInsightSkillGaps.length === 0 && (
                           <span className="text-sm text-sky-800/70">No gaps detected</span>
                         )}
                       </div>
                     </div>
 
                     <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-lime-50 p-4">
-                      <p className="text-sm font-semibold text-emerald-800">Next steps</p>
+                      <p className="text-sm font-semibold text-emerald-800">Next Best Actions</p>
                       <ul className="mt-3 space-y-2 text-sm text-emerald-900/80">
-                        {aiInsight.next_steps.map((step, idx) => (
+                        {aiInsightNextBestActions.map((step, idx) => (
                           <li key={idx} className="flex items-start gap-2 rounded-xl border border-emerald-200/80 bg-white/80 px-3 py-2">
                             <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white">
                               {idx + 1}
@@ -2458,7 +2549,7 @@ export default function Intelligence(): JSX.Element {
                             <span>{step}</span>
                           </li>
                         ))}
-                        {aiInsight.next_steps.length === 0 && <li className="text-emerald-800/70">Next steps will appear here</li>}
+                        {aiInsightNextBestActions.length === 0 && <li className="text-emerald-800/70">Next steps will appear here</li>}
                       </ul>
                     </div>
                   </div>

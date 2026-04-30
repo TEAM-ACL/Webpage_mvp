@@ -76,6 +76,7 @@ type AuthContextValue = {
   customPathwaysError: string | null;
   customPathwaysUpdatedAt: string | null;
   intelligenceRefreshing: boolean;
+  intelligenceNeedsRefresh: boolean;
   intelligenceUpdatedAt: string | null;
   intelligenceLastAction: IntelligenceSectionAction | null;
   aiState: AIStateResponse | null;
@@ -109,6 +110,7 @@ type AuthContextValue = {
     customPathwayId: string,
   ) => Promise<IntelligenceActionResult>;
   refreshIntelligence: () => Promise<IntelligenceActionResult>;
+  markIntelligenceNeedsRefresh: () => void;
   recordRecommendationEvent: (payload: {
     recommendation_id: string;
     pathway_id: string;
@@ -152,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const [customPathwaysError, setCustomPathwaysError] = useState<string | null>(null);
   const [customPathwaysUpdatedAt, setCustomPathwaysUpdatedAt] = useState<string | null>(null);
   const [intelligenceRefreshing, setIntelligenceRefreshing] = useState(false);
+  const [intelligenceNeedsRefresh, setIntelligenceNeedsRefresh] = useState(false);
   const [intelligenceUpdatedAt, setIntelligenceUpdatedAt] = useState<string | null>(null);
   const [intelligenceLastAction, setIntelligenceLastAction] = useState<IntelligenceSectionAction | null>(null);
   const [aiState, setAIState] = useState<AIStateResponse | null>(null);
@@ -257,6 +260,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setCustomPathwaysError(null);
       setCustomPathwaysUpdatedAt(null);
       setIntelligenceUpdatedAt(null);
+      setIntelligenceNeedsRefresh(false);
       setIntelligenceLastAction(null);
       setAIState(null);
       setAIStateError(null);
@@ -775,6 +779,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       const actionTimestamp = new Date().toISOString();
       setIntelligenceUpdatedAt(actionTimestamp);
       if (successCount === results.length) {
+        setIntelligenceNeedsRefresh(false);
         setIntelligenceLastAction({
           status: "success",
           message: "Full refresh completed successfully.",
@@ -796,6 +801,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
           message: "Full intelligence refresh failed.",
         };
       }
+      setIntelligenceNeedsRefresh(false);
       setIntelligenceLastAction({
         status: "info",
         message: `Full refresh completed with partial success (${successCount}/${results.length}).`,
@@ -863,6 +869,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       setCustomPathwaysLoading(false);
       setCustomPathwaysUpdatedAt(null);
       setIntelligenceRefreshing(false);
+      setIntelligenceNeedsRefresh(false);
       setIntelligenceUpdatedAt(null);
       setIntelligenceLastAction(null);
       setAIState(null);
@@ -937,7 +944,9 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
         updateCustomPathway,
         archiveCustomPathway,
         intelligenceRefreshing,
+        intelligenceNeedsRefresh,
         refreshIntelligence,
+        markIntelligenceNeedsRefresh: () => setIntelligenceNeedsRefresh(true),
         recordRecommendationEvent,
         setAIInsight,
         setUser,
