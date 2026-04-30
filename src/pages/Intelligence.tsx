@@ -1289,6 +1289,7 @@ export default function Intelligence(): JSX.Element {
   };
 
   const handleIncrementProjectProgress = async (project: UserProject): Promise<void> => {
+    // TODO: Replace manual increments with automatic sync once external project links are accessible.
     const nextPercent = Math.min(100, project.progress_percent + 10);
     const nextStatus: ProjectStatus =
       nextPercent >= 100 ? "completed" : nextPercent > 0 ? "in_progress" : "idea";
@@ -2569,6 +2570,13 @@ export default function Intelligence(): JSX.Element {
                   <p className="text-xs text-violet-700/80">Skills Applied</p>
                   <p className="mt-1 text-2xl font-bold text-violet-800">{projectSummary.appliedSkills}</p>
                 </div>
+              </div>
+
+              <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50/80 p-3">
+                <p className="text-sm font-medium text-amber-900">Progress updates are currently manual.</p>
+                <p className="mt-1 text-sm text-amber-800">
+                  Automatic tracking from external project links is planned for a future iteration.
+                </p>
               </div>
 
               {showProjectForm ? (
