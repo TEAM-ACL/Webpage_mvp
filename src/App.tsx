@@ -161,6 +161,14 @@ export default function App() {
                           </RequireAuth>
                         }
                       />
+                      <Route
+                        path="/settings"
+                        element={
+                          <RequireAuth>
+                            <Profile />
+                          </RequireAuth>
+                        }
+                      />
                       <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                   </main>

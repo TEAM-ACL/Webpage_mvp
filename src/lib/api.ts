@@ -8,6 +8,13 @@ export type BackendProfileResponse = {
   is_onboarding_complete?: boolean | null;
 };
 
+export type BackendAccountResponse = {
+  email?: string | null;
+  display_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+};
+
 export type Profile = {
   preferredNickname?: string | null;
   fullName?: string | null;
@@ -27,6 +34,13 @@ export type ProfileState = {
   profile: Profile | null;
   onboardingStage: string | null;
   isOnboardingComplete: boolean | null;
+};
+
+export type Account = {
+  email: string;
+  displayName: string;
+  firstName: string;
+  lastName: string;
 };
 
 async function request<T>(
@@ -120,6 +134,15 @@ function mapBackendProfile(resp: BackendProfileResponse): ProfileState {
   };
 }
 
+function mapBackendAccount(resp: BackendAccountResponse): Account {
+  return {
+    email: resp.email ?? "",
+    displayName: resp.display_name ?? "",
+    firstName: resp.first_name ?? "",
+    lastName: resp.last_name ?? "",
+  };
+}
+
 export const api = {
   login(email: string, password: string) {
     return request<AuthSessionResponse>("/auth/login", {
@@ -151,11 +174,52 @@ export const api = {
   getMyProfile() {
     return request<BackendProfileResponse>("/me/profile").then(mapBackendProfile);
   },
+  updateMyProfile(payload: {
+    preferred_nickname?: string;
+    full_name?: string;
+    field_of_interest?: string;
+    experience_level?: string;
+    preferred_work_style?: string;
+    region?: string;
+    country?: string;
+    other_field_detail?: string;
+    other_region_detail?: string;
+    goals?: string[];
+    interests?: string[];
+    skills?: string[];
+  }) {
+    return request<BackendProfileResponse>("/me/profile", {
+      method: "PATCH",
+      body: payload,
+    }).then(mapBackendProfile);
+  },
   saveOnboardingProfile(payload: unknown) {
     return request<BackendProfileResponse>("/me/profile/onboarding", {
       method: "PUT",
       body: payload,
     }).then(mapBackendProfile);
+  },
+  getMyAccount() {
+    return request<BackendAccountResponse>("/me/account").then(mapBackendAccount);
+  },
+  updateMyAccount(payload: {
+    display_name?: string;
+    first_name?: string;
+    last_name?: string;
+  }) {
+    return request<BackendAccountResponse>("/me/account", {
+      method: "PATCH",
+      body: payload,
+    }).then(mapBackendAccount);
+  },
+  changeMyPassword(payload: {
+    current_password: string;
+    new_password: string;
+  }) {
+    return request<MessageResponse>("/me/account/password/change", {
+      method: "POST",
+      body: payload,
+    });
   },
   requestPasswordReset(email: string, redirect_to?: string) {
     return request<MessageResponse>("/auth/password-reset/request", {
