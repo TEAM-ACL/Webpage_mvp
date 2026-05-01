@@ -38,6 +38,8 @@ export async function createUserProject(payload: {
   github_url?: string;
   demo_url?: string;
   documentation_url?: string;
+  collaboration_open?: boolean;
+  collaboration_roles_needed?: string[];
 }): Promise<UserProject> {
   const response = await fetch(`${API_BASE_URL}/projects`, {
     method: "POST",
@@ -69,6 +71,8 @@ export async function updateUserProject(
     github_url?: string;
     demo_url?: string;
     documentation_url?: string;
+    collaboration_open?: boolean;
+    collaboration_roles_needed?: string[];
   },
 ): Promise<UserProject> {
   const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
@@ -103,4 +107,3 @@ export async function deleteUserProject(id: string): Promise<void> {
     throw new Error(`Project deletion failed: ${errorText}`);
   }
 }
-

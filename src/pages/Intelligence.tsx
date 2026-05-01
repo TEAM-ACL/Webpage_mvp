@@ -34,6 +34,13 @@ import {
   updateUserProject,
 } from "../services/projects";
 import type { ProjectStatus, UserProject } from "../types/projects";
+import {
+  getIncomingCollaborationRequests,
+  getOutgoingCollaborationRequests,
+  sendCollaborationRequest,
+  respondToCollaborationRequest,
+} from "../services/collaboration";
+import type { CollaborationRequestItem } from "../types/collaboration";
 
 type PathwayStep = {
   id: string;
@@ -90,6 +97,8 @@ type ProjectFormState = {
   github_url: string;
   demo_url: string;
   documentation_url: string;
+  collaboration_open: boolean;
+  collaboration_roles_needed: string;
 };
 
 function buildStats({
@@ -183,6 +192,13 @@ function formatRelativeTime(value: string): string {
   if (deltaHours < 24) return `${deltaHours} hour${deltaHours === 1 ? "" : "s"} ago`;
   const deltaDays = Math.floor(deltaHours / 24);
   return `${deltaDays} day${deltaDays === 1 ? "" : "s"} ago`;
+}
+
+function splitCsv(input: string): string[] {
+  return input
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
 }
 
 function buildPlatformSearchLinks(item: {
@@ -343,6 +359,12 @@ export default function Intelligence(): JSX.Element {
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [projectsError, setProjectsError] = useState<string | null>(null);
   const [showProjectForm, setShowProjectForm] = useState(false);
+  const [incomingRequests, setIncomingRequests] = useState<CollaborationRequestItem[]>([]);
+  const [outgoingRequests, setOutgoingRequests] = useState<CollaborationRequestItem[]>([]);
+  const [collaborationLoading, setCollaborationLoading] = useState(false);
+  const [activeCollabMatchId, setActiveCollabMatchId] = useState<string | null>(null);
+  const [selectedCollabProjectId, setSelectedCollabProjectId] = useState<string>("");
+  const [collabMessageDraft, setCollabMessageDraft] = useState("");
   const [projectForm, setProjectForm] = useState<ProjectFormState>({
     title: "",
     description: "",
@@ -351,6 +373,8 @@ export default function Intelligence(): JSX.Element {
     github_url: "",
     demo_url: "",
     documentation_url: "",
+    collaboration_open: false,
+    collaboration_roles_needed: "",
   });
   const [customPathwayForm, setCustomPathwayForm] = useState<CustomPathwayFormState>({
     title: "",
@@ -642,6 +666,21 @@ export default function Intelligence(): JSX.Element {
     const appliedSkills = new Set(projects.flatMap((project) => project.skills_used)).size;
     return { tracked, completed, inProgress, appliedSkills };
   }, [projects]);
+  const openCollaborationProjects = useMemo(
+    () => projects.filter((project) => project.collaboration_open),
+    [projects],
+  );
+  const openOpportunities = useMemo(
+    () =>
+      openCollaborationProjects.map((project) => ({
+        id: project.id,
+        title: project.title,
+        roles: project.collaboration_roles_needed ?? [],
+        category: project.category,
+        skills: project.skills_used,
+      })),
+    [openCollaborationProjects],
+  );
 
   const displayMatches = useMemo(() => {
     if (matches?.matches) {
@@ -664,6 +703,9 @@ export default function Intelligence(): JSX.Element {
           completedLearningEvidence > 0
             ? `${match.reason} Completed learning evidence is improving practical match confidence.`
             : match.reason,
+        collaborationConfidence:
+          (match.collaboration_confidence as "high" | "medium" | "low" | undefined)
+          ?? (match.shared_skills.length >= 3 ? "high" : match.shared_skills.length >= 1 ? "medium" : "low"),
       }));
     }
 
@@ -1390,7 +1432,10 @@ export default function Intelligence(): JSX.Element {
     }
   };
 
-  const handleProjectFieldChange = (field: keyof ProjectFormState, value: string): void => {
+  const handleProjectFieldChange = (
+    field: keyof ProjectFormState,
+    value: string | boolean,
+  ): void => {
     setProjectForm((current) => ({
       ...current,
       [field]: value,
@@ -1406,8 +1451,29 @@ export default function Intelligence(): JSX.Element {
       github_url: "",
       demo_url: "",
       documentation_url: "",
+      collaboration_open: false,
+      collaboration_roles_needed: "",
     });
     setShowProjectForm(false);
+  };
+
+  const loadCollaborationRequests = async (): Promise<void> => {
+    setCollaborationLoading(true);
+    try {
+      const [incoming, outgoing] = await Promise.all([
+        getIncomingCollaborationRequests(),
+        getOutgoingCollaborationRequests(),
+      ]);
+      setIncomingRequests(incoming.items ?? []);
+      setOutgoingRequests(outgoing.items ?? []);
+    } catch (error) {
+      setActionFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : "Unable to load collaboration requests.",
+      });
+    } finally {
+      setCollaborationLoading(false);
+    }
   };
 
   const handleCreateProject = async (): Promise<void> => {
@@ -1436,6 +1502,8 @@ export default function Intelligence(): JSX.Element {
         github_url: projectForm.github_url.trim() || undefined,
         demo_url: projectForm.demo_url.trim() || undefined,
         documentation_url: projectForm.documentation_url.trim() || undefined,
+        collaboration_open: projectForm.collaboration_open,
+        collaboration_roles_needed: splitCsv(projectForm.collaboration_roles_needed),
       });
       setProjects((current) => [created, ...current]);
       markIntelligenceNeedsRefresh();
@@ -1457,6 +1525,8 @@ export default function Intelligence(): JSX.Element {
     payload: {
       status?: ProjectStatus;
       progress_percent?: number;
+      collaboration_open?: boolean;
+      collaboration_roles_needed?: string[];
     },
   ): Promise<void> => {
     try {
@@ -1520,6 +1590,54 @@ export default function Intelligence(): JSX.Element {
       setActionFeedback({
         type: "error",
         message: error instanceof Error ? error.message : "Unable to remove project.",
+      });
+    }
+  };
+
+  const handleSendCollaborationRequest = async (targetUserId: string): Promise<void> => {
+    if (!selectedCollabProjectId) {
+      setActionFeedback({ type: "error", message: "Select a project before sending a collaboration request." });
+      return;
+    }
+    const message = collabMessageDraft.trim();
+    if (!message) {
+      setActionFeedback({ type: "error", message: "Add a short collaboration message before sending." });
+      return;
+    }
+    try {
+      await sendCollaborationRequest({
+        project_id: selectedCollabProjectId,
+        target_user_id: targetUserId,
+        message,
+      });
+      setActionFeedback({ type: "success", message: "Collaboration request sent." });
+      setActiveCollabMatchId(null);
+      setSelectedCollabProjectId("");
+      setCollabMessageDraft("");
+      await loadCollaborationRequests();
+    } catch (error) {
+      setActionFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : "Unable to send collaboration request.",
+      });
+    }
+  };
+
+  const handleRespondToCollaborationRequest = async (
+    requestId: string,
+    status: "accepted" | "declined",
+  ): Promise<void> => {
+    try {
+      await respondToCollaborationRequest(requestId, status);
+      await loadCollaborationRequests();
+      setActionFeedback({
+        type: "success",
+        message: `Request ${status}.`,
+      });
+    } catch (error) {
+      setActionFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : "Unable to respond to collaboration request.",
       });
     }
   };
@@ -1813,6 +1931,7 @@ export default function Intelligence(): JSX.Element {
 
       await loadLearningTracker();
       await loadProjects();
+      await loadCollaborationRequests();
       await loadCustomPathways();
     };
 
@@ -1832,6 +1951,7 @@ export default function Intelligence(): JSX.Element {
     loadMatches,
     loadLearningTracker,
     loadProjects,
+    loadCollaborationRequests,
     loadCustomPathways,
   ]);
 
@@ -1844,6 +1964,8 @@ export default function Intelligence(): JSX.Element {
       setLearningError(null);
       setProjects([]);
       setProjectsError(null);
+      setIncomingRequests([]);
+      setOutgoingRequests([]);
       resetProjectForm();
     }
   }, [user]);
@@ -2859,6 +2981,22 @@ export default function Intelligence(): JSX.Element {
                       className="rounded-xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 text-sm text-[var(--color-on-surface)] md:col-span-2"
                       placeholder="Documentation URL (optional)"
                     />
+                    <label className="inline-flex items-center gap-2 text-sm text-[var(--color-on-surface)] md:col-span-2">
+                      <input
+                        type="checkbox"
+                        checked={projectForm.collaboration_open}
+                        onChange={(event) => handleProjectFieldChange("collaboration_open", event.target.checked)}
+                        className="h-4 w-4 rounded border border-[var(--color-outline-variant)]"
+                      />
+                      Open this project for collaboration
+                    </label>
+                    <input
+                      type="text"
+                      value={projectForm.collaboration_roles_needed}
+                      onChange={(event) => handleProjectFieldChange("collaboration_roles_needed", event.target.value)}
+                      className="rounded-xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 text-sm text-[var(--color-on-surface)] md:col-span-2"
+                      placeholder="Roles needed (comma separated, e.g. Frontend Developer, UI Designer)"
+                    />
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <button
@@ -2924,6 +3062,27 @@ export default function Intelligence(): JSX.Element {
                           />
                         </div>
                       </div>
+                      {project.collaboration_open ? (
+                        <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                            Available for Collaboration
+                          </p>
+                          {project.collaboration_roles_needed && project.collaboration_roles_needed.length > 0 ? (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {project.collaboration_roles_needed.map((role) => (
+                                <span
+                                  key={`${project.id}-role-${role}`}
+                                  className="rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-xs text-emerald-700"
+                                >
+                                  {role}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="mt-1 text-xs text-emerald-800/70">No specific roles added yet.</p>
+                          )}
+                        </div>
+                      ) : null}
                       <div className="mt-3 flex flex-wrap gap-3 text-xs">
                         {project.github_url ? (
                           <a href={project.github_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
@@ -2998,6 +3157,15 @@ export default function Intelligence(): JSX.Element {
                           <option value="completed">Completed</option>
                           <option value="paused">Paused</option>
                         </select>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void handleUpdateProject(project.id, { collaboration_open: !(project.collaboration_open ?? false) });
+                          }}
+                          className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100"
+                        >
+                          {project.collaboration_open ? "Close Collaboration" : "Open Collaboration"}
+                        </button>
                         <button
                           type="button"
                           onClick={() => {
@@ -3475,13 +3643,58 @@ export default function Intelligence(): JSX.Element {
                         </div>
                       </div>
                       <p className="mt-4 text-sm text-emerald-950/75">{match.reason}</p>
+                      <p className="mt-2 text-xs text-emerald-900/70">
+                        Collaboration confidence: {match.collaborationConfidence}
+                      </p>
                       <button
                         type="button"
-                        disabled
-                        className="mt-4 inline-flex h-10 items-center justify-center rounded-2xl bg-emerald-600 px-4 text-sm font-medium text-white opacity-50"
+                        onClick={() => {
+                          setActiveCollabMatchId((current) => (current === match.id ? null : match.id));
+                          if (!selectedCollabProjectId && openCollaborationProjects.length > 0) {
+                            setSelectedCollabProjectId(openCollaborationProjects[0].id);
+                          }
+                          if (!collabMessageDraft) {
+                            setCollabMessageDraft("I think we could collaborate on this opportunity based on our shared skills.");
+                          }
+                        }}
+                        disabled={openCollaborationProjects.length === 0}
+                        className="mt-4 inline-flex h-10 items-center justify-center rounded-2xl bg-emerald-600 px-4 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        Connect
+                        Request Collaboration
                       </button>
+                      {activeCollabMatchId === match.id ? (
+                        <div className="mt-3 space-y-2 rounded-xl border border-emerald-200 bg-white/90 p-3">
+                          <select
+                            value={selectedCollabProjectId}
+                            onChange={(event) => setSelectedCollabProjectId(event.target.value)}
+                            className="w-full rounded-lg border border-emerald-200 bg-white px-2 py-2 text-xs text-emerald-900"
+                          >
+                            {openCollaborationProjects.length === 0 ? (
+                              <option value="">No open collaboration projects</option>
+                            ) : null}
+                            {openCollaborationProjects.map((project) => (
+                              <option key={project.id} value={project.id}>
+                                {project.title}
+                              </option>
+                            ))}
+                          </select>
+                          <textarea
+                            value={collabMessageDraft}
+                            onChange={(event) => setCollabMessageDraft(event.target.value)}
+                            className="min-h-[74px] w-full rounded-lg border border-emerald-200 bg-white px-2 py-2 text-xs text-emerald-900"
+                            placeholder="Write a short collaboration message..."
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void handleSendCollaborationRequest(match.id);
+                            }}
+                            className="inline-flex h-9 items-center justify-center rounded-lg bg-emerald-600 px-3 text-xs font-medium text-white transition hover:bg-emerald-700"
+                          >
+                            Send Request
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
                   ))}
                 </div>
@@ -3530,6 +3743,72 @@ export default function Intelligence(): JSX.Element {
                     <ArrowRight className="h-4 w-4 text-[var(--color-on-surface-variant)]" />
                   </button>
                 ))}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-amber-200/80 bg-gradient-to-br from-amber-50 to-white p-6 shadow-sm">
+              <p className="text-sm font-semibold text-amber-700">Collaboration Requests</p>
+              <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Team Signals</h3>
+              <p className="mt-2 text-sm text-amber-900/75">
+                Pending: {incomingRequests.filter((item) => item.status === "pending").length}
+                {" | "}
+                Accepted: {incomingRequests.filter((item) => item.status === "accepted").length}
+              </p>
+              {collaborationLoading ? (
+                <p className={`mt-3 text-sm ${subtle}`}>Loading requests...</p>
+              ) : null}
+              {incomingRequests.filter((item) => item.status === "pending").slice(0, 2).map((request) => (
+                <div key={request.id} className="mt-3 rounded-xl border border-amber-200 bg-white/90 p-3">
+                  <p className="text-xs text-amber-900/80">{request.message}</p>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleRespondToCollaborationRequest(request.id, "accepted");
+                      }}
+                      className="rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-medium text-white"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleRespondToCollaborationRequest(request.id, "declined");
+                      }}
+                      className="rounded-lg bg-red-600 px-2.5 py-1 text-[11px] font-medium text-white"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-3xl border border-cyan-200/80 bg-gradient-to-br from-cyan-50 to-white p-6 shadow-sm">
+              <p className="text-sm font-semibold text-cyan-700">Open Opportunities</p>
+              <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Projects needing your skills</h3>
+              <p className="mt-2 text-sm text-cyan-900/75">
+                {openOpportunities.length} project(s) currently open for collaboration.
+              </p>
+              <div className="mt-3 space-y-3">
+                {openOpportunities.slice(0, 3).map((opportunity) => (
+                  <div key={opportunity.id} className="rounded-xl border border-cyan-200 bg-white/90 p-3">
+                    <p className="text-sm font-semibold text-cyan-900">{opportunity.title}</p>
+                    <p className="mt-1 text-xs text-cyan-900/70">Category: {opportunity.category}</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {(opportunity.roles.length > 0 ? opportunity.roles : opportunity.skills).slice(0, 4).map((tag) => (
+                        <span key={`${opportunity.id}-${tag}`} className="rounded-full bg-cyan-100 px-2 py-0.5 text-[11px] text-cyan-700">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {openOpportunities.length === 0 ? (
+                  <p className={`text-sm ${subtle}`}>
+                    Open collaboration on a project to generate opportunity cards.
+                  </p>
+                ) : null}
               </div>
             </div>
 
