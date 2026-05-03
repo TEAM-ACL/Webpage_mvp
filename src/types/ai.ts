@@ -160,6 +160,8 @@ export type AIMatchItem = {
   shared_skills: string[];
   shared_interests: string[];
   reason: string;
+  collaboration_confidence?: "high" | "medium" | "low";
+  match_type?: "shared_goals" | "shared_skills_projects" | "complementary_project_experience";
 };
 
 // ACL: Matching response for Intelligence page

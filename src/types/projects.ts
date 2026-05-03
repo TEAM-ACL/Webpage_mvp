@@ -18,6 +18,8 @@ export interface UserProject {
   github_url?: string | null;
   demo_url?: string | null;
   documentation_url?: string | null;
+  collaboration_open?: boolean;
+  collaboration_roles_needed?: string[];
   created_at?: string;
   updated_at?: string;
   completed_at?: string | null;
@@ -26,4 +28,3 @@ export interface UserProject {
 export interface UserProjectsResponse {
   items: UserProject[];
 }
-
