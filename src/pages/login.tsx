@@ -12,12 +12,6 @@ import { getEmailConfirmationRedirectUrl } from "../lib/authRedirects";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const emailConfirmationRedirectUrl = getEmailConfirmationRedirectUrl();
-const hasAdminRole = (role: string | null | undefined): boolean => {
-  const normalized = (role || "").toLowerCase();
-  return normalized === "admin" || normalized === "super_admin" || normalized === "superadmin";
-};
-const isAllowedAdminEmail = (value: string): boolean => value.trim().toLowerCase().endsWith("@visiontech.ai");
-
 export default function Login(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,7 +20,6 @@ export default function Login(): JSX.Element {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loginMode, setLoginMode] = useState<"user" | "admin">("user");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,20 +69,7 @@ export default function Login(): JSX.Element {
       const session = await api.login(cleanEmail, password);
       storeSession(session);
       setUser(session.user);
-      const wantsAdminLogin = loginMode === "admin";
-      const hasAdminAccess = hasAdminRole(session.user.role) || isAllowedAdminEmail(session.user.email);
-      setAdminFlag(wantsAdminLogin && hasAdminAccess);
-
-      if (wantsAdminLogin) {
-        if (!hasAdminAccess) {
-          const message = "This account does not have admin access. Please sign in as a user.";
-          setError(message);
-          showError(message);
-          return;
-        }
-        navigate("/admin");
-        return;
-      }
+      setAdminFlag(false);
 
       const prof = await refreshProfile();
       const done = prof?.isOnboardingComplete ?? onboardingComplete ?? false;
@@ -184,40 +164,15 @@ export default function Login(): JSX.Element {
               <p className="text-on-surface-variant font-sans opacity-70 leading-relaxed">
                 Enter your credentials to access your intelligence workspace
               </p>
+              <Link
+                to="/admin-login"
+                className="mt-3 inline-flex text-sm font-semibold text-primary hover:underline"
+              >
+                Admin Login
+              </Link>
             </div>
 
             <form className="space-y-6" onSubmit={handleSubmit}>
-              <div className="space-y-2">
-                <label className="font-label text-xs font-semibold uppercase tracking-wider text-on-surface-variant ml-1">
-                  Login Mode
-                </label>
-                <div className="grid grid-cols-2 rounded-xl bg-surface-container-high p-1">
-                  <button
-                    type="button"
-                    onClick={() => setLoginMode("user")}
-                    className={`rounded-lg px-3 py-3 text-sm font-semibold transition-all ${
-                      loginMode === "user"
-                        ? "bg-white text-primary shadow-sm"
-                        : "text-on-surface-variant hover:text-on-surface"
-                    }`}
-                    aria-pressed={loginMode === "user"}
-                  >
-                    Login as user
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLoginMode("admin")}
-                    className={`rounded-lg px-3 py-3 text-sm font-semibold transition-all ${
-                      loginMode === "admin"
-                        ? "bg-white text-primary shadow-sm"
-                        : "text-on-surface-variant hover:text-on-surface"
-                    }`}
-                    aria-pressed={loginMode === "admin"}
-                  >
-                    Login as admin
-                  </button>
-                </div>
-              </div>
               <div className="space-y-2">
                 <label className="font-label text-xs font-semibold uppercase tracking-wider text-on-surface-variant ml-1">
                   Email Address

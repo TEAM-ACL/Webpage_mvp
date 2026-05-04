@@ -14,6 +14,7 @@ import Admin from './pages/Admin';
 import Network from './pages/Network';
 import About from './pages/About';
 import Login from './pages/login';
+import AdminLogin from './pages/AdminLogin';
 import SignUp from './pages/signup';
 import Intelligence from './pages/Intelligence';
 import Profile from './pages/Profile';
@@ -96,6 +97,7 @@ export default function App() {
             <Routes>
             {/* Standalone layouts (no global header/footer) */}
             <Route path="/login" element={<RedirectIfOnboarded><Login /></RedirectIfOnboarded>} />
+            <Route path="/admin-login" element={<RedirectIfOnboarded><AdminLogin /></RedirectIfOnboarded>} />
             <Route path="/signup" element={<RedirectIfOnboarded><SignUp /></RedirectIfOnboarded>} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />

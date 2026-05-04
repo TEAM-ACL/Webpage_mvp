@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Settings, Search, Linkedin, Instagram, Youtube, Menu, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
+import { isAdmin } from '../lib/auth';
 
 export function Header() {
   const location = useLocation();
@@ -37,12 +38,14 @@ export function Header() {
     navigate("/login", { replace: true });
   };
 
+  const adminNavPath = isAdmin() ? '/admin' : '/admin-login';
+
   const navItems = [
     { name: 'Home', path: '/' },
     { name: 'Intelligence', path: '/intelligence' },
     { name: 'Workspace', path: '/workspace' },
     { name: 'Network', path: '/network' },
-    { name: 'Admin', path: '/admin' },
+    { name: 'Admin', path: adminNavPath },
     { name: 'About', path: '/about' },
   ];
 
