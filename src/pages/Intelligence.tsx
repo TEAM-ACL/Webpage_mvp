@@ -41,6 +41,8 @@ import {
   respondToCollaborationRequest,
 } from "../services/collaboration";
 import type { CollaborationRequestItem } from "../types/collaboration";
+import { getRecommendedOpportunities } from "../services/opportunities";
+import type { Opportunity } from "../types/opportunities";
 
 type PathwayStep = {
   id: string;
@@ -361,6 +363,7 @@ export default function Intelligence(): JSX.Element {
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [incomingRequests, setIncomingRequests] = useState<CollaborationRequestItem[]>([]);
   const [outgoingRequests, setOutgoingRequests] = useState<CollaborationRequestItem[]>([]);
+  const [recommendedOpportunities, setRecommendedOpportunities] = useState<Opportunity[]>([]);
   const [collaborationLoading, setCollaborationLoading] = useState(false);
   const [activeCollabMatchId, setActiveCollabMatchId] = useState<string | null>(null);
   const [selectedCollabProjectId, setSelectedCollabProjectId] = useState<string>("");
@@ -1476,6 +1479,18 @@ export default function Intelligence(): JSX.Element {
     }
   };
 
+  const loadRecommendedOpportunities = async (): Promise<void> => {
+    try {
+      const items = await getRecommendedOpportunities();
+      setRecommendedOpportunities(items);
+    } catch (error) {
+      setActionFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : "Unable to load recommended opportunities.",
+      });
+    }
+  };
+
   const handleCreateProject = async (): Promise<void> => {
     const title = projectForm.title.trim();
     const description = projectForm.description.trim();
@@ -1932,6 +1947,7 @@ export default function Intelligence(): JSX.Element {
       await loadLearningTracker();
       await loadProjects();
       await loadCollaborationRequests();
+      await loadRecommendedOpportunities();
       await loadCustomPathways();
     };
 
@@ -1952,6 +1968,7 @@ export default function Intelligence(): JSX.Element {
     loadLearningTracker,
     loadProjects,
     loadCollaborationRequests,
+    loadRecommendedOpportunities,
     loadCustomPathways,
   ]);
 
@@ -1966,6 +1983,7 @@ export default function Intelligence(): JSX.Element {
       setProjectsError(null);
       setIncomingRequests([]);
       setOutgoingRequests([]);
+      setRecommendedOpportunities([]);
       resetProjectForm();
     }
   }, [user]);
@@ -3807,6 +3825,37 @@ export default function Intelligence(): JSX.Element {
                 {openOpportunities.length === 0 ? (
                   <p className={`text-sm ${subtle}`}>
                     Open collaboration on a project to generate opportunity cards.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-indigo-200/80 bg-gradient-to-br from-indigo-50 to-white p-6 shadow-sm">
+              <p className="text-sm font-semibold text-indigo-700">Recommended Opportunities</p>
+              <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Capability to opportunity</h3>
+              <p className="mt-2 text-sm text-indigo-900/75">
+                Opportunities aligned with your onboarding, learning, projects, and intelligence signals.
+              </p>
+              <div className="mt-3 space-y-3">
+                {recommendedOpportunities.slice(0, 3).map((item) => (
+                  <div key={item.id} className="rounded-xl border border-indigo-200 bg-white/90 p-3">
+                    <p className="text-sm font-semibold text-indigo-950">{item.title}</p>
+                    <p className="mt-1 text-xs text-indigo-900/70">
+                      {item.opportunity_type} - {item.status}
+                      {typeof item.match_score === "number" ? ` - ${item.match_score}% Match` : ""}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {item.required_skills.slice(0, 4).map((skill) => (
+                        <span key={`${item.id}-${skill}`} className="rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] text-indigo-700">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {recommendedOpportunities.length === 0 ? (
+                  <p className={`text-sm ${subtle}`}>
+                    No recommended opportunities yet. Keep updating learning and projects to improve matching.
                   </p>
                 ) : null}
               </div>

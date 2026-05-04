@@ -43,6 +43,7 @@ export function Header() {
   const navItems = [
     { name: 'Home', path: '/' },
     { name: 'Intelligence', path: '/intelligence' },
+    { name: 'Organizations', path: '/organizations' },
     { name: 'Workspace', path: '/workspace' },
     { name: 'Network', path: '/network' },
     { name: 'Admin', path: adminNavPath },

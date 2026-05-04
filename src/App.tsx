@@ -12,6 +12,7 @@ import Workspace from './pages/Workspace';
 import Onboarding from './pages/Onboarding';
 import Admin from './pages/Admin';
 import Network from './pages/Network';
+import Organizations from './pages/Organizations';
 import About from './pages/About';
 import Login from './pages/login';
 import AdminLogin from './pages/AdminLogin';
@@ -125,6 +126,14 @@ export default function App() {
               element={
                 <RequireAuth>
                   <Network />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/organizations"
+              element={
+                <RequireAuth>
+                  <Organizations />
                 </RequireAuth>
               }
             />
