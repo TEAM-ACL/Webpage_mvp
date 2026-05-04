@@ -32,7 +32,16 @@ export function RequireAdmin({ children }: Props): JSX.Element {
   const { user, loading } = useAuth();
   if (loading) return <></>;
   if (!user) return <Navigate to="/login" replace />;
-  if (!isAdmin()) return <Navigate to="/intelligence" replace />;
+  if (!isAdmin()) {
+    return (
+      <div className="min-h-[60vh] grid place-items-center px-6">
+        <div className="max-w-md rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
+          <p className="text-base font-semibold text-red-800">You do not have permission to access this page.</p>
+          <p className="mt-2 text-sm text-red-700">Admin access is required for this route.</p>
+        </div>
+      </div>
+    );
+  }
   return children;
 }
 
