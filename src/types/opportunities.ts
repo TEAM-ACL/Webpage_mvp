@@ -22,5 +22,8 @@ export interface Opportunity {
   opportunity_type: OpportunityType;
   status: OpportunityStatus;
   match_score?: number;
+  confidence?: "high" | "medium" | "low";
+  reason?: string;
+  recommended_actions?: string[];
   created_at?: string;
 }

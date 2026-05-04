@@ -43,6 +43,8 @@ import {
 import type { CollaborationRequestItem } from "../types/collaboration";
 import { getRecommendedOpportunities } from "../services/opportunities";
 import type { Opportunity } from "../types/opportunities";
+import { getVerifiedSkills, refreshVerifiedSkills } from "../services/verifiedSkills";
+import type { SkillVerificationLevel, VerifiedSkill } from "../types/verifiedSkills";
 
 type PathwayStep = {
   id: string;
@@ -201,6 +203,32 @@ function splitCsv(input: string): string[] {
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
+}
+
+function getOpportunityFitLabel(score: number): string {
+  if (score >= 80) return "Strong Match";
+  if (score >= 60) return "Good Match";
+  return "Emerging Match";
+}
+
+function getOpportunityFitClassName(score: number): string {
+  if (score >= 80) return "bg-emerald-100 text-emerald-700";
+  if (score >= 60) return "bg-amber-100 text-amber-700";
+  return "bg-slate-100 text-slate-700";
+}
+
+function getVerificationBadgeClassName(level: SkillVerificationLevel): string {
+  if (level === "strongly_verified") return "bg-emerald-100 text-emerald-700";
+  if (level === "verified") return "bg-blue-100 text-blue-700";
+  if (level === "emerging") return "bg-amber-100 text-amber-700";
+  return "bg-slate-100 text-slate-700";
+}
+
+function getVerificationWeight(level: SkillVerificationLevel): number {
+  if (level === "strongly_verified") return 20;
+  if (level === "verified") return 12;
+  if (level === "emerging") return 6;
+  return 0;
 }
 
 function buildPlatformSearchLinks(item: {
@@ -364,6 +392,11 @@ export default function Intelligence(): JSX.Element {
   const [incomingRequests, setIncomingRequests] = useState<CollaborationRequestItem[]>([]);
   const [outgoingRequests, setOutgoingRequests] = useState<CollaborationRequestItem[]>([]);
   const [recommendedOpportunities, setRecommendedOpportunities] = useState<Opportunity[]>([]);
+  const [verifiedSkills, setVerifiedSkills] = useState<VerifiedSkill[]>([]);
+  const [opportunitiesNeedRefresh, setOpportunitiesNeedRefresh] = useState(false);
+  const [skillsNeedRefresh, setSkillsNeedRefresh] = useState(false);
+  const [verifiedSkillsLoading, setVerifiedSkillsLoading] = useState(false);
+  const [verifiedSkillsError, setVerifiedSkillsError] = useState<string | null>(null);
   const [collaborationLoading, setCollaborationLoading] = useState(false);
   const [activeCollabMatchId, setActiveCollabMatchId] = useState<string | null>(null);
   const [selectedCollabProjectId, setSelectedCollabProjectId] = useState<string>("");
@@ -684,6 +717,35 @@ export default function Intelligence(): JSX.Element {
       })),
     [openCollaborationProjects],
   );
+  const verifiedSkillMap = useMemo(() => {
+    const map = new Map<string, VerifiedSkill>();
+    verifiedSkills.forEach((skill) => {
+      map.set(skill.skill_name.trim().toLowerCase(), skill);
+    });
+    return map;
+  }, [verifiedSkills]);
+  const opportunityRoutingSummary = useMemo(() => {
+    const scored = recommendedOpportunities.filter(
+      (item): item is Opportunity & { match_score: number } => typeof item.match_score === "number",
+    );
+    const strongMatches = scored.filter((item) => item.match_score >= 80).length;
+    const goodMatches = scored.filter((item) => item.match_score >= 60 && item.match_score < 80).length;
+    const topMatch = scored.length > 0
+      ? scored.reduce((best, current) => (current.match_score > best.match_score ? current : best))
+      : null;
+    return { strongMatches, goodMatches, topMatch };
+  }, [recommendedOpportunities]);
+  const profileCredibility = useMemo(() => {
+    const stronglyVerified = verifiedSkills.filter((skill) => skill.verification_level === "strongly_verified").length;
+    const completedProjects = projects.filter((project) => project.status === "completed").length;
+    const completedLearning = learningItems.filter((item) => item.status === "completed").length;
+    return {
+      verifiedSkills: verifiedSkills.length,
+      stronglyVerified,
+      completedProjects,
+      completedLearning,
+    };
+  }, [verifiedSkills, projects, learningItems]);
 
   const displayMatches = useMemo(() => {
     if (matches?.matches) {
@@ -692,12 +754,18 @@ export default function Intelligence(): JSX.Element {
       );
       const completedLearningEvidence = learningItems.filter((item) => item.status === "completed").length;
       return matches.matches.map((match) => ({
+        // ACL: incorporate verified skills into match confidence and score.
+        verifiedOverlap: (match.shared_skills ?? []).filter((skill) => verifiedSkillMap.has(skill.trim().toLowerCase())),
         id: match.user_id,
         name: match.name,
         matchScore: Math.min(
           100,
           match.match_score
             + (match.shared_skills ?? []).filter((skill) => projectSkillSet.has(skill.trim().toLowerCase())).length * 8
+            + (match.shared_skills ?? []).reduce((sum, skill) => {
+              const found = verifiedSkillMap.get(skill.trim().toLowerCase());
+              return sum + (found ? getVerificationWeight(found.verification_level) : 0);
+            }, 0)
             + Math.min(10, completedLearningEvidence * 2),
         ),
         sharedSkills: match.shared_skills ?? [],
@@ -713,7 +781,7 @@ export default function Intelligence(): JSX.Element {
     }
 
     return [];
-  }, [matches, projects, learningItems]);
+  }, [matches, projects, learningItems, verifiedSkillMap]);
   const hasRealMatches = !!matches && matches.matches.length > 0;
 
   const onboardingIncomplete = onboardingComplete === false;
@@ -1483,11 +1551,48 @@ export default function Intelligence(): JSX.Element {
     try {
       const items = await getRecommendedOpportunities();
       setRecommendedOpportunities(items);
+      setOpportunitiesNeedRefresh(false);
     } catch (error) {
       setActionFeedback({
         type: "error",
         message: error instanceof Error ? error.message : "Unable to load recommended opportunities.",
       });
+    }
+  };
+
+  const handleRefreshOpportunities = async (): Promise<void> => {
+    await loadRecommendedOpportunities();
+  };
+
+  const loadVerifiedSkills = async (): Promise<void> => {
+    setVerifiedSkillsLoading(true);
+    setVerifiedSkillsError(null);
+    try {
+      const items = await getVerifiedSkills();
+      setVerifiedSkills(items);
+      setSkillsNeedRefresh(false);
+    } catch (error) {
+      setVerifiedSkillsError(error instanceof Error ? error.message : "Unable to load verified skills.");
+    } finally {
+      setVerifiedSkillsLoading(false);
+    }
+  };
+
+  const handleRefreshVerifiedSkills = async (): Promise<void> => {
+    setVerifiedSkillsLoading(true);
+    setVerifiedSkillsError(null);
+    try {
+      const items = await refreshVerifiedSkills();
+      setVerifiedSkills(items);
+      setSkillsNeedRefresh(false);
+      setActionFeedback({
+        type: "success",
+        message: "Skill verification refreshed from your latest evidence.",
+      });
+    } catch (error) {
+      setVerifiedSkillsError(error instanceof Error ? error.message : "Unable to refresh verified skills.");
+    } finally {
+      setVerifiedSkillsLoading(false);
     }
   };
 
@@ -1948,6 +2053,7 @@ export default function Intelligence(): JSX.Element {
       await loadProjects();
       await loadCollaborationRequests();
       await loadRecommendedOpportunities();
+      await loadVerifiedSkills();
       await loadCustomPathways();
     };
 
@@ -1969,6 +2075,7 @@ export default function Intelligence(): JSX.Element {
     loadProjects,
     loadCollaborationRequests,
     loadRecommendedOpportunities,
+    loadVerifiedSkills,
     loadCustomPathways,
   ]);
 
@@ -1984,9 +2091,20 @@ export default function Intelligence(): JSX.Element {
       setIncomingRequests([]);
       setOutgoingRequests([]);
       setRecommendedOpportunities([]);
+      setVerifiedSkills([]);
+      setOpportunitiesNeedRefresh(false);
+      setSkillsNeedRefresh(false);
+      setVerifiedSkillsError(null);
       resetProjectForm();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (intelligenceNeedsRefresh) {
+      setOpportunitiesNeedRefresh(true);
+      setSkillsNeedRefresh(true);
+    }
+  }, [intelligenceNeedsRefresh]);
 
   useEffect(() => {
     if (!actionFeedback) {
@@ -2339,6 +2457,44 @@ export default function Intelligence(): JSX.Element {
             className="mt-3 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-amber-700"
           >
             Refresh intelligence
+          </button>
+        </div>
+      ) : null}
+      {opportunitiesNeedRefresh ? (
+        <div className="mb-6 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+          <p className="text-sm font-semibold text-indigo-800">
+            Opportunity recommendations may be outdated
+          </p>
+          <p className="mt-1 text-sm text-indigo-700">
+            Your evidence changed. Refresh opportunity routing to recalculate match scores and next actions.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              void handleRefreshOpportunities();
+            }}
+            className="mt-3 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
+          >
+            Refresh opportunities
+          </button>
+        </div>
+      ) : null}
+      {skillsNeedRefresh ? (
+        <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+          <p className="text-sm font-semibold text-emerald-800">
+            Skill verification may be outdated
+          </p>
+          <p className="mt-1 text-sm text-emerald-700">
+            Your project or learning evidence changed. Refresh verified skills to keep credibility signals accurate.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              void handleRefreshVerifiedSkills();
+            }}
+            className="mt-3 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
+          >
+            Refresh skill verification
           </button>
         </div>
       ) : null}
@@ -3661,6 +3817,11 @@ export default function Intelligence(): JSX.Element {
                         </div>
                       </div>
                       <p className="mt-4 text-sm text-emerald-950/75">{match.reason}</p>
+                      {"verifiedOverlap" in match && Array.isArray(match.verifiedOverlap) && match.verifiedOverlap.length > 0 ? (
+                        <p className="mt-2 text-xs text-emerald-900/70">
+                          Strong match signal: shared verified skills ({match.verifiedOverlap.slice(0, 3).join(", ")}).
+                        </p>
+                      ) : null}
                       <p className="mt-2 text-xs text-emerald-900/70">
                         Collaboration confidence: {match.collaborationConfidence}
                       </p>
@@ -3836,14 +3997,54 @@ export default function Intelligence(): JSX.Element {
               <p className="mt-2 text-sm text-indigo-900/75">
                 Opportunities aligned with your onboarding, learning, projects, and intelligence signals.
               </p>
+              <div className="mt-3 rounded-xl border border-indigo-200 bg-white/90 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Opportunity Routing</p>
+                <p className="mt-1 text-xs text-indigo-900/75">
+                  Strong Matches: {opportunityRoutingSummary.strongMatches}
+                  {" | "}
+                  Good Matches: {opportunityRoutingSummary.goodMatches}
+                </p>
+                <p className="mt-1 text-xs text-indigo-900/75">
+                  Top Match: {opportunityRoutingSummary.topMatch
+                    ? `${opportunityRoutingSummary.topMatch.title} (${opportunityRoutingSummary.topMatch.match_score}%)`
+                    : "No scored opportunities yet"}
+                </p>
+              </div>
               <div className="mt-3 space-y-3">
                 {recommendedOpportunities.slice(0, 3).map((item) => (
                   <div key={item.id} className="rounded-xl border border-indigo-200 bg-white/90 p-3">
                     <p className="text-sm font-semibold text-indigo-950">{item.title}</p>
                     <p className="mt-1 text-xs text-indigo-900/70">
                       {item.opportunity_type} - {item.status}
-                      {typeof item.match_score === "number" ? ` - ${item.match_score}% Match` : ""}
                     </p>
+                    {typeof item.match_score === "number" ? (
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
+                          {item.match_score}% Match
+                        </span>
+                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${getOpportunityFitClassName(item.match_score)}`}>
+                          {getOpportunityFitLabel(item.match_score)}
+                        </span>
+                        {item.confidence ? (
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                            {item.confidence} confidence
+                          </span>
+                        ) : null}
+                        {item.required_skills.some((skill) => {
+                          const verified = verifiedSkillMap.get(skill.trim().toLowerCase());
+                          return verified && (verified.verification_level === "verified" || verified.verification_level === "strongly_verified");
+                        }) ? (
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                            Verified skill alignment
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {item.reason ? (
+                      <p className="mt-2 text-xs text-indigo-900/80">
+                        Why recommended: {item.reason}
+                      </p>
+                    ) : null}
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {item.required_skills.slice(0, 4).map((skill) => (
                         <span key={`${item.id}-${skill}`} className="rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] text-indigo-700">
@@ -3851,11 +4052,64 @@ export default function Intelligence(): JSX.Element {
                         </span>
                       ))}
                     </div>
+                    {item.recommended_actions && item.recommended_actions.length > 0 ? (
+                      <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-indigo-900/80">
+                        {item.recommended_actions.slice(0, 2).map((action) => (
+                          <li key={`${item.id}-${action}`}>{action}</li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </div>
                 ))}
                 {recommendedOpportunities.length === 0 ? (
                   <p className={`text-sm ${subtle}`}>
                     No recommended opportunities yet. Keep updating learning and projects to improve matching.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-sm">
+              <p className="text-sm font-semibold text-emerald-700">Verified Skills</p>
+              <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Profile credibility</h3>
+              <p className="mt-2 text-sm text-emerald-900/75">
+                Evidence-backed skills increase trust in matching and opportunity routing.
+              </p>
+              <div className="mt-3 rounded-xl border border-emerald-200 bg-white/90 p-3 text-xs text-emerald-900/80">
+                <p>Verified Skills: {profileCredibility.verifiedSkills}</p>
+                <p>Strongly Verified: {profileCredibility.stronglyVerified}</p>
+                <p>Projects Completed: {profileCredibility.completedProjects}</p>
+                <p>Learning Completed: {profileCredibility.completedLearning}</p>
+              </div>
+              {verifiedSkillsLoading ? (
+                <p className={`mt-3 text-sm ${subtle}`}>Loading verified skills...</p>
+              ) : null}
+              {verifiedSkillsError ? (
+                <p className="mt-3 text-sm text-red-700">{verifiedSkillsError}</p>
+              ) : null}
+              <div className="mt-3 space-y-3">
+                {verifiedSkills.slice(0, 4).map((skill) => (
+                  <div key={skill.id} className="rounded-xl border border-emerald-200 bg-white/90 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-emerald-950">{skill.skill_name}</p>
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${getVerificationBadgeClassName(skill.verification_level)}`}>
+                        {skill.verification_level}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-emerald-900/75">{skill.confidence_score}% Confidence</p>
+                    <p className="mt-1 text-xs text-emerald-900/75">{skill.evidence_summary}</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {skill.evidence.slice(0, 3).map((evidence) => (
+                        <span key={evidence.id} className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] text-emerald-700">
+                          {evidence.title}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {verifiedSkills.length === 0 && !verifiedSkillsLoading ? (
+                  <p className={`text-sm ${subtle}`}>
+                    No verified skills yet. Complete learning and projects, then refresh skill verification.
                   </p>
                 ) : null}
               </div>
