@@ -203,6 +203,18 @@ function splitCsv(input: string): string[] {
     .filter(Boolean);
 }
 
+function getOpportunityFitLabel(score: number): string {
+  if (score >= 80) return "Strong Match";
+  if (score >= 60) return "Good Match";
+  return "Emerging Match";
+}
+
+function getOpportunityFitClassName(score: number): string {
+  if (score >= 80) return "bg-emerald-100 text-emerald-700";
+  if (score >= 60) return "bg-amber-100 text-amber-700";
+  return "bg-slate-100 text-slate-700";
+}
+
 function buildPlatformSearchLinks(item: {
   title: string;
   level: string;
@@ -364,6 +376,7 @@ export default function Intelligence(): JSX.Element {
   const [incomingRequests, setIncomingRequests] = useState<CollaborationRequestItem[]>([]);
   const [outgoingRequests, setOutgoingRequests] = useState<CollaborationRequestItem[]>([]);
   const [recommendedOpportunities, setRecommendedOpportunities] = useState<Opportunity[]>([]);
+  const [opportunitiesNeedRefresh, setOpportunitiesNeedRefresh] = useState(false);
   const [collaborationLoading, setCollaborationLoading] = useState(false);
   const [activeCollabMatchId, setActiveCollabMatchId] = useState<string | null>(null);
   const [selectedCollabProjectId, setSelectedCollabProjectId] = useState<string>("");
@@ -684,6 +697,17 @@ export default function Intelligence(): JSX.Element {
       })),
     [openCollaborationProjects],
   );
+  const opportunityRoutingSummary = useMemo(() => {
+    const scored = recommendedOpportunities.filter(
+      (item): item is Opportunity & { match_score: number } => typeof item.match_score === "number",
+    );
+    const strongMatches = scored.filter((item) => item.match_score >= 80).length;
+    const goodMatches = scored.filter((item) => item.match_score >= 60 && item.match_score < 80).length;
+    const topMatch = scored.length > 0
+      ? scored.reduce((best, current) => (current.match_score > best.match_score ? current : best))
+      : null;
+    return { strongMatches, goodMatches, topMatch };
+  }, [recommendedOpportunities]);
 
   const displayMatches = useMemo(() => {
     if (matches?.matches) {
@@ -1483,12 +1507,17 @@ export default function Intelligence(): JSX.Element {
     try {
       const items = await getRecommendedOpportunities();
       setRecommendedOpportunities(items);
+      setOpportunitiesNeedRefresh(false);
     } catch (error) {
       setActionFeedback({
         type: "error",
         message: error instanceof Error ? error.message : "Unable to load recommended opportunities.",
       });
     }
+  };
+
+  const handleRefreshOpportunities = async (): Promise<void> => {
+    await loadRecommendedOpportunities();
   };
 
   const handleCreateProject = async (): Promise<void> => {
@@ -1984,9 +2013,16 @@ export default function Intelligence(): JSX.Element {
       setIncomingRequests([]);
       setOutgoingRequests([]);
       setRecommendedOpportunities([]);
+      setOpportunitiesNeedRefresh(false);
       resetProjectForm();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (intelligenceNeedsRefresh) {
+      setOpportunitiesNeedRefresh(true);
+    }
+  }, [intelligenceNeedsRefresh]);
 
   useEffect(() => {
     if (!actionFeedback) {
@@ -2339,6 +2375,25 @@ export default function Intelligence(): JSX.Element {
             className="mt-3 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-amber-700"
           >
             Refresh intelligence
+          </button>
+        </div>
+      ) : null}
+      {opportunitiesNeedRefresh ? (
+        <div className="mb-6 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+          <p className="text-sm font-semibold text-indigo-800">
+            Opportunity recommendations may be outdated
+          </p>
+          <p className="mt-1 text-sm text-indigo-700">
+            Your evidence changed. Refresh opportunity routing to recalculate match scores and next actions.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              void handleRefreshOpportunities();
+            }}
+            className="mt-3 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
+          >
+            Refresh opportunities
           </button>
         </div>
       ) : null}
@@ -3836,14 +3891,46 @@ export default function Intelligence(): JSX.Element {
               <p className="mt-2 text-sm text-indigo-900/75">
                 Opportunities aligned with your onboarding, learning, projects, and intelligence signals.
               </p>
+              <div className="mt-3 rounded-xl border border-indigo-200 bg-white/90 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Opportunity Routing</p>
+                <p className="mt-1 text-xs text-indigo-900/75">
+                  Strong Matches: {opportunityRoutingSummary.strongMatches}
+                  {" | "}
+                  Good Matches: {opportunityRoutingSummary.goodMatches}
+                </p>
+                <p className="mt-1 text-xs text-indigo-900/75">
+                  Top Match: {opportunityRoutingSummary.topMatch
+                    ? `${opportunityRoutingSummary.topMatch.title} (${opportunityRoutingSummary.topMatch.match_score}%)`
+                    : "No scored opportunities yet"}
+                </p>
+              </div>
               <div className="mt-3 space-y-3">
                 {recommendedOpportunities.slice(0, 3).map((item) => (
                   <div key={item.id} className="rounded-xl border border-indigo-200 bg-white/90 p-3">
                     <p className="text-sm font-semibold text-indigo-950">{item.title}</p>
                     <p className="mt-1 text-xs text-indigo-900/70">
                       {item.opportunity_type} - {item.status}
-                      {typeof item.match_score === "number" ? ` - ${item.match_score}% Match` : ""}
                     </p>
+                    {typeof item.match_score === "number" ? (
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
+                          {item.match_score}% Match
+                        </span>
+                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${getOpportunityFitClassName(item.match_score)}`}>
+                          {getOpportunityFitLabel(item.match_score)}
+                        </span>
+                        {item.confidence ? (
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                            {item.confidence} confidence
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {item.reason ? (
+                      <p className="mt-2 text-xs text-indigo-900/80">
+                        Why recommended: {item.reason}
+                      </p>
+                    ) : null}
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {item.required_skills.slice(0, 4).map((skill) => (
                         <span key={`${item.id}-${skill}`} className="rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] text-indigo-700">
@@ -3851,6 +3938,13 @@ export default function Intelligence(): JSX.Element {
                         </span>
                       ))}
                     </div>
+                    {item.recommended_actions && item.recommended_actions.length > 0 ? (
+                      <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-indigo-900/80">
+                        {item.recommended_actions.slice(0, 2).map((action) => (
+                          <li key={`${item.id}-${action}`}>{action}</li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </div>
                 ))}
                 {recommendedOpportunities.length === 0 ? (
