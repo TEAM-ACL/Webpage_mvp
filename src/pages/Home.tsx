@@ -1,8 +1,11 @@
-import type { JSX } from "react";
+import type { FormEvent, JSX } from "react";
+import { useState } from "react";
 import { motion } from "motion/react";
 import { ArrowRight, Users, CheckCircle2, ChevronDown, Sparkles, Rocket, BrainCircuit } from "lucide-react";
 import OnboardingWalkthroughSlideshow from "../components/home/OnboardingWalkthroughSlideshow";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
+import { joinWaitlist } from "../services/waitlist";
 
 type SocialLink = {
   label: string;
@@ -77,7 +80,47 @@ const faqs = [
 
 export default function Home(): JSX.Element {
   const { user } = useAuth();
+  const { showError, showSuccess } = useToast();
   const intelligenceHref = user ? "/intelligence" : "/login";
+  const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [waitlistSubmitting, setWaitlistSubmitting] = useState(false);
+  const [waitlistMessage, setWaitlistMessage] = useState<string | null>(null);
+
+  async function handleWaitlistSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const email = waitlistEmail.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
+      const message = "Please enter a valid email address.";
+      setWaitlistMessage(message);
+      showError(message);
+      return;
+    }
+
+    setWaitlistSubmitting(true);
+    setWaitlistMessage(null);
+
+    try {
+      const result = await joinWaitlist(email);
+      if (result.alreadyJoined) {
+        const message = "This email is already on the waitlist.";
+        setWaitlistMessage(message);
+        showSuccess(message);
+      } else {
+        const message = "You are on the waitlist. We'll be in touch soon.";
+        setWaitlistMessage(message);
+        setWaitlistEmail("");
+        showSuccess(message);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to join waitlist right now.";
+      setWaitlistMessage(message);
+      showError(message);
+    } finally {
+      setWaitlistSubmitting(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#f7f3ff] text-slate-900">
@@ -346,21 +389,27 @@ export default function Home(): JSX.Element {
             Be the first to try VisionTech. We're onboarding design partners and innovation teams shaping the future of
             collaboration intelligence.
           </p>
-          <form className="mt-4 grid gap-3 md:grid-cols-[2fr,1fr]">
+          <form onSubmit={handleWaitlistSubmit} className="mt-4 grid gap-3 md:grid-cols-[2fr,1fr]">
             <input
               type="email"
               name="email"
               required
+              value={waitlistEmail}
+              onChange={(event) => setWaitlistEmail(event.target.value)}
               placeholder="Work email"
               className="rounded-lg border border-[#d8cffc] bg-white px-4 py-3 text-sm text-[#0b1b2d] placeholder-slate-500 focus:border-[#1f0954] focus:outline-none focus:ring-2 focus:ring-[#d8cffc]"
             />
             <button
               type="submit"
+              disabled={waitlistSubmitting}
               className="flex items-center justify-center gap-2 rounded-lg bg-[#1f0954] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#1f0954]/25 transition hover:bg-black"
             >
-              Request Access <ArrowRight className="h-4 w-4" />
+              {waitlistSubmitting ? "Submitting..." : "Request Access"} <ArrowRight className="h-4 w-4" />
             </button>
           </form>
+          {waitlistMessage ? (
+            <p className="text-sm text-[#1f0954]">{waitlistMessage}</p>
+          ) : null}
           <div className="flex items-center justify-center gap-3 text-xs text-[#0b1b2d]/80">
             <Users className="h-4 w-4 text-[#1f0954]" />
             <span>We'll reach out with onboarding steps and pilot options.</span>

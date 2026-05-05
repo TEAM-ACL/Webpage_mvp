@@ -2,10 +2,12 @@ import { useEffect, useState, type JSX } from "react";
 import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
 import {
+  exportWaitlistCsv,
   getAdminActivity,
   getAdminSummary,
   getAdminSystemHealth,
 } from "../services/admin";
+import { useToast } from "../context/ToastContext";
 import type {
   AdminActivityItem,
   AdminSummaryResponse,
@@ -28,12 +30,35 @@ function healthClass(value: "healthy" | "degraded" | "down"): string {
 }
 
 export default function Admin(): JSX.Element {
+  const { showError, showSuccess } = useToast();
   const [summary, setSummary] = useState<AdminSummaryResponse | null>(null);
   const [activity, setActivity] = useState<AdminActivityItem[]>([]);
   const [health, setHealth] = useState<AdminSystemHealthResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [exportingWaitlist, setExportingWaitlist] = useState(false);
+
+  const handleExportWaitlist = async (): Promise<void> => {
+    setExportingWaitlist(true);
+    try {
+      const { blob, filename } = await exportWaitlistCsv();
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(url);
+      showSuccess("Waitlist CSV downloaded.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not export waitlist CSV.";
+      showError(message);
+    } finally {
+      setExportingWaitlist(false);
+    }
+  };
 
   const loadAdminData = async (): Promise<void> => {
     setLoading(true);
@@ -84,16 +109,28 @@ export default function Admin(): JSX.Element {
         title="Admin Intelligence Dashboard"
         description="Monitor users, onboarding, AI activity, learning, projects, collaboration, and system health."
         actions={(
-          <button
-            type="button"
-            onClick={() => {
-              void refreshAdminData();
-            }}
-            disabled={refreshing || loading}
-            className="inline-flex h-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {refreshing ? "Refreshing..." : "Refresh"}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                void handleExportWaitlist();
+              }}
+              disabled={exportingWaitlist || loading}
+              className="inline-flex h-10 items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {exportingWaitlist ? "Exporting..." : "Export Waitlist CSV"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                void refreshAdminData();
+              }}
+              disabled={refreshing || loading}
+              className="inline-flex h-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
+          </div>
         )}
       />
 
