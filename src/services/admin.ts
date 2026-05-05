@@ -40,3 +40,32 @@ export async function getAdminActivity(): Promise<AdminActivityResponse> {
 export async function getAdminSystemHealth(): Promise<AdminSystemHealthResponse> {
   return adminRequest<AdminSystemHealthResponse>("/admin/system-health");
 }
+
+export async function exportWaitlistCsv(): Promise<{ blob: Blob; filename: string }> {
+  const token = sessionStorage.getItem("access_token");
+  if (!token) {
+    throw new Error("Your session token is missing. Please log in again.");
+  }
+
+  const response = await fetch("/api/admin/waitlist/export", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Waitlist export failed: ${errorText || response.statusText}`);
+  }
+
+  const contentDisposition = response.headers.get("Content-Disposition") ?? "";
+  const match = contentDisposition.match(/filename="?([^"]+)"?/i);
+  const filename = match?.[1] ?? "waitlist.csv";
+
+  return {
+    blob: await response.blob(),
+    filename,
+  };
+}
