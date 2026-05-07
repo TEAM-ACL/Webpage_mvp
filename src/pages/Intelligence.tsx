@@ -266,24 +266,55 @@ function getStateScore(state: IntelligenceSectionState): number {
   return 35;
 }
 
-function renderMiniBarChart({
-  values,
-  colorClassName,
+function renderDonutChart({
+  slices,
+  centerLabel,
+  centerSubLabel,
 }: {
-  values: number[];
-  colorClassName: string;
+  slices: Array<{
+    label: string;
+    value: number;
+    color: string;
+  }>;
+  centerLabel?: string;
+  centerSubLabel?: string;
 }): JSX.Element {
-  const max = Math.max(1, ...values);
+  const total = slices.reduce((acc, slice) => acc + Math.max(0, slice.value), 0);
+  const safeTotal = total > 0 ? total : 1;
+  let offset = 0;
+  const gradientParts = slices.map((slice) => {
+    const start = (offset / safeTotal) * 360;
+    offset += Math.max(0, slice.value);
+    const end = (offset / safeTotal) * 360;
+    return `${slice.color} ${start}deg ${end}deg`;
+  });
+
   return (
-    <div className="flex h-16 items-end gap-1">
-      {values.map((value, index) => (
-        <div key={`${index}-${value}`} className="flex-1 rounded-t-sm bg-slate-200/70">
-          <div
-            className={`w-full rounded-t-sm ${colorClassName}`}
-            style={{ height: `${Math.max(8, (value / max) * 64)}px` }}
-          />
+    <div className="flex items-center gap-4">
+      <div
+        className="grid h-20 w-20 place-items-center rounded-full"
+        style={{ background: `conic-gradient(${gradientParts.join(", ")})` }}
+      >
+        <div className="grid h-14 w-14 place-items-center rounded-full bg-white text-center">
+          <p className="text-[11px] font-bold text-slate-800">{centerLabel ?? String(total)}</p>
+          {centerSubLabel ? (
+            <p className="text-[9px] uppercase tracking-wide text-slate-500">{centerSubLabel}</p>
+          ) : null}
         </div>
-      ))}
+      </div>
+      <div className="space-y-1 text-xs">
+        {slices.map((slice) => {
+          const percent = total > 0 ? Math.round((slice.value / total) * 100) : 0;
+          return (
+            <p key={slice.label} className="flex items-center gap-2 text-slate-700">
+              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: slice.color }} />
+              <span>
+                {slice.label}: {slice.value} ({percent}%)
+              </span>
+            </p>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -318,6 +349,29 @@ function renderWaveChart({
       <polygon points={areaPoints} fill={fill} />
       <polyline points={points} fill="none" stroke={stroke} strokeWidth="3" strokeLinecap="round" />
     </svg>
+  );
+}
+
+function renderMetricRows(
+  rows: Array<{ label: string; valueText: string; percent: number; toneClassName: string }>,
+): JSX.Element {
+  return (
+    <div className="space-y-2.5">
+      {rows.map((row) => (
+        <div key={row.label}>
+          <div className="mb-1 flex items-center justify-between">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-600">{row.label}</p>
+            <p className="text-xs font-medium text-slate-700">{row.valueText}</p>
+          </div>
+          <div className="h-1.5 rounded-full bg-slate-200">
+            <div
+              className={`h-full rounded-full ${row.toneClassName}`}
+              style={{ width: `${Math.max(0, Math.min(100, row.percent))}%` }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -2228,32 +2282,88 @@ export default function Intelligence(): JSX.Element {
             <p className="mt-3 text-3xl font-bold text-[var(--color-on-surface)]">{item.value}</p>
             <p className="mt-2 text-sm text-[var(--color-on-surface-variant)]">{item.note}</p>
             <div className="mt-4">
-              {renderWaveChart({
-                values:
-                  index === 0
-                    ? [completionPercent, overallHealthScore, readySectionCount, errorSectionCount + emptySectionCount]
-                    : index === 1
-                      ? [profileSkills.length, profileInterests.length, profileGoals.length]
-                      : index === 2
-                        ? (matchScoreTrend.length > 0 ? matchScoreTrend : [displayMatches.length])
-                        : [aiInsightNextBestActions.length, aiInsightSkillGaps.length, recommendations?.recommendations.length ?? 0],
-                stroke:
-                  index === 0
-                    ? "#4f46e5"
-                    : index === 1
-                      ? "#0284c7"
-                      : index === 2
-                        ? "#059669"
-                        : "#c026d3",
-                fill:
-                  index === 0
-                    ? "rgba(79,70,229,0.12)"
-                    : index === 1
-                      ? "rgba(2,132,199,0.12)"
-                      : index === 2
-                        ? "rgba(5,150,105,0.12)"
-                        : "rgba(192,38,211,0.12)",
-              })}
+              {index === 0 ? renderMetricRows([
+                {
+                  label: "Pathway completion",
+                  valueText: `${completionPercent}%`,
+                  percent: completionPercent,
+                  toneClassName: "bg-indigo-500",
+                },
+                {
+                  label: "System health",
+                  valueText: `${overallHealthScore}%`,
+                  percent: overallHealthScore,
+                  toneClassName: "bg-indigo-400",
+                },
+                {
+                  label: "Sections ready",
+                  valueText: `${readySectionCount}/3`,
+                  percent: Math.round((readySectionCount / 3) * 100),
+                  toneClassName: "bg-indigo-300",
+                },
+              ]) : null}
+              {index === 1 ? renderMetricRows([
+                {
+                  label: "Skills",
+                  valueText: `${profileSkills.length}/${minimumSkillsForStrongInsight}`,
+                  percent: Math.round((profileSkills.length / minimumSkillsForStrongInsight) * 100),
+                  toneClassName: "bg-sky-500",
+                },
+                {
+                  label: "Interests",
+                  valueText: `${profileInterests.length}/${minimumInterestsForStrongInsight}`,
+                  percent: Math.round((profileInterests.length / minimumInterestsForStrongInsight) * 100),
+                  toneClassName: "bg-sky-400",
+                },
+                {
+                  label: "Goals",
+                  valueText: `${profileGoals.length}/${minimumGoalsForStrongInsight}`,
+                  percent: Math.round((profileGoals.length / minimumGoalsForStrongInsight) * 100),
+                  toneClassName: "bg-sky-300",
+                },
+              ]) : null}
+              {index === 2 ? renderMetricRows([
+                {
+                  label: "Total matches",
+                  valueText: `${displayMatches.length}`,
+                  percent: Math.min(100, displayMatches.length * 20),
+                  toneClassName: "bg-emerald-500",
+                },
+                {
+                  label: "Strong matches",
+                  valueText: `${displayMatches.filter((match) => match.matchScore >= 80).length}`,
+                  percent: displayMatches.length > 0
+                    ? Math.round((displayMatches.filter((match) => match.matchScore >= 80).length / displayMatches.length) * 100)
+                    : 0,
+                  toneClassName: "bg-emerald-400",
+                },
+                {
+                  label: "Best match score",
+                  valueText: `${matchScoreTrend.length > 0 ? Math.max(...matchScoreTrend) : 0}%`,
+                  percent: matchScoreTrend.length > 0 ? Math.max(...matchScoreTrend) : 0,
+                  toneClassName: "bg-emerald-300",
+                },
+              ]) : null}
+              {index === 3 ? renderMetricRows([
+                {
+                  label: "Next actions",
+                  valueText: `${aiInsightNextBestActions.length}`,
+                  percent: Math.min(100, aiInsightNextBestActions.length * 20),
+                  toneClassName: "bg-fuchsia-500",
+                },
+                {
+                  label: "Skill gaps",
+                  valueText: `${aiInsightSkillGaps.length}`,
+                  percent: Math.min(100, aiInsightSkillGaps.length * 20),
+                  toneClassName: "bg-fuchsia-400",
+                },
+                {
+                  label: "Recommendations",
+                  valueText: `${recommendations?.recommendations.length ?? 0}`,
+                  percent: Math.min(100, (recommendations?.recommendations.length ?? 0) * 20),
+                  toneClassName: "bg-fuchsia-300",
+                },
+              ]) : null}
             </div>
           </div>
         ))}
@@ -2626,13 +2736,13 @@ export default function Intelligence(): JSX.Element {
                 <div className="rounded-xl border border-indigo-200 bg-white/90 p-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Pathway Phase Mix</p>
                   <div className="mt-3">
-                    {renderMiniBarChart({
-                      values: [
-                        pathwayStatusDistribution.completed,
-                        pathwayStatusDistribution.active,
-                        pathwayStatusDistribution.locked,
+                    {renderDonutChart({
+                      slices: [
+                        { label: "Done", value: pathwayStatusDistribution.completed, color: "#10b981" },
+                        { label: "Active", value: pathwayStatusDistribution.active, color: "#0ea5e9" },
+                        { label: "Locked", value: pathwayStatusDistribution.locked, color: "#94a3b8" },
                       ],
-                      colorClassName: "bg-gradient-to-t from-indigo-500 to-sky-400",
+                      centerSubLabel: "phases",
                     })}
                   </div>
                 </div>
@@ -2772,9 +2882,12 @@ export default function Intelligence(): JSX.Element {
                     <div className="rounded-xl border border-violet-200 bg-white/90 p-3">
                       <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">Gap vs Action Distribution</p>
                       <div className="mt-3">
-                        {renderMiniBarChart({
-                          values: [aiInsightSkillGaps.length, aiInsightNextBestActions.length],
-                          colorClassName: "bg-gradient-to-t from-violet-600 to-fuchsia-400",
+                        {renderDonutChart({
+                          slices: [
+                            { label: "Skill Gaps", value: aiInsightSkillGaps.length, color: "#7c3aed" },
+                            { label: "Next Actions", value: aiInsightNextBestActions.length, color: "#ec4899" },
+                          ],
+                          centerSubLabel: "signals",
                         })}
                       </div>
                     </div>
@@ -3534,14 +3647,14 @@ export default function Intelligence(): JSX.Element {
                 <div className="rounded-xl border border-amber-200 bg-white/90 p-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Status Distribution</p>
                   <div className="mt-3">
-                    {renderMiniBarChart({
-                      values: [
-                        customPathwayStatusDistribution.private,
-                        customPathwayStatusDistribution.pending_review,
-                        customPathwayStatusDistribution.approved,
-                        customPathwayStatusDistribution.rejected,
+                    {renderDonutChart({
+                      slices: [
+                        { label: "Private", value: customPathwayStatusDistribution.private, color: "#f59e0b" },
+                        { label: "Review", value: customPathwayStatusDistribution.pending_review, color: "#fbbf24" },
+                        { label: "Approved", value: customPathwayStatusDistribution.approved, color: "#22c55e" },
+                        { label: "Rejected", value: customPathwayStatusDistribution.rejected, color: "#ef4444" },
                       ],
-                      colorClassName: "bg-gradient-to-t from-amber-500 to-orange-400",
+                      centerSubLabel: "status",
                     })}
                   </div>
                 </div>
