@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
-import { type SummaryItem } from "../components/dashboard/SummaryGrid";
 import { useAuth } from "../context/AuthContext";
 import { testAIBackendCall } from "../services/aiService";
 import type { CreateCustomPathwayPayload } from "../types/ai";
@@ -105,17 +104,36 @@ type ProjectFormState = {
   collaboration_roles_needed: string;
 };
 
+type IntelligenceStatCard = {
+  title: string;
+  value: string;
+  note: string;
+  icon: typeof TrendingUp;
+  refreshLabel: string;
+  refreshKey: "pathway" | "skills" | "matches" | "insight";
+  isUpdating: boolean;
+  source: string;
+};
+
 function buildStats({
   pathwayProgressPercent,
   skillsCount,
   activeMatchesCount,
   aiNextStepCount,
+  isPathwayUpdating,
+  isSkillsUpdating,
+  isMatchesUpdating,
+  isInsightUpdating,
 }: {
   pathwayProgressPercent: number;
   skillsCount: number | null;
   activeMatchesCount: number;
   aiNextStepCount: number | null;
-}): SummaryItem[] {
+  isPathwayUpdating: boolean;
+  isSkillsUpdating: boolean;
+  isMatchesUpdating: boolean;
+  isInsightUpdating: boolean;
+}): IntelligenceStatCard[] {
   return [
     {
       title: "Pathway Progress",
@@ -125,12 +143,20 @@ function buildStats({
           ? "Strong momentum across intelligence sections"
           : "Progress reflects current readiness and loaded intelligence data",
       icon: TrendingUp,
+      refreshLabel: "Update",
+      refreshKey: "pathway",
+      isUpdating: isPathwayUpdating,
+      source: "AI readiness + progress signals",
     },
     {
       title: "Skills Identified",
       value: skillsCount !== null ? String(skillsCount) : "-",
-      note: skillsCount !== null ? "Captured from onboarding" : "Add skills in onboarding to unlock precision",
+      note: skillsCount !== null ? "Combined onboarding and AI-detected skill signals" : "Add skills in onboarding to unlock precision",
       icon: Target,
+      refreshLabel: "Refresh skills",
+      refreshKey: "skills",
+      isUpdating: isSkillsUpdating,
+      source: "Onboarding profile + AI insight",
     },
     {
       title: "Active Matches",
@@ -140,12 +166,20 @@ function buildStats({
           ? "Potential collaborators and mentors"
           : "Load matching data to reveal active opportunities",
       icon: Users,
+      refreshLabel: "Refresh matches",
+      refreshKey: "matches",
+      isUpdating: isMatchesUpdating,
+      source: "AI matching engine",
     },
     {
       title: "AI Insights",
       value: aiNextStepCount !== null ? String(aiNextStepCount) : "-",
       note: aiNextStepCount !== null ? "AI next steps currently available" : "Complete onboarding to see insights",
       icon: Lightbulb,
+      refreshLabel: "Refresh insight",
+      refreshKey: "insight",
+      isUpdating: isInsightUpdating,
+      source: "AI profile insight",
     },
   ];
 }
@@ -477,7 +511,12 @@ export default function Intelligence(): JSX.Element {
   const intelligenceBootstrapStarted = useRef(false);
 
   const field = profile?.fieldOfInterest || "Cloud Security Pathway";
-  const skillsCount = profile?.skills ? profile.skills.length : null;
+  const profileSkillCount = profile?.skills ? profile.skills.length : 0;
+  const aiDetectedSkillCount = aiInsight?.recommended_skills?.length ?? 0;
+  const skillsCount =
+    profileSkillCount > 0 || aiDetectedSkillCount > 0
+      ? Math.max(profileSkillCount, aiDetectedSkillCount)
+      : null;
   const summaryGoal = profile?.goals?.[0] || "Grow in your chosen pathway";
   const summaryTask = profile?.interests?.[0]
     ? `Explore: ${profile.interests[0]}`
@@ -1002,8 +1041,22 @@ export default function Intelligence(): JSX.Element {
         skillsCount,
         activeMatchesCount: displayMatches.length,
         aiNextStepCount: aiInsight ? aiInsightNextBestActions.length : null,
+        isPathwayUpdating: intelligenceRefreshing,
+        isSkillsUpdating: verifiedSkillsLoading || intelligenceRefreshing,
+        isMatchesUpdating: matchesLoading || intelligenceRefreshing,
+        isInsightUpdating: aiInsightLoading || intelligenceRefreshing,
       }),
-    [completionPercent, skillsCount, displayMatches.length, aiInsight, aiInsightNextBestActions.length],
+    [
+      completionPercent,
+      skillsCount,
+      displayMatches.length,
+      aiInsight,
+      aiInsightNextBestActions.length,
+      intelligenceRefreshing,
+      verifiedSkillsLoading,
+      matchesLoading,
+      aiInsightLoading,
+    ],
   );
 
   const profileInsightCanGenerate = aiReadiness?.profile_insight.can_generate ?? false;
@@ -2281,6 +2334,7 @@ export default function Intelligence(): JSX.Element {
             </div>
             <p className="mt-3 text-3xl font-bold text-[var(--color-on-surface)]">{item.value}</p>
             <p className="mt-2 text-sm text-[var(--color-on-surface-variant)]">{item.note}</p>
+            <p className="mt-1 text-xs text-[var(--color-on-surface-variant)]">Source: {item.source}</p>
             <div className="mt-4">
               {index === 0 ? renderMetricRows([
                 {
@@ -2364,6 +2418,28 @@ export default function Intelligence(): JSX.Element {
                   toneClassName: "bg-fuchsia-300",
                 },
               ]) : null}
+              <button
+                type="button"
+                onClick={() => {
+                  if (item.refreshKey === "pathway") {
+                    void handleRefreshIntelligence();
+                    return;
+                  }
+                  if (item.refreshKey === "skills") {
+                    void handleRefreshVerifiedSkills();
+                    return;
+                  }
+                  if (item.refreshKey === "matches") {
+                    void handleLoadMatches();
+                    return;
+                  }
+                  void handleRefreshAIInsight();
+                }}
+                disabled={item.isUpdating}
+                className="mt-4 inline-flex items-center rounded-xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 text-xs font-semibold text-[var(--color-on-surface)] transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {item.isUpdating ? "Updating..." : item.refreshLabel}
+              </button>
             </div>
           </div>
         ))}
