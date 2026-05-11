@@ -265,6 +265,40 @@ function getVerificationWeight(level: SkillVerificationLevel): number {
   return 0;
 }
 
+function ComingSoonNote({ text, className = "" }: { text: string; className?: string }): JSX.Element {
+  return (
+    <p className={`mt-2 text-xs text-[var(--color-on-surface-variant)] ${className}`}>
+      <span className="font-semibold">Coming soon:</span> {text}
+    </p>
+  );
+}
+
+function isBackendFeatureUnavailable(error: string | null): boolean {
+  if (!error) return false;
+  const normalized = error.toLowerCase();
+  return (
+    normalized.includes("not found")
+    || normalized.includes("\"detail\":\"not found\"")
+    || normalized.includes("{\"detail\":\"not found\"}")
+    || normalized.includes("404")
+  );
+}
+
+function renderBackendComingSoonCard({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}): JSX.Element {
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+      <p className="text-sm font-semibold text-amber-800">Coming soon: {title}</p>
+      <p className="mt-1 text-sm text-amber-700">{description}</p>
+    </div>
+  );
+}
+
 function buildPlatformSearchLinks(item: {
   title: string;
   level: string;
@@ -390,19 +424,22 @@ function renderMetricRows(
   rows: Array<{ label: string; valueText: string; percent: number; toneClassName: string }>,
 ): JSX.Element {
   return (
-    <div className="space-y-2.5">
+    <div className={`grid gap-2 ${rows.length <= 2 ? "grid-cols-2" : "grid-cols-3"}`}>
       {rows.map((row) => (
-        <div key={row.label}>
-          <div className="mb-1 flex items-center justify-between">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-600">{row.label}</p>
-            <p className="text-xs font-medium text-slate-700">{row.valueText}</p>
+        <div key={row.label} className="rounded-lg border border-[var(--color-outline-variant)] bg-white/90 p-2">
+          <div className="flex items-end justify-center gap-2">
+            <div className="relative h-14 w-2.5 overflow-hidden rounded-full bg-slate-200">
+              <div
+                className={`absolute inset-x-0 bottom-0 rounded-full ${row.toneClassName}`}
+                style={{ height: `${Math.max(0, Math.min(100, row.percent))}%` }}
+              />
+            </div>
+            <div className="text-right">
+              <p className="text-[11px] font-semibold text-slate-800">{Math.max(0, Math.min(100, row.percent))}%</p>
+              <p className="text-[10px] text-slate-600">{row.valueText}</p>
+            </div>
           </div>
-          <div className="h-1.5 rounded-full bg-slate-200">
-            <div
-              className={`h-full rounded-full ${row.toneClassName}`}
-              style={{ width: `${Math.max(0, Math.min(100, row.percent))}%` }}
-            />
-          </div>
+          <p className="mt-1 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-700">{row.label}</p>
         </div>
       ))}
     </div>
@@ -1291,29 +1328,41 @@ export default function Intelligence(): JSX.Element {
       state: matchesState,
     },
   ];
-  const profileDepthSignals = [
+  const profileSignalStrengthPercent = Math.round(
+    (
+      Math.min(1, profileSkills.length / minimumSkillsForStrongInsight)
+      + Math.min(1, profileInterests.length / minimumInterestsForStrongInsight)
+      + Math.min(1, profileGoals.length / minimumGoalsForStrongInsight)
+    ) * (100 / 3),
+  );
+  const profileSignalStrengthLabel =
+    profileSignalStrengthPercent >= 80 ? "Strong" : profileSignalStrengthPercent >= 50 ? "Moderate" : "Needs enrichment";
+  const profileSignalBreakdown = [
     {
       id: "skills",
       label: "Skills",
       value: profileSkills.length,
-      target: minimumSkillsForStrongInsight,
-      tone: "bg-sky-500",
+      percent: Math.min(100, Math.round((profileSkills.length / minimumSkillsForStrongInsight) * 100)),
+      toneClassName: "bg-sky-500",
+      textClassName: "text-sky-700",
     },
     {
       id: "interests",
       label: "Interests",
       value: profileInterests.length,
-      target: minimumInterestsForStrongInsight,
-      tone: "bg-violet-500",
+      percent: Math.min(100, Math.round((profileInterests.length / minimumInterestsForStrongInsight) * 100)),
+      toneClassName: "bg-violet-500",
+      textClassName: "text-violet-700",
     },
     {
       id: "goals",
       label: "Goals",
       value: profileGoals.length,
-      target: minimumGoalsForStrongInsight,
-      tone: "bg-emerald-500",
+      percent: Math.min(100, Math.round((profileGoals.length / minimumGoalsForStrongInsight) * 100)),
+      toneClassName: "bg-emerald-500",
+      textClassName: "text-emerald-700",
     },
-  ];
+  ] as const;
 
   const aiInsightMissing = !aiInsight && !aiInsightLoading;
   const recommendationsMissing = !recommendations && !recommendationsLoading;
@@ -2300,13 +2349,17 @@ export default function Intelligence(): JSX.Element {
             </button>
           </div>
         </div>
+        <ComingSoonNote
+          text="Notification alerts will proactively notify you when new AI insights, matches, and recommended opportunities are generated."
+          className="text-indigo-900/70"
+        />
       </section>
 
-      <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 lg:sticky lg:top-4 lg:z-20">
         {stats.map((item, index) => (
           <div
             key={item.title}
-            className={`rounded-3xl border p-5 shadow-sm ${
+            className={`rounded-2xl border p-3.5 shadow-sm ${
               index === 0
                 ? "border-indigo-200 bg-gradient-to-br from-indigo-50 to-white"
                 : index === 1
@@ -2317,7 +2370,7 @@ export default function Intelligence(): JSX.Element {
             }`}
           >
             <div className="flex items-start justify-between gap-3">
-              <p className="text-sm font-semibold text-[var(--color-on-surface-variant)]">{item.title}</p>
+              <p className="text-xs font-semibold text-[var(--color-on-surface-variant)]">{item.title}</p>
               <div
                 className={`rounded-xl p-2 ${
                   index === 0
@@ -2332,10 +2385,10 @@ export default function Intelligence(): JSX.Element {
                 <item.icon className="h-4 w-4" />
               </div>
             </div>
-            <p className="mt-3 text-3xl font-bold text-[var(--color-on-surface)]">{item.value}</p>
-            <p className="mt-2 text-sm text-[var(--color-on-surface-variant)]">{item.note}</p>
-            <p className="mt-1 text-xs text-[var(--color-on-surface-variant)]">Source: {item.source}</p>
-            <div className="mt-4">
+            <p className="mt-2 text-2xl font-bold leading-none text-[var(--color-on-surface)]">{item.value}</p>
+            <p className="mt-1 text-xs text-[var(--color-on-surface-variant)]">{item.note}</p>
+            <p className="mt-1 text-[10px] text-[var(--color-on-surface-variant)]">Source: {item.source}</p>
+            <div className="mt-3">
               {index === 0 ? renderMetricRows([
                 {
                   label: "Pathway completion",
@@ -2359,23 +2412,28 @@ export default function Intelligence(): JSX.Element {
               {index === 1 ? renderMetricRows([
                 {
                   label: "Skills",
-                  valueText: `${profileSkills.length}/${minimumSkillsForStrongInsight}`,
-                  percent: Math.round((profileSkills.length / minimumSkillsForStrongInsight) * 100),
+                  valueText: `${profileSkills.length}`,
+                  percent: profileSignalBreakdown[0]?.percent ?? 0,
                   toneClassName: "bg-sky-500",
                 },
                 {
                   label: "Interests",
-                  valueText: `${profileInterests.length}/${minimumInterestsForStrongInsight}`,
-                  percent: Math.round((profileInterests.length / minimumInterestsForStrongInsight) * 100),
-                  toneClassName: "bg-sky-400",
+                  valueText: `${profileInterests.length}`,
+                  percent: profileSignalBreakdown[1]?.percent ?? 0,
+                  toneClassName: "bg-violet-500",
                 },
                 {
                   label: "Goals",
-                  valueText: `${profileGoals.length}/${minimumGoalsForStrongInsight}`,
-                  percent: Math.round((profileGoals.length / minimumGoalsForStrongInsight) * 100),
-                  toneClassName: "bg-sky-300",
+                  valueText: `${profileGoals.length}`,
+                  percent: profileSignalBreakdown[2]?.percent ?? 0,
+                  toneClassName: "bg-emerald-500",
                 },
               ]) : null}
+              {index === 1 ? (
+                <p className="mt-2 text-[11px] font-semibold text-slate-700">
+                  Signal strength: {profileSignalStrengthLabel} ({profileSignalStrengthPercent}%)
+                </p>
+              ) : null}
               {index === 2 ? renderMetricRows([
                 {
                   label: "Total matches",
@@ -2436,7 +2494,7 @@ export default function Intelligence(): JSX.Element {
                   void handleRefreshAIInsight();
                 }}
                 disabled={item.isUpdating}
-                className="mt-4 inline-flex items-center rounded-xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 text-xs font-semibold text-[var(--color-on-surface)] transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-3 inline-flex h-8 items-center rounded-lg border border-[var(--color-outline-variant)] bg-white px-2.5 text-[11px] font-semibold text-[var(--color-on-surface)] transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {item.isUpdating ? "Updating..." : item.refreshLabel}
               </button>
@@ -2540,35 +2598,6 @@ export default function Intelligence(): JSX.Element {
         </div>
       </section>
 
-      <section className="mb-6 rounded-2xl border border-[var(--color-outline-variant)] bg-gradient-to-r from-sky-50 via-white to-violet-50 p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm font-semibold text-[var(--color-on-surface)]">Profile Signal Depth</p>
-          <p className={`text-xs ${subtle}`}>Live onboarding data quality indicators</p>
-        </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          {profileDepthSignals.map((item) => {
-            const score = Math.min(100, Math.round((item.value / item.target) * 100));
-            return (
-              <div key={item.id} className="rounded-xl border border-[var(--color-outline-variant)] bg-white p-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-on-surface-variant)]">
-                    {item.label}
-                  </p>
-                  <p className="text-sm font-bold text-[var(--color-on-surface)]">
-                    {item.value}/{item.target}
-                  </p>
-                </div>
-                <div className="mt-3 h-2 rounded-full bg-slate-200">
-                  <div className={`h-full rounded-full ${item.tone}`} style={{ width: `${score}%` }} />
-                </div>
-                <p className={`mt-2 text-xs ${subtle}`}>
-                  {score >= 100 ? "Strong" : "Needs enrichment"}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      </section>
       {aiStateLoading ? (
         <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
           Checking intelligence readiness...
@@ -2580,13 +2609,31 @@ export default function Intelligence(): JSX.Element {
         </div>
       ) : null}
       {aiReadinessError ? (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          {aiReadinessError}
+        <div className="mb-6">
+          {isBackendFeatureUnavailable(aiReadinessError)
+            ? renderBackendComingSoonCard({
+              title: "AI Readiness",
+              description: "This check will confirm provider setup and whether profile intelligence can be generated in your environment.",
+            })
+            : (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                {aiReadinessError}
+              </div>
+            )}
         </div>
       ) : null}
       {aiStateError ? (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          {aiStateError}
+        <div className="mb-6">
+          {isBackendFeatureUnavailable(aiStateError)
+            ? renderBackendComingSoonCard({
+              title: "AI State Monitor",
+              description: "This service will report live status for insight, recommendations, and matching so users can quickly diagnose availability.",
+            })
+            : (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                {aiStateError}
+              </div>
+            )}
         </div>
       ) : null}
       {hasRecoverableSectionErrors ? (
@@ -2808,6 +2855,7 @@ export default function Intelligence(): JSX.Element {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
               </div>
+              <ComingSoonNote text="Full pathway view will open a detailed timeline with milestones, dependencies, and progress history." />
               <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="rounded-xl border border-indigo-200 bg-white/90 p-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Pathway Phase Mix</p>
@@ -3040,17 +3088,22 @@ export default function Intelligence(): JSX.Element {
                   </div>
                 </div>
               ) : aiInsightError ? (
-                renderErrorRecoveryBlock({
-                  title: "AI insight could not be loaded",
-                  description:
-                    onboardingComplete !== true
-                      ? "Complete onboarding first, then retry AI insight generation."
-                      : onboardingDataIsThin
-                        ? "Your current profile data may limit AI insight quality, but you can still retry now."
-                        : "The AI insight request did not complete successfully. You can retry this section or refresh all intelligence.",
-                  error: aiInsightError,
-                  actions: aiInsightErrorRecoveryActions,
-                })
+                isBackendFeatureUnavailable(aiInsightError)
+                  ? renderBackendComingSoonCard({
+                    title: "AI Profile Insight",
+                    description: "This feature will generate personalized summaries, skill gaps, and next-best actions from your saved profile.",
+                  })
+                  : renderErrorRecoveryBlock({
+                    title: "AI insight could not be loaded",
+                    description:
+                      onboardingComplete !== true
+                        ? "Complete onboarding first, then retry AI insight generation."
+                        : onboardingDataIsThin
+                          ? "Your current profile data may limit AI insight quality, but you can still retry now."
+                          : "The AI insight request did not complete successfully. You can retry this section or refresh all intelligence.",
+                    error: aiInsightError,
+                    actions: aiInsightErrorRecoveryActions,
+                  })
               ) : (
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-sm font-medium text-slate-800">
@@ -3208,17 +3261,22 @@ export default function Intelligence(): JSX.Element {
                   </div>
                 )
               ) : recommendationsError ? (
-                renderErrorRecoveryBlock({
-                  title: "Recommendations could not be loaded",
-                  description:
-                    onboardingComplete !== true
-                      ? "Complete onboarding first, then retry recommendations."
-                      : skillsAreThin || goalsAreThin
-                        ? "Your current profile may be too limited for stronger recommendation results, but you can retry now."
-                        : "The recommendations request failed. Retry this section or refresh all intelligence.",
-                  error: recommendationsError,
-                  actions: recommendationsErrorRecoveryActions,
-                })
+                isBackendFeatureUnavailable(recommendationsError)
+                  ? renderBackendComingSoonCard({
+                    title: "AI Recommendations",
+                    description: "This feature will suggest tailored learning resources and projects based on your profile and progress evidence.",
+                  })
+                  : renderErrorRecoveryBlock({
+                    title: "Recommendations could not be loaded",
+                    description:
+                      onboardingComplete !== true
+                        ? "Complete onboarding first, then retry recommendations."
+                        : skillsAreThin || goalsAreThin
+                          ? "Your current profile may be too limited for stronger recommendation results, but you can retry now."
+                          : "The recommendations request failed. Retry this section or refresh all intelligence.",
+                    error: recommendationsError,
+                    actions: recommendationsErrorRecoveryActions,
+                  })
               ) : (
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-sm font-medium text-slate-800">
@@ -3383,8 +3441,17 @@ export default function Intelligence(): JSX.Element {
               ) : null}
 
               {projectsError ? (
-                <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                  {projectsError}
+                <div className="mb-4">
+                  {isBackendFeatureUnavailable(projectsError)
+                    ? renderBackendComingSoonCard({
+                      title: "Project Tracker",
+                      description: "Project tracking will store your build activity, progress, and collaboration-ready project metadata.",
+                    })
+                    : (
+                      <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                        {projectsError}
+                      </div>
+                    )}
                 </div>
               ) : null}
 
@@ -3592,8 +3659,17 @@ export default function Intelligence(): JSX.Element {
                 </div>
               </div>
               {learningError ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                  {learningError}
+                <div>
+                  {isBackendFeatureUnavailable(learningError)
+                    ? renderBackendComingSoonCard({
+                      title: "Learning Progress Tracker",
+                      description: "This tracker will save your course progress and completion milestones for stronger recommendation quality.",
+                    })
+                    : (
+                      <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                        {learningError}
+                      </div>
+                    )}
                 </div>
               ) : null}
               {learningLoading && learningItems.length === 0 ? (
@@ -3762,8 +3838,17 @@ export default function Intelligence(): JSX.Element {
               </div>
 
               {customPathwaysError ? (
-                <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                  {customPathwaysError}
+                <div className="mb-4">
+                  {isBackendFeatureUnavailable(customPathwaysError)
+                    ? renderBackendComingSoonCard({
+                      title: "Custom Pathways",
+                      description: "Custom pathways will let users define personal learning journeys when standard pathways do not fit their goals.",
+                    })
+                    : (
+                      <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                        {customPathwaysError}
+                      </div>
+                    )}
                 </div>
               ) : null}
 
@@ -3930,6 +4015,7 @@ export default function Intelligence(): JSX.Element {
                   </button>
                 </div>
               </div>
+              <ComingSoonNote text="Explore all matches will open a full list with advanced filters, profile comparisons, and collaboration intent signals." />
               <div className="mb-5 rounded-xl border border-emerald-200 bg-white/90 p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Match Strength Wave</p>
                 <div className="mt-2">
@@ -3945,17 +4031,22 @@ export default function Intelligence(): JSX.Element {
                   Loading matches...
                 </div>
               ) : matchesError ? (
-                renderErrorRecoveryBlock({
-                  title: "Smart matches could not be loaded",
-                  description:
-                    onboardingComplete !== true
-                      ? "Complete onboarding first, then retry smart matching."
-                      : skillsAreThin || interestsAreThin
-                        ? "Your current profile may not yet be rich enough for stronger matching, but you can retry now."
-                        : "The smart matching request failed. Retry this section or refresh all intelligence.",
-                  error: matchesError,
-                  actions: matchesErrorRecoveryActions,
-                })
+                isBackendFeatureUnavailable(matchesError)
+                  ? renderBackendComingSoonCard({
+                    title: "Smart Matching",
+                    description: "Smart matching will connect you with collaborators and opportunities using shared skills, interests, and evidence.",
+                  })
+                  : renderErrorRecoveryBlock({
+                    title: "Smart matches could not be loaded",
+                    description:
+                      onboardingComplete !== true
+                        ? "Complete onboarding first, then retry smart matching."
+                        : skillsAreThin || interestsAreThin
+                          ? "Your current profile may not yet be rich enough for stronger matching, but you can retry now."
+                          : "The smart matching request failed. Retry this section or refresh all intelligence.",
+                    error: matchesError,
+                    actions: matchesErrorRecoveryActions,
+                  })
               ) : displayMatches.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-3">
                   {displayMatches.map((match) => (
@@ -4092,6 +4183,7 @@ export default function Intelligence(): JSX.Element {
             <div className="rounded-3xl border border-rose-200/80 bg-gradient-to-br from-rose-50 to-white p-6 shadow-sm">
               <p className="text-sm font-semibold text-rose-700">Quick Actions</p>
               <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Move faster</h3>
+              <ComingSoonNote text="These shortcuts will launch one-click workflows for learning tasks, workspace setup, and opportunity routing." />
               <div className="mt-5 space-y-3">
                 {[
                   { label: "Start learning task", icon: BookOpen },
@@ -4274,7 +4366,16 @@ export default function Intelligence(): JSX.Element {
                 <p className={`mt-3 text-sm ${subtle}`}>Loading verified skills...</p>
               ) : null}
               {verifiedSkillsError ? (
-                <p className="mt-3 text-sm text-red-700">{verifiedSkillsError}</p>
+                isBackendFeatureUnavailable(verifiedSkillsError)
+                  ? (
+                    <div className="mt-3">
+                      {renderBackendComingSoonCard({
+                        title: "Verified Skills",
+                        description: "Verified skills will validate capability from completed learning and projects to improve trust in matching and routing.",
+                      })}
+                    </div>
+                  )
+                  : <p className="mt-3 text-sm text-red-700">{verifiedSkillsError}</p>
               ) : null}
               <div className="mt-3 space-y-3">
                 {verifiedSkills.slice(0, 4).map((skill) => (
@@ -4357,6 +4458,10 @@ export default function Intelligence(): JSX.Element {
               >
                 View readiness details
               </button>
+              <ComingSoonNote
+                text="Readiness details will break down your score into skills, evidence strength, and suggested actions to improve eligibility."
+                className="text-white/80"
+              />
             </div>
           </aside>
         </section>

@@ -53,6 +53,8 @@ export default function Profile(): JSX.Element {
   const [profileSaving, setProfileSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showRecommendationImpactPrompt, setShowRecommendationImpactPrompt] = useState(false);
+  const [recommendationImpactAcknowledged, setRecommendationImpactAcknowledged] = useState(false);
 
   useEffect(() => {
     if (!user) navigate("/login");
@@ -175,11 +177,23 @@ export default function Profile(): JSX.Element {
       skills: splitCsv(profileForm.skills),
     };
 
+    const goalsChanged = profileForm.goals !== (Array.isArray(profile?.goals) ? profile?.goals.join(", ") : "");
+    const interestsChanged = profileForm.interests !== (Array.isArray(profile?.interests) ? profile?.interests.join(", ") : "");
+    const skillsChanged = profileForm.skills !== (Array.isArray(profile?.skills) ? profile?.skills.join(", ") : "");
+    const recommendationSensitiveFieldsChanged = goalsChanged || interestsChanged || skillsChanged;
+
+    if (recommendationSensitiveFieldsChanged && !recommendationImpactAcknowledged) {
+      setShowRecommendationImpactPrompt(true);
+      return;
+    }
+
     setProfileSaving(true);
     try {
       await api.updateMyProfile(payload);
       await refreshProfile();
       showSuccess("Profile details saved.");
+      setRecommendationImpactAcknowledged(false);
+      setShowRecommendationImpactPrompt(false);
     } catch (err) {
       const message = toUserMessage(err, "We couldn't save your profile right now.");
       setError(message);
@@ -310,6 +324,52 @@ export default function Profile(): JSX.Element {
             <TextArea label="Skills (comma separated)" value={profileForm.skills} onChange={(v) => setProfileForm((p) => ({ ...p, skills: v }))} />
           </div>
         </section>
+
+        {showRecommendationImpactPrompt ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4">
+            <div className="w-full max-w-xl rounded-3xl border border-amber-200 bg-white p-6 shadow-xl">
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Recommendation Impact Notice</p>
+              <h3 className="mt-2 text-xl font-bold text-[var(--color-on-surface)]">Changes may affect your AI guidance</h3>
+              <p className="mt-3 text-sm text-[var(--color-on-surface-variant)]">
+                Updating your goals, interests, or skills can change your AI-generated recommendations, pathway guidance, and match results.
+                This is expected and helps keep your guidance aligned with your latest profile.
+              </p>
+              <label className="mt-4 flex items-start gap-3 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-3 text-sm text-[var(--color-on-surface)]">
+                <input
+                  type="checkbox"
+                  checked={recommendationImpactAcknowledged}
+                  onChange={(event) => setRecommendationImpactAcknowledged(event.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border border-[var(--color-outline-variant)]"
+                />
+                <span>
+                  I understand that saving these profile changes may update my AI recommendations and matching outcomes.
+                </span>
+              </label>
+              <div className="mt-5 flex flex-wrap justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRecommendationImpactPrompt(false);
+                    setRecommendationImpactAcknowledged(false);
+                  }}
+                  className="h-10 rounded-xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-semibold text-[var(--color-on-surface)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleProfileSave();
+                  }}
+                  disabled={!recommendationImpactAcknowledged || profileSaving}
+                  className="h-10 rounded-xl bg-[var(--color-primary)] px-4 text-sm font-semibold text-white disabled:opacity-60"
+                >
+                  {profileSaving ? "Saving..." : "Acknowledge and Save"}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <section className="rounded-3xl bg-white border border-[var(--color-outline-variant)] p-6 shadow-sm">
           <div className="mb-4">
