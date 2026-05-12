@@ -73,7 +73,14 @@ export default function Login(): JSX.Element {
 
       const prof = await refreshProfile();
       const done = prof?.isOnboardingComplete ?? onboardingComplete ?? false;
-      navigate(done ? "/intelligence" : "/onboarding");
+      const state = location.state as { redirectTo?: string } | null;
+      const redirectTo = state?.redirectTo;
+      const isSafeInternalRedirect = typeof redirectTo === "string" && redirectTo.startsWith("/");
+      if (isSafeInternalRedirect) {
+        navigate(redirectTo, { replace: true });
+      } else {
+        navigate(done ? "/intelligence" : "/onboarding");
+      }
     } catch (err) {
       const message = (err as Error).message;
       setShowResendVerification(isVerificationError(message));
@@ -165,10 +172,10 @@ export default function Login(): JSX.Element {
                 Enter your credentials to access your intelligence workspace
               </p>
               <Link
-                to="/admin-login"
+                to="/organization-auth"
                 className="mt-3 inline-flex text-sm font-semibold text-primary hover:underline"
               >
-                Admin Login
+                Organization Login
               </Link>
             </div>
 

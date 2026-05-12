@@ -1,14 +1,17 @@
 import type { JSX } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { isAdmin } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
 
 type Props = { children: JSX.Element };
 
 export function RequireAuth({ children }: Props): JSX.Element {
+  const location = useLocation();
   const { user, loading } = useAuth();
   if (loading) return <></>;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) {
+    return <Navigate to="/login" replace state={{ redirectTo: location.pathname }} />;
+  }
   return children;
 }
 
