@@ -39,6 +39,7 @@ export function Header() {
 
   const navItems = [
     { name: 'Home', path: '/' },
+    { name: 'Platform', path: '/platform' },
     ...(user
       ? [
         { name: 'Intelligence', path: '/intelligence' },
@@ -237,7 +238,7 @@ export function Footer() {
           <div>
             <h4 className="font-label text-xs font-extrabold uppercase tracking-widest text-white mb-6">Platform</h4>
             <ul className="space-y-4 text-sm font-medium text-white/70">
-              <li><a className="hover:text-white transition-colors" href="#">Intelligence Suite</a></li>
+              <li><Link className="hover:text-white transition-colors" to="/platform">Platform</Link></li>
               <li><a className="hover:text-white transition-colors" href="#">Network Access</a></li>
               <li><a className="hover:text-white transition-colors" href="#">Workspace Tools</a></li>
             </ul>

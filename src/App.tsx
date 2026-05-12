@@ -14,6 +14,7 @@ import Admin from './pages/Admin';
 import Network from './pages/Network';
 import Organizations from './pages/Organizations';
 import About from './pages/About';
+import Platform from './pages/Platform';
 import Login from './pages/login';
 import AdminLogin from './pages/AdminLogin';
 import SignUp from './pages/signup';
@@ -161,6 +162,7 @@ export default function App() {
                   <main className="flex-grow pt-24 pb-16">
                     <Routes>
                       <Route path="/" element={<Home />} />
+                      <Route path="/platform" element={<Platform />} />
                       <Route path="/about" element={<About />} />
                       <Route
                         path="/onboarding"
