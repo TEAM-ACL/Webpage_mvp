@@ -40,6 +40,7 @@ export function Header() {
   const navItems = [
     { name: 'Home', path: '/' },
     { name: 'Platform', path: '/platform' },
+    { name: 'Pricing', path: '/pricing' },
     ...(user
       ? [
         { name: 'Intelligence', path: '/intelligence' },
@@ -237,7 +238,7 @@ export function Footer() {
           </div>
           <div>
             <h4 className="font-label text-xs font-extrabold uppercase tracking-widest text-white mb-6">Platform</h4>
-            <ul className="space-y-4 text-sm font-medium text-white/70">
+            <ul className="space-y-3 pl-5 list-disc marker:text-white/50 text-sm font-medium text-white/70">
               <li><Link className="hover:text-white transition-colors" to="/platform">Platform</Link></li>
               <li><a className="hover:text-white transition-colors" href="#">Network Access</a></li>
               <li><a className="hover:text-white transition-colors" href="#">Workspace Tools</a></li>
@@ -245,8 +246,9 @@ export function Footer() {
           </div>
           <div>
             <h4 className="font-label text-xs font-extrabold uppercase tracking-widest text-white mb-6">Resources</h4>
-            <ul className="space-y-4 text-sm font-medium text-white/70">
+            <ul className="space-y-3 pl-5 list-disc marker:text-white/50 text-sm font-medium text-white/70">
               <li><a className="hover:text-white transition-colors" href="#">API Documentation</a></li>
+              <li><Link className="hover:text-white transition-colors" to="/pricing">Pricing</Link></li>
               <li><a className="hover:text-white transition-colors" href="#">AI Ethics Charter</a></li>
               <li><a className="hover:text-white transition-colors" href="#">Innovation Reports</a></li>
             </ul>

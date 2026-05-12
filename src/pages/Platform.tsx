@@ -128,33 +128,30 @@ export default function Platform(): JSX.Element {
             <div className="relative bg-[#1f0954] text-white border border-white/20 rounded-[28px] p-6 backdrop-blur-xl shadow-2xl">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-xl font-semibold">Intelligence Snapshot</h3>
-                  <p className="text-white/70 text-sm mt-1">Personalized AI insight overview</p>
+                  <h3 className="text-xl font-semibold">Platform Capabilities</h3>
+                  <p className="text-white/70 text-sm mt-1">Public overview of core services</p>
                 </div>
-                <div className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-200 text-xs border border-emerald-300/30">
-                  Live AI Analysis
+                <div className="px-3 py-1 rounded-full bg-[#d8cffc]/20 text-[#d8cffc] text-xs border border-[#d8cffc]/30">
+                  Public Information
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="rounded-2xl p-5 border border-white/10 bg-[#140a3f]">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold">Career Match</h4>
-                    <span className="text-[#d8cffc] text-sm">92%</span>
-                  </div>
-                  <div className="w-full bg-white/15 h-3 rounded-full overflow-hidden">
-                    <div className="h-full w-[92%] rounded-full bg-gradient-to-r from-[#d8cffc] to-[#bda9ff]" />
-                  </div>
+                  <h4 className="font-semibold mb-2">AI Guidance Layer</h4>
+                  <p className="text-sm text-white/75 leading-7">
+                    Structured pathway analysis and recommendation support designed to help users make informed growth decisions.
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="rounded-2xl p-5 border border-white/10 bg-[#140a3f]">
-                    <p className="text-white/70 text-sm mb-2">Recommended Path</p>
-                    <h4 className="font-semibold">Cloud Security</h4>
+                    <p className="text-white/70 text-sm mb-2">Opportunity Routing</p>
+                    <h4 className="font-semibold">Profile-aligned opportunities</h4>
                   </div>
                   <div className="rounded-2xl p-5 border border-white/10 bg-[#140a3f]">
-                    <p className="text-white/70 text-sm mb-2">Skill Gap</p>
-                    <h4 className="font-semibold">DevOps Automation</h4>
+                    <p className="text-white/70 text-sm mb-2">Progress Visibility</p>
+                    <h4 className="font-semibold">Development tracking</h4>
                   </div>
                 </div>
               </div>

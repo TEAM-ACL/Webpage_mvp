@@ -15,6 +15,7 @@ import Network from './pages/Network';
 import Organizations from './pages/Organizations';
 import About from './pages/About';
 import Platform from './pages/Platform';
+import Pricing from './pages/Pricing';
 import Login from './pages/login';
 import AdminLogin from './pages/AdminLogin';
 import SignUp from './pages/signup';
@@ -163,6 +164,7 @@ export default function App() {
                     <Routes>
                       <Route path="/" element={<Home />} />
                       <Route path="/platform" element={<Platform />} />
+                      <Route path="/pricing" element={<Pricing />} />
                       <Route path="/about" element={<About />} />
                       <Route
                         path="/onboarding"
