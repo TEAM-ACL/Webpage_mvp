@@ -17,6 +17,9 @@ import About from './pages/About';
 import Login from './pages/login';
 import AdminLogin from './pages/AdminLogin';
 import SignUp from './pages/signup';
+import OrganizationAuth from './pages/OrganizationAuth';
+import OrganizationLogin from './pages/OrganizationLogin';
+import OrganizationSignup from './pages/OrganizationSignup';
 import Intelligence from './pages/Intelligence';
 import Profile from './pages/Profile';
 import ForgotPassword from './pages/ForgotPassword';
@@ -99,6 +102,9 @@ export default function App() {
             {/* Standalone layouts (no global header/footer) */}
             <Route path="/login" element={<RedirectIfOnboarded><Login /></RedirectIfOnboarded>} />
             <Route path="/admin-login" element={<RedirectIfOnboarded><AdminLogin /></RedirectIfOnboarded>} />
+            <Route path="/organization-auth" element={<RedirectIfOnboarded><OrganizationAuth /></RedirectIfOnboarded>} />
+            <Route path="/organization-login" element={<RedirectIfOnboarded><OrganizationLogin /></RedirectIfOnboarded>} />
+            <Route path="/organization-signup" element={<RedirectIfOnboarded><OrganizationSignup /></RedirectIfOnboarded>} />
             <Route path="/signup" element={<RedirectIfOnboarded><SignUp /></RedirectIfOnboarded>} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
