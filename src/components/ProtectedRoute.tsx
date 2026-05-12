@@ -16,7 +16,9 @@ export function RequireOnboardingComplete({ children }: Props): JSX.Element {
   const { user, loading, profileLoading, onboardingComplete } = useAuth();
   if (loading || profileLoading) return <></>;
   if (!user) return <Navigate to="/login" replace />;
-  if (!onboardingComplete) {
+  // Only redirect when onboarding is explicitly incomplete.
+  // `null` can happen transiently when profile state fails to hydrate (common on mobile cookie/session edge cases).
+  if (onboardingComplete === false) {
     return (
       <Navigate
         to="/onboarding"
