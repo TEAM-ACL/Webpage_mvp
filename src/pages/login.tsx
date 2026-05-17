@@ -72,7 +72,9 @@ export default function Login(): JSX.Element {
       setAdminFlag(false);
 
       const prof = await refreshProfile();
-      const done = prof?.isOnboardingComplete ?? onboardingComplete ?? false;
+      const onboardingStage = (session.user.onboarding_stage ?? "").toLowerCase();
+      const doneFromSession = onboardingStage === "assessment_completed";
+      const done = prof?.isOnboardingComplete ?? doneFromSession ?? onboardingComplete ?? false;
       const state = location.state as { redirectTo?: string } | null;
       const redirectTo = state?.redirectTo;
       const isSafeInternalRedirect = typeof redirectTo === "string" && redirectTo.startsWith("/");
