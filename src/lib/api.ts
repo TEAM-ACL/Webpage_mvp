@@ -104,6 +104,7 @@ export type AuthSessionResponse = {
     first_name: string | null;
     last_name: string | null;
     role?: string | null;
+    onboarding_stage?: string | null;
   };
 };
 
