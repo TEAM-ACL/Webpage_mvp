@@ -74,7 +74,13 @@ export default function Login(): JSX.Element {
       const prof = await refreshProfile();
       const onboardingStage = (session.user.onboarding_stage ?? "").toLowerCase();
       const doneFromSession = onboardingStage === "assessment_completed";
-      const done = prof?.isOnboardingComplete ?? doneFromSession ?? onboardingComplete ?? false;
+      // Only route to onboarding when we have an explicit incomplete signal.
+      // If profile hydration is temporarily unavailable (common on some mobile browsers),
+      // prefer intelligence and let backend-gated screens resolve final state.
+      const explicitIncomplete = prof?.isOnboardingComplete === false;
+      const done = explicitIncomplete
+        ? false
+        : (prof?.isOnboardingComplete ?? doneFromSession ?? onboardingComplete ?? true);
       const state = location.state as { redirectTo?: string } | null;
       const redirectTo = state?.redirectTo;
       const isSafeInternalRedirect = typeof redirectTo === "string" && redirectTo.startsWith("/");
