@@ -3,22 +3,22 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
-  Bell,
   BookOpen,
   Briefcase,
   CheckCircle2,
   Clock3,
   FolderKanban,
+  Gauge,
   Lightbulb,
   Sparkles,
   Target,
+  Trophy,
   TrendingUp,
   Users,
 } from "lucide-react";
 import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
 import { useAuth } from "../context/AuthContext";
-import { testAIBackendCall } from "../services/aiService";
 import type { CreateCustomPathwayPayload } from "../types/ai";
 import {
   createLearningProgress,
@@ -115,6 +115,8 @@ type IntelligenceStatCard = {
   source: string;
 };
 
+type IntelligenceTab = "overview" | "journey" | "projects" | "learning" | "opportunities" | "profile";
+
 function buildStats({
   pathwayProgressPercent,
   skillsCount,
@@ -140,8 +142,8 @@ function buildStats({
       value: `${pathwayProgressPercent}%`,
       note:
         pathwayProgressPercent >= 80
-          ? "Strong momentum across intelligence sections"
-          : "Progress reflects current readiness and loaded intelligence data",
+          ? "You're building strong momentum this week."
+          : "Keep going - each step moves you closer to opportunity readiness.",
       icon: TrendingUp,
       refreshLabel: "Update",
       refreshKey: "pathway",
@@ -151,7 +153,7 @@ function buildStats({
     {
       title: "Skills Identified",
       value: skillsCount !== null ? String(skillsCount) : "-",
-      note: skillsCount !== null ? "Combined onboarding and AI-detected skill signals" : "Add skills in onboarding to unlock precision",
+      note: skillsCount !== null ? "These strengths are shaping your guidance and opportunities." : "Add a few more skills to improve your coaching quality.",
       icon: Target,
       refreshLabel: "Refresh skills",
       refreshKey: "skills",
@@ -163,8 +165,8 @@ function buildStats({
       value: String(activeMatchesCount),
       note:
         activeMatchesCount > 0
-          ? "Potential collaborators and mentors"
-          : "Load matching data to reveal active opportunities",
+          ? "People and opportunities you may want to connect with."
+          : "No strong matches yet - keep building your profile and projects.",
       icon: Users,
       refreshLabel: "Refresh matches",
       refreshKey: "matches",
@@ -172,9 +174,9 @@ function buildStats({
       source: "AI matching engine",
     },
     {
-      title: "AI Insights",
+      title: "AI Growth Coach",
       value: aiNextStepCount !== null ? String(aiNextStepCount) : "-",
-      note: aiNextStepCount !== null ? "AI next steps currently available" : "Complete onboarding to see insights",
+      note: aiNextStepCount !== null ? "Personalised next actions ready for you." : "Complete onboarding to unlock your coaching guidance.",
       icon: Lightbulb,
       refreshLabel: "Refresh insight",
       refreshKey: "insight",
@@ -497,6 +499,7 @@ export default function Intelligence(): JSX.Element {
     intelligenceLastAction,
     refreshIntelligence,
     markIntelligenceNeedsRefresh,
+    recordRecommendationEvent,
   } = useAuth();
   // ACL: local feedback state for intelligence actions on this page
   const [actionFeedback, setActionFeedback] = useState<{
@@ -558,6 +561,19 @@ export default function Intelligence(): JSX.Element {
   const summaryTask = profile?.interests?.[0]
     ? `Explore: ${profile.interests[0]}`
     : "Complete your next pathway task";
+  const [activeTab, setActiveTab] = useState<IntelligenceTab>("overview");
+  const firstName =
+    user?.first_name?.trim()
+    || user?.display_name?.trim()?.split(" ")[0]
+    || "there";
+  const weeklyFocusItems = useMemo(
+    () => [
+      aiInsight?.next_best_actions?.[0] || aiInsight?.next_steps?.[0] || "Complete one focused learning step",
+      aiInsight?.next_best_actions?.[1] || aiInsight?.next_steps?.[1] || "Advance one practical project",
+      aiInsight?.next_best_actions?.[2] || aiInsight?.next_steps?.[2] || "Reach out to one relevant professional",
+    ].slice(0, 3),
+    [aiInsight],
+  );
   const matchStrength = profile?.preferredWorkStyle
     ? `Strong fit for ${profile.preferredWorkStyle.toLowerCase()} work`
     : "High fit with technical collaborators";
@@ -1063,6 +1079,29 @@ export default function Intelligence(): JSX.Element {
   const aiInsightNextSteps = aiInsight?.next_steps ?? [];
   const aiInsightNextBestActions = aiInsight?.next_best_actions ?? aiInsightNextSteps;
   const aiInsightConfidenceLevel = aiInsight?.confidence_level ?? aiConfidence;
+  const opportunityReadinessScore = Math.max(
+    0,
+    Math.min(
+      100,
+      Math.round(
+        completionPercent * 0.45
+        + Math.min(100, verifiedSkills.length * 12) * 0.25
+        + Math.min(100, (projects.filter((item) => item.status === "completed").length * 20)) * 0.2
+        + Math.min(100, aiInsightNextBestActions.length * 20) * 0.1,
+      ),
+    ),
+  );
+  const weeklyMomentumScore = Math.max(
+    0,
+    Math.min(100, Math.round((opportunityReadinessScore + completionPercent) / 2)),
+  );
+  const achievements = [
+    { id: "learn", label: "First Learning Started", unlocked: learningItems.length > 0 },
+    { id: "skill", label: "First Skill Applied", unlocked: verifiedSkills.length > 0 },
+    { id: "network", label: "Network Builder", unlocked: displayMatches.length > 0 },
+    { id: "project", label: "Project Starter", unlocked: projects.length > 0 },
+    { id: "ready", label: "Opportunity Ready", unlocked: opportunityReadinessScore >= 70 },
+  ];
   const aiInsightWaveValues = useMemo(
     () =>
       aiInsight
@@ -1443,30 +1482,6 @@ export default function Intelligence(): JSX.Element {
     showActionFeedback(result, result.success ? "info" : "error");
   };
 
-  // ACL: smoke test backend AI provider connectivity via /ai/readiness
-  const handleTestAIConnection = async (): Promise<void> => {
-    try {
-      const data = await testAIBackendCall("Explain VisionTech in one sentence");
-      const output =
-        typeof data?.message === "string"
-          ? data.message
-          : typeof data?.output === "string"
-            ? data.output
-            : "AI test call succeeded.";
-      setActionFeedback({
-        type: "success",
-        message: `AI connection test succeeded: ${output}`,
-      });
-      // Keep full payload available for quick debugging
-      console.log("AI test response:", data);
-    } catch (error) {
-      setActionFeedback({
-        type: "error",
-        message: error instanceof Error ? error.message : "AI test call failed.",
-      });
-    }
-  };
-
   const resetCustomPathwayForm = (): void => {
     setCustomPathwayForm({
       title: "",
@@ -1595,6 +1610,72 @@ export default function Intelligence(): JSX.Element {
         message: error instanceof Error ? error.message : "Unable to track this learning resource.",
       });
     }
+  };
+
+  const resolveRecommendationPathwayId = (item: RecommendationCard): string | null => {
+    const rawId = item.id.replace(/^(learning|project)-/, "");
+    const existsInRun = (recommendations?.recommendations ?? []).some(
+      (recommendationItem) => recommendationItem.pathway_id === rawId,
+    );
+    return existsInRun ? rawId : null;
+  };
+
+  const autoTrackLearningFromSourceClick = async (item: RecommendationCard): Promise<void> => {
+    if (item.kind !== "learning") return;
+
+    const existing = learningItems.find(
+      (learningItem) => learningItem.title.trim().toLowerCase() === item.title.trim().toLowerCase(),
+    );
+
+    try {
+      if (!existing) {
+        const created = await createLearningProgress({
+          title: item.title,
+          platform: item.type,
+          resource_url: item.sources?.[0]?.url ?? "",
+        });
+        const started = await updateLearningProgress(created.id, {
+          status: "in_progress",
+          progress_percent: 10,
+        });
+        setLearningItems((current) => [started, ...current]);
+        markIntelligenceNeedsRefresh();
+        return;
+      }
+
+      if (existing.progress_percent < 10 || existing.status === "not_started") {
+        const started = await updateLearningProgress(existing.id, {
+          status: "in_progress",
+          progress_percent: Math.max(10, existing.progress_percent),
+        });
+        setLearningItems((current) =>
+          current.map((learningItem) => (learningItem.id === existing.id ? started : learningItem)),
+        );
+        markIntelligenceNeedsRefresh();
+      }
+    } catch {
+      // Keep link navigation uninterrupted if background tracking fails.
+    }
+  };
+
+  const handleRecommendationSourceClick = async (
+    item: RecommendationCard,
+    source: RecommendationSourceLink,
+  ): Promise<void> => {
+    const pathwayId = resolveRecommendationPathwayId(item);
+    if (recommendations?.recommendation_id && pathwayId) {
+      await recordRecommendationEvent({
+        recommendation_id: recommendations.recommendation_id,
+        pathway_id: pathwayId,
+        event_type: "clicked",
+        metadata: {
+          surface: "intelligence_recommendation_source",
+          source_platform: source.platform,
+          source_url: source.url,
+        },
+      });
+    }
+    await autoTrackLearningFromSourceClick(item);
   };
 
   const updateLearningItem = async (
@@ -2311,13 +2392,13 @@ export default function Intelligence(): JSX.Element {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-indigo-700">
-              VisionTech Intelligence
+              VisionTech AI Coach
             </p>
             <h1 className="mt-1 text-3xl font-bold tracking-tight text-indigo-950 sm:text-4xl">
-              Your personalised guidance and growth direction
+              Welcome back, {firstName}
             </h1>
             <p className="mt-3 max-w-3xl text-sm text-indigo-950/75">
-              Track pathway progress, understand next steps, and receive intelligent recommendations tailored to your saved goals and profile.
+              You are making strong progress toward becoming more opportunity-ready in {field}. Your guidance below is prioritised to help you move faster this week.
             </p>
           </div>
 
@@ -2329,272 +2410,69 @@ export default function Intelligence(): JSX.Element {
               className="inline-flex h-11 items-center justify-center rounded-2xl border border-indigo-300 bg-white px-4 text-sm font-semibold text-indigo-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Sparkles className="mr-2 h-4 w-4" />
-              {intelligenceRefreshing ? "Refreshing..." : "Refresh Intelligence"}
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleTestAIConnection()}
-              disabled={!user || profileLoading}
-              className="inline-flex h-11 items-center justify-center rounded-2xl border border-cyan-300 bg-white px-4 text-sm font-semibold text-cyan-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Test AI Connection
-            </button>
-            <button
-              type="button"
-              disabled
-              className="inline-flex h-11 items-center justify-center rounded-2xl bg-gradient-to-r from-[var(--color-primary)] to-indigo-700 px-4 text-sm font-semibold text-white opacity-50"
-            >
-              <Bell className="mr-2 h-4 w-4" />
-              Notifications
+              {intelligenceRefreshing ? "Refreshing..." : "Continue Growth Journey"}
             </button>
           </div>
         </div>
-        <ComingSoonNote
-          text="Notification alerts will proactively notify you when new AI insights, matches, and recommended opportunities are generated."
-          className="text-indigo-900/70"
-        />
       </section>
 
-      <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 lg:sticky lg:top-4 lg:z-20">
-        {stats.map((item, index) => (
-          <div
-            key={item.title}
-            className={`rounded-2xl border p-3.5 shadow-sm ${
-              index === 0
-                ? "border-indigo-200 bg-gradient-to-br from-indigo-50 to-white"
-                : index === 1
-                  ? "border-sky-200 bg-gradient-to-br from-sky-50 to-white"
-                  : index === 2
-                    ? "border-emerald-200 bg-gradient-to-br from-emerald-50 to-white"
-                    : "border-fuchsia-200 bg-gradient-to-br from-fuchsia-50 to-white"
-            }`}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-xs font-semibold text-[var(--color-on-surface-variant)]">{item.title}</p>
-              <div
-                className={`rounded-xl p-2 ${
-                  index === 0
-                    ? "bg-indigo-100 text-indigo-700"
-                    : index === 1
-                      ? "bg-sky-100 text-sky-700"
-                      : index === 2
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-fuchsia-100 text-fuchsia-700"
-                }`}
-              >
-                <item.icon className="h-4 w-4" />
-              </div>
-            </div>
-            <p className="mt-2 text-2xl font-bold leading-none text-[var(--color-on-surface)]">{item.value}</p>
-            <p className="mt-1 text-xs text-[var(--color-on-surface-variant)]">{item.note}</p>
-            <p className="mt-1 text-[10px] text-[var(--color-on-surface-variant)]">Source: {item.source}</p>
-            <div className="mt-3">
-              {index === 0 ? renderMetricRows([
-                {
-                  label: "Pathway completion",
-                  valueText: `${completionPercent}%`,
-                  percent: completionPercent,
-                  toneClassName: "bg-indigo-500",
-                },
-                {
-                  label: "System health",
-                  valueText: `${overallHealthScore}%`,
-                  percent: overallHealthScore,
-                  toneClassName: "bg-indigo-400",
-                },
-                {
-                  label: "Sections ready",
-                  valueText: `${readySectionCount}/3`,
-                  percent: Math.round((readySectionCount / 3) * 100),
-                  toneClassName: "bg-indigo-300",
-                },
-              ]) : null}
-              {index === 1 ? renderMetricRows([
-                {
-                  label: "Skills",
-                  valueText: `${profileSkills.length}`,
-                  percent: profileSignalBreakdown[0]?.percent ?? 0,
-                  toneClassName: "bg-sky-500",
-                },
-                {
-                  label: "Interests",
-                  valueText: `${profileInterests.length}`,
-                  percent: profileSignalBreakdown[1]?.percent ?? 0,
-                  toneClassName: "bg-violet-500",
-                },
-                {
-                  label: "Goals",
-                  valueText: `${profileGoals.length}`,
-                  percent: profileSignalBreakdown[2]?.percent ?? 0,
-                  toneClassName: "bg-emerald-500",
-                },
-              ]) : null}
-              {index === 1 ? (
-                <p className="mt-2 text-[11px] font-semibold text-slate-700">
-                  Signal strength: {profileSignalStrengthLabel} ({profileSignalStrengthPercent}%)
-                </p>
-              ) : null}
-              {index === 2 ? renderMetricRows([
-                {
-                  label: "Total matches",
-                  valueText: `${displayMatches.length}`,
-                  percent: Math.min(100, displayMatches.length * 20),
-                  toneClassName: "bg-emerald-500",
-                },
-                {
-                  label: "Strong matches",
-                  valueText: `${displayMatches.filter((match) => match.matchScore >= 80).length}`,
-                  percent: displayMatches.length > 0
-                    ? Math.round((displayMatches.filter((match) => match.matchScore >= 80).length / displayMatches.length) * 100)
-                    : 0,
-                  toneClassName: "bg-emerald-400",
-                },
-                {
-                  label: "Best match score",
-                  valueText: `${matchScoreTrend.length > 0 ? Math.max(...matchScoreTrend) : 0}%`,
-                  percent: matchScoreTrend.length > 0 ? Math.max(...matchScoreTrend) : 0,
-                  toneClassName: "bg-emerald-300",
-                },
-              ]) : null}
-              {index === 3 ? renderMetricRows([
-                {
-                  label: "Next actions",
-                  valueText: `${aiInsightNextBestActions.length}`,
-                  percent: Math.min(100, aiInsightNextBestActions.length * 20),
-                  toneClassName: "bg-fuchsia-500",
-                },
-                {
-                  label: "Skill gaps",
-                  valueText: `${aiInsightSkillGaps.length}`,
-                  percent: Math.min(100, aiInsightSkillGaps.length * 20),
-                  toneClassName: "bg-fuchsia-400",
-                },
-                {
-                  label: "Recommendations",
-                  valueText: `${recommendations?.recommendations.length ?? 0}`,
-                  percent: Math.min(100, (recommendations?.recommendations.length ?? 0) * 20),
-                  toneClassName: "bg-fuchsia-300",
-                },
-              ]) : null}
-              <button
-                type="button"
-                onClick={() => {
-                  if (item.refreshKey === "pathway") {
-                    void handleRefreshIntelligence();
-                    return;
-                  }
-                  if (item.refreshKey === "skills") {
-                    void handleRefreshVerifiedSkills();
-                    return;
-                  }
-                  if (item.refreshKey === "matches") {
-                    void handleLoadMatches();
-                    return;
-                  }
-                  void handleRefreshAIInsight();
-                }}
-                disabled={item.isUpdating}
-                className="mt-3 inline-flex h-8 items-center rounded-lg border border-[var(--color-outline-variant)] bg-white px-2.5 text-[11px] font-semibold text-[var(--color-on-surface)] transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {item.isUpdating ? "Updating..." : item.refreshLabel}
-              </button>
-            </div>
+      <section className="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_1.9fr]">
+        <div className="rounded-2xl border border-indigo-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-semibold text-indigo-700">This Week's Focus</p>
+          <ul className="mt-3 space-y-2 text-sm text-[var(--color-on-surface)]">
+            {weeklyFocusItems.map((focus, idx) => (
+              <li key={`${focus}-${idx}`} className="flex items-start gap-2">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
+                <span>{focus}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/70 p-3">
+            <p className="text-xs text-indigo-900/75">
+              Keep momentum with one focused learning task, one practical build task, and one networking task.
+            </p>
           </div>
-        ))}
-      </section>
-      <section className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-gradient-to-br from-[var(--color-surface-container-low)] via-[var(--color-surface-container)] to-[var(--color-surface-container-low)] p-4 text-sm xl:col-span-2">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="font-semibold text-[var(--color-on-surface)]">System status</p>
-              <p className={`mt-1 ${subtle}`}>
-                {intelligenceLoading
-                  ? "Refreshing intelligence services..."
-                  : hasRecoverableSectionErrors
-                    ? "Some intelligence services need recovery."
-                    : intelligenceReady
-                      ? "Intelligence services are active and responding."
-                      : "Intelligence services are waiting for available backend data."}
-              </p>
-              <p className={`mt-1 text-xs ${subtle}`}>
-                Last full refresh: {formatTimestamp(intelligenceUpdatedAt)}
-              </p>
-              {intelligenceLastAction ? (
-                <p className={`mt-1 text-xs ${getLastActionClassName(intelligenceLastAction.status)}`}>
-                  Last refresh action: {intelligenceLastAction.message} ({formatTimestamp(intelligenceLastAction.timestamp)})
-                </p>
-              ) : (
-                <p className={`mt-1 text-xs ${subtle}`}>
-                  Last refresh action: No refresh action recorded yet.
-                </p>
-              )}
-              <p className={`mt-1 text-xs ${subtle}`}>
-                Sections: {readySectionCount} ready, {loadingSectionCount} loading, {emptySectionCount} empty, {errorSectionCount} error.
-              </p>
-            </div>
-
-            <div className="grid min-w-[220px] grid-cols-3 gap-2">
-              {readinessTrend.map((item) => (
-                <div key={item.id} className="rounded-xl border border-[var(--color-outline-variant)] bg-white/80 p-2">
-                  <p className="text-[11px] font-semibold text-[var(--color-on-surface-variant)]">{item.label}</p>
-                  <div className="mt-2 h-1.5 rounded-full bg-slate-200">
-                    <div
-                      className={`h-full rounded-full ${
-                        item.state === "ready"
-                          ? "bg-emerald-500"
-                          : item.state === "loading"
-                            ? "bg-amber-500"
-                            : item.state === "error"
-                              ? "bg-rose-500"
-                              : "bg-slate-400"
-                      }`}
-                      style={{ width: `${item.score}%` }}
-                    />
-                  </div>
-                  <p className="mt-2 text-xs font-semibold text-[var(--color-on-surface)]">{item.score}%</p>
+        </div>
+        <div className="rounded-2xl border border-fuchsia-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-semibold text-fuchsia-700">Your Next Best Actions</p>
+          <div className="mt-3 space-y-3">
+            {weeklyFocusItems.slice(0, 3).map((focus, idx) => (
+              <div key={`next-action-${focus}-${idx}`} className="rounded-xl border border-fuchsia-100 bg-fuchsia-50/40 p-3">
+                <p className="text-sm font-semibold text-[var(--color-on-surface)]">{focus}</p>
+                <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
+                  <span className="rounded-full border border-violet-200 bg-white px-2 py-1 text-violet-700">Time: {idx === 0 ? "20-30 min" : idx === 1 ? "45-60 min" : "15-20 min"}</span>
+                  <span className="rounded-full border border-sky-200 bg-white px-2 py-1 text-sky-700">Difficulty: {idx === 0 ? "Easy" : idx === 1 ? "Medium" : "Easy"}</span>
+                  <span className="rounded-full border border-emerald-200 bg-white px-2 py-1 text-emerald-700">Impact: {idx === 1 ? "High" : "Medium"}</span>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
+      </section>
 
-        <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-gradient-to-b from-[#f6f2ff] to-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-on-surface-variant)]">
-            Intelligence Health
-          </p>
-          <div className="mt-3 flex items-center gap-4">
-            <div
-              className="grid h-20 w-20 place-items-center rounded-full"
-              style={{
-                background: `conic-gradient(#4f46e5 ${overallHealthScore * 3.6}deg, #e2e8f0 0deg)`,
-              }}
+      <section className="mb-6 overflow-x-auto rounded-2xl border border-[var(--color-outline-variant)] bg-white p-2 shadow-sm">
+        <div className="flex min-w-max gap-2">
+          {[
+            { id: "overview", label: "Overview" },
+            { id: "journey", label: "Journey" },
+            { id: "projects", label: "Projects" },
+            { id: "learning", label: "Learning" },
+            { id: "opportunities", label: "Opportunities" },
+            { id: "profile", label: "Profile" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id as IntelligenceTab)}
+              className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                activeTab === tab.id
+                  ? "bg-[var(--color-primary)] text-white shadow-sm"
+                  : "bg-[var(--color-surface-container-low)] text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container)]"
+              }`}
             >
-              <div className="grid h-14 w-14 place-items-center rounded-full bg-white text-sm font-bold text-[var(--color-on-surface)]">
-                {overallHealthScore}%
-              </div>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-[var(--color-on-surface)]">Operational confidence</p>
-              <p className={`mt-1 text-xs ${subtle}`}>
-                {overallHealthScore >= 80
-                  ? "Signals are strong across intelligence services."
-                  : overallHealthScore >= 60
-                    ? "Most systems are available, with minor gaps."
-                    : "Some sections need attention to raise quality."}
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-[var(--color-on-surface-variant)]">
-              AI Insight: {aiInsightLoading ? "Loading" : aiInsightError ? "Error" : aiInsight ? "Ready" : "Empty"}
-            </span>
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-[var(--color-on-surface-variant)]">
-              Recommendations: {recommendationsLoading ? "Loading" : recommendationsError ? "Error" : recommendations ? "Ready" : "Empty"}
-            </span>
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-[var(--color-on-surface-variant)]">
-              Matching: {matchesLoading ? "Loading" : matchesError ? "Error" : matches ? "Ready" : "Empty"}
-            </span>
-          </div>
+              {tab.label}
+            </button>
+          ))}
         </div>
       </section>
 
@@ -2781,59 +2659,88 @@ export default function Intelligence(): JSX.Element {
         </div>
       ) : null}
 
-      {/* Hero summary */}
-      <section className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="rounded-3xl border border-fuchsia-200/70 bg-gradient-to-br from-fuchsia-50 via-white to-indigo-50 p-6 shadow-sm lg:col-span-2">
-          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-fuchsia-700">Current Focus</p>
-              <h2 className="mt-2 text-2xl font-bold text-fuchsia-900">{field}</h2>
-              <p className="mt-2 max-w-xl text-sm text-fuchsia-900/75">
-                You are in the structured development stage. VisionTech is guiding you from skill awareness into practical readiness and stronger opportunity alignment.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-fuchsia-200 bg-white/90 p-5">
-              <p className="text-sm text-fuchsia-700">Completion</p>
-              <p className="mt-1 text-3xl font-bold text-fuchsia-900">{completionPercent}%</p>
-              <p className="mt-2 text-sm text-fuchsia-900/70">{completionMessage}</p>
-              <div className="mt-3">
-                {renderWaveChart({
-                  values: [
-                    completionPercent,
-                    overallHealthScore,
-                    readySectionCount,
-                    loadingSectionCount + errorSectionCount + emptySectionCount,
-                  ],
-                  stroke: "#c026d3",
-                  fill: "rgba(192,38,211,0.12)",
-                })}
-              </div>
-            </div>
+      {activeTab === "overview" ? (
+      <>
+      {/* Journey snapshot */}
+      <section className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-[1.8fr_1fr]">
+        <div className="rounded-3xl border border-fuchsia-200/70 bg-gradient-to-br from-fuchsia-50 via-white to-indigo-50 p-6 shadow-sm">
+          <p className="text-sm font-semibold text-fuchsia-700">Your AI Growth Journey</p>
+          <h2 className="mt-2 text-2xl font-bold text-fuchsia-900">{field}</h2>
+          <p className="mt-2 max-w-2xl text-sm text-fuchsia-900/75">
+            You are building real momentum. Stay consistent with practical tasks and your opportunity readiness will continue to rise.
+          </p>
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-sm text-emerald-900">✅ Profile complete</div>
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-sm text-emerald-900">✅ Skills mapped</div>
+            <div className="rounded-xl border border-violet-200 bg-violet-50/80 p-3 text-sm text-violet-900">🟣 Learning in progress</div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">⚪ Opportunity-ready milestone next</div>
           </div>
         </div>
-
         <div className="rounded-3xl border border-violet-200/80 bg-gradient-to-br from-violet-50 to-white p-6 shadow-sm">
-          <p className="text-sm font-semibold text-violet-700">Quick Summary</p>
-
-          <div className="mt-4 space-y-4">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-[var(--color-on-surface-variant)]">Goal</p>
-              <p className="mt-1 font-semibold text-[var(--color-primary)]">{summaryGoal}</p>
+          <p className="text-sm font-semibold text-violet-700">Progress Snapshot</p>
+          <div className="mt-4 space-y-3">
+            <div className="rounded-xl border border-violet-200 bg-white/85 p-3">
+              <p className="text-xs text-violet-900/70">Journey progress</p>
+              <p className="mt-1 text-xl font-bold text-violet-900">{completionPercent}%</p>
             </div>
-
-            <div>
-              <p className="text-xs uppercase tracking-wide text-[var(--color-on-surface-variant)]">Next Task</p>
-              <p className="mt-1 font-semibold text-[var(--color-on-surface)]">{summaryTask}</p>
+            <div className="rounded-xl border border-indigo-200 bg-white/85 p-3">
+              <p className="text-xs text-indigo-900/70">Top goal</p>
+              <p className="mt-1 text-sm font-semibold text-indigo-950">{summaryGoal}</p>
             </div>
-
-            <div>
-              <p className="text-xs uppercase tracking-wide text-[var(--color-on-surface-variant)]">Match Strength</p>
-              <p className="mt-1 font-semibold text-[var(--color-on-surface)]">{matchStrength}</p>
+            <div className="rounded-xl border border-fuchsia-200 bg-white/85 p-3">
+              <p className="text-xs text-fuchsia-900/70">Next milestone</p>
+              <p className="mt-1 text-sm font-semibold text-fuchsia-950">{summaryTask}</p>
             </div>
           </div>
         </div>
       </section>
+      <section className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white p-5 shadow-sm lg:col-span-2">
+          <p className="text-sm font-semibold text-violet-700">Your AI Coach Recommends</p>
+          <p className="mt-2 text-sm text-violet-950/85">
+            {aiInsight?.summary ?? "AI fundamentals and practical projects are the fastest route to stronger opportunities right now."}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {aiInsightNextBestActions.slice(0, 3).map((action, idx) => (
+              <span key={`${action}-${idx}`} className="rounded-full border border-violet-200 bg-white px-3 py-1 text-xs text-violet-800">
+                {action}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Weekly Momentum</p>
+          <div className="mt-3 flex items-center gap-3">
+            <div className="rounded-xl bg-indigo-100 p-2 text-indigo-700"><Gauge className="h-4 w-4" /></div>
+            <p className="text-2xl font-bold text-indigo-900">{weeklyMomentumScore}%</p>
+          </div>
+          <p className="mt-2 text-xs text-indigo-900/80">
+            Complete one more action to increase your opportunity readiness.
+          </p>
+          <div className="mt-3 rounded-lg border border-indigo-200 bg-white px-3 py-2">
+            <p className="text-[11px] text-indigo-700">Opportunity Readiness</p>
+            <p className="text-sm font-semibold text-indigo-900">{opportunityReadinessScore}%</p>
+          </div>
+        </div>
+      </section>
+      <section className="mb-8 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm">
+        <div className="flex items-center gap-2">
+          <Trophy className="h-4 w-4 text-amber-700" />
+          <p className="text-sm font-semibold text-amber-800">Achievements</p>
+        </div>
+        <div className="mt-3 grid gap-2 md:grid-cols-3 lg:grid-cols-5">
+          {achievements.map((item) => (
+            <div key={item.id} className={`rounded-xl border p-3 text-xs ${item.unlocked ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
+              {item.unlocked ? "Unlocked" : "In progress"}: {item.label}
+            </div>
+          ))}
+        </div>
+      </section>
+      </>
+      ) : null}
+
+      {activeTab !== "overview" ? (
+      <>
 
         {/* Main content grid */}
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -2843,7 +2750,7 @@ export default function Intelligence(): JSX.Element {
             <div className="rounded-3xl border border-indigo-200/70 bg-gradient-to-br from-indigo-50 via-white to-sky-50 p-6 shadow-sm">
               <div className="mb-6 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-indigo-700">Intelligent Pathway</p>
+                  <p className="text-sm font-semibold text-indigo-700">Your Journey Progress</p>
                   <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Your guided journey</h3>
                 </div>
                 <button
@@ -2858,7 +2765,7 @@ export default function Intelligence(): JSX.Element {
               <ComingSoonNote text="Full pathway view will open a detailed timeline with milestones, dependencies, and progress history." />
               <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="rounded-xl border border-indigo-200 bg-white/90 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Pathway Phase Mix</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Journey Stages</p>
                   <div className="mt-3">
                     {renderDonutChart({
                       slices: [
@@ -2917,7 +2824,7 @@ export default function Intelligence(): JSX.Element {
             <div className="rounded-3xl border border-violet-200/80 bg-gradient-to-br from-violet-50 via-white to-indigo-50 p-6 shadow-sm">
               <div className="mb-6 flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm font-semibold text-violet-700">AI Insights</p>
+                  <p className="text-sm font-semibold text-violet-700">AI Growth Coach</p>
                   <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Personalised growth guidance</h3>
                   <p className="mt-2 text-sm text-violet-900/75">
                     {aiInsight
@@ -2932,37 +2839,14 @@ export default function Intelligence(): JSX.Element {
                               ? "AI insight is ready to generate from your profile."
                               : "AI insight quality may be limited until onboarding data is stronger."}
                   </p>
-                  <p className="mt-2 text-xs text-violet-900/60">
-                    Last updated: {formatTimestamp(aiInsightUpdatedAt)}
-                  </p>
-                  <p className="mt-1 text-xs text-violet-900/60">
-                    Source: {getAIInsightSourceLabel(aiInsightSource)}
-                  </p>
-                  {aiInsight && aiInsightIsCached && (
-                    <p className="mt-1 text-xs text-violet-900/60">
-                      Using cached data
-                    </p>
-                  )}
+                  <p className="mt-2 text-xs text-violet-900/60">Updated {formatTimestamp(aiInsightUpdatedAt)}</p>
                   {(skillsAreThin || interestsAreThin || goalsAreThin) && (
                     <p className="mt-1 text-xs text-violet-900/60">
-                      Insight quality may be limited until your skills, interests, and goals are more complete.
+                      Add a bit more detail to your profile for even sharper coaching.
                     </p>
                   )}
-                  {renderLastAction(aiInsightLastAction)}
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
-                  {aiInsight ? renderAIInsightSourceBadge(aiInsightSource) : null}
-                  {aiInsight ? (
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getConfidenceClass(aiInsightConfidenceLevel)}`}
-                    >
-                      {getConfidenceLabel(aiInsightConfidenceLevel)}
-                    </span>
-                  ) : null}
-                  {renderSectionBadge(aiInsightState)}
-                  <div className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">
-                    {aiStatusLabel}
-                  </div>
                   <button
                     type="button"
                     onClick={() => void handleRefreshAIInsight()}
@@ -2992,69 +2876,16 @@ export default function Intelligence(): JSX.Element {
                 </div>
               ) : aiInsight ? (
                 <div className="space-y-5">
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div className="rounded-xl border border-violet-200 bg-white/90 p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">Insight Signal Curve</p>
-                      <div className="mt-2">
-                        {renderWaveChart({
-                          values: aiInsightWaveValues,
-                          stroke: "#7c3aed",
-                          fill: "rgba(124,58,237,0.12)",
-                        })}
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-violet-200 bg-white/90 p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">Gap vs Action Distribution</p>
-                      <div className="mt-3">
-                        {renderDonutChart({
-                          slices: [
-                            { label: "Skill Gaps", value: aiInsightSkillGaps.length, color: "#7c3aed" },
-                            { label: "Next Actions", value: aiInsightNextBestActions.length, color: "#ec4899" },
-                          ],
-                          centerSubLabel: "signals",
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-sm font-semibold text-violet-900">
-                    Confidence: {aiInsightConfidenceLevel}
-                  </p>
-                  <p className={`mt-1 text-sm ${subtle}`}>
-                    {aiInsight.confidence_reason
-                      ?? "Confidence is based on your onboarding profile and current activity evidence."}
-                  </p>
-                  <p className="mt-1 text-xs text-violet-900/60">
-                    {aiInsightConfidenceLevel === "high"
-                      ? "Your profile data is strong, so this insight is highly personalised."
-                      : aiInsightConfidenceLevel === "medium"
-                        ? "This insight is based on limited data. Adding more details will improve accuracy."
-                        : "This insight has low confidence due to limited profile data."}
-                  </p>
-                  <p className="mb-3 text-xs text-violet-900/60">
-                    {aiInsightSource === "fresh"
-                      ? "This insight was generated during your current session."
-                      : aiInsightSource === "saved"
-                        ? "This insight was retrieved from your saved intelligence data."
-                        : "Source information is not available."}
-                  </p>
                   <div className="rounded-2xl border border-violet-200/70 bg-gradient-to-r from-violet-100/60 to-indigo-100/50 p-4">
                     <div className="mb-2 inline-flex rounded-xl bg-white/85 p-2 shadow-sm">
                       <Sparkles className="h-4 w-4 text-violet-700" />
                     </div>
-                    <h4 className="font-semibold text-violet-700">Profile summary</h4>
+                    <h4 className="font-semibold text-violet-700">Coach insight</h4>
                     <p className="mt-2 text-sm leading-6 text-violet-950/80">{aiInsight.summary}</p>
                   </div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold text-slate-800">Evidence Summary</p>
-                    <p className={`mt-1 text-sm ${subtle}`}>
-                      {aiInsight.evidence_summary
-                        ?? "Evidence tracking is active. Complete learning and project updates to strengthen insight precision."}
-                    </p>
-                  </div>
-
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-cyan-50 p-4">
-                      <p className="text-sm font-semibold text-sky-800">Skill gaps</p>
+                      <p className="text-sm font-semibold text-sky-800">Where to grow next</p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {aiInsightSkillGaps.map((gap, idx) => (
                           <span
@@ -3072,7 +2903,7 @@ export default function Intelligence(): JSX.Element {
                     </div>
 
                     <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-lime-50 p-4">
-                      <p className="text-sm font-semibold text-emerald-800">Next Best Actions</p>
+                      <p className="text-sm font-semibold text-emerald-800">Top actions for momentum</p>
                       <ul className="mt-3 space-y-2 text-sm text-emerald-900/80">
                         {aiInsightNextBestActions.map((step, idx) => (
                           <li key={idx} className="flex items-start gap-2 rounded-xl border border-emerald-200/80 bg-white/80 px-3 py-2">
@@ -3125,7 +2956,7 @@ export default function Intelligence(): JSX.Element {
             <div className="rounded-3xl border border-cyan-200/70 bg-gradient-to-br from-cyan-50 via-white to-sky-50 p-6 shadow-sm">
               <div className="mb-6 flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-cyan-700">Recommendations</p>
+                  <p className="text-sm font-semibold text-cyan-700">Suggested Next Moves</p>
                   <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Suggested pathways and next steps</h3>
                   <p className="mt-2 text-sm text-cyan-900/75">
                     Practical recommendations aligned with your saved profile and AI guidance.
@@ -3219,6 +3050,9 @@ export default function Intelligence(): JSX.Element {
                                       href={source.url}
                                       target="_blank"
                                       rel="noreferrer"
+                                      onClick={() => {
+                                        void handleRecommendationSourceClick(item, source);
+                                      }}
                                       className={`inline-flex items-center rounded-full border bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition ${
                                         item.kind === "learning"
                                           ? "border-cyan-200 text-cyan-700 hover:bg-cyan-50"
@@ -3797,7 +3631,7 @@ export default function Intelligence(): JSX.Element {
               </div>
               <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="rounded-xl border border-amber-200 bg-white/90 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Status Distribution</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Pathway Progress</p>
                   <div className="mt-3">
                     {renderDonutChart({
                       slices: [
@@ -3811,7 +3645,7 @@ export default function Intelligence(): JSX.Element {
                   </div>
                 </div>
                 <div className="rounded-xl border border-orange-200 bg-white/90 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">Portfolio Split</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">Your Portfolio</p>
                   <div className="mt-3 flex items-center gap-4">
                     <div
                       className="grid h-16 w-16 place-items-center rounded-full"
@@ -3980,7 +3814,7 @@ export default function Intelligence(): JSX.Element {
             <div className="rounded-3xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-6 shadow-sm">
               <div className="mb-6 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-emerald-700">Smart Matching</p>
+                  <p className="text-sm font-semibold text-emerald-700">People You May Want To Connect With</p>
                   <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">People and collaboration fits</h3>
                   <p className="mt-2 text-sm text-emerald-900/75">
                     {matchesLoading
@@ -4017,7 +3851,7 @@ export default function Intelligence(): JSX.Element {
               </div>
               <ComingSoonNote text="Explore all matches will open a full list with advanced filters, profile comparisons, and collaboration intent signals." />
               <div className="mb-5 rounded-xl border border-emerald-200 bg-white/90 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Match Strength Wave</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Match Potential</p>
                 <div className="mt-2">
                   {renderWaveChart({
                     values: matchScoreTrend,
@@ -4279,7 +4113,7 @@ export default function Intelligence(): JSX.Element {
                 Opportunities aligned with your onboarding, learning, projects, and intelligence signals.
               </p>
               <div className="mt-3 rounded-xl border border-indigo-200 bg-white/90 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Opportunity Routing</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Opportunities For You</p>
                 <p className="mt-1 text-xs text-indigo-900/75">
                   Strong Matches: {opportunityRoutingSummary.strongMatches}
                   {" | "}
@@ -4465,6 +4299,8 @@ export default function Intelligence(): JSX.Element {
             </div>
           </aside>
         </section>
+      </>
+      ) : null}
     </DashboardShell>
   );
 }
