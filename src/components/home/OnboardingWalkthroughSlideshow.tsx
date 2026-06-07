@@ -6,66 +6,80 @@ type WalkthroughSlide = {
   id: number;
   stage: string;
   title: string;
-  action: string;
-  expectation: string;
+  purpose: string;
+  outcome: string;
   image: string;
 };
 
 const slides: WalkthroughSlide[] = [
   {
     id: 1,
-    stage: "Access",
-    title: "Sign in securely",
-    action: "A new user begins on the login page and authenticates with their account.",
-    expectation: "VisionTech establishes a secure session and routes the user into the guided experience.",
+    stage: "Welcome",
+    title: "Sign in and get started",
+    purpose:
+      "This page helps you safely sign in to your account so you can pick up where you left off.",
+    outcome:
+      "Once you are signed in, VisionTech AI guides you into the platform and shows you the next step.",
     image: "/demo/01-login-page.png",
   },
   {
     id: 2,
-    stage: "Activation",
-    title: "Complete account setup",
-    action: "After registration, the user confirms successful account creation.",
-    expectation: "The account is active and ready for profile-driven onboarding.",
+    stage: "Setup",
+    title: "Finish creating your account",
+    purpose:
+      "This page confirms that your account has been created and that you are ready to begin.",
+    outcome:
+      "You can move forward knowing your account is active and ready for a more personal experience.",
     image: "/demo/02-successful-signup.png",
   },
   {
     id: 3,
-    stage: "Onboarding",
-    title: "Capture goals and skills",
-    action: "The user completes onboarding inputs including interests, goals, and capability baseline.",
-    expectation: "Backend profile data becomes the source for recommendations and matching.",
+    stage: "Getting to know you",
+    title: "Share your goals, interests, and strengths",
+    purpose:
+      "This page lets you tell VisionTech AI what you want to achieve, what you enjoy, and where you may need support.",
+    outcome:
+      "Your answers help the platform suggest relevant tools, people, and next steps that fit you better.",
     image: "/demo/03-onboarding.png",
   },
   {
     id: 4,
-    stage: "Guidance",
-    title: "Review personal dashboard",
-    action: "The user enters their dashboard to see progress, priorities, and suggested direction.",
-    expectation: "The experience shifts from setup to action with personalized signals.",
+    stage: "Your home base",
+    title: "View your personal dashboard",
+    purpose:
+      "This page gives you one simple place to see your progress, priorities, and helpful recommendations.",
+    outcome:
+      "You can quickly understand what to focus on next without feeling overwhelmed.",
     image: "/demo/04-user-dashboard.png",
   },
   {
     id: 5,
-    stage: "Profile",
-    title: "Refine profile data",
-    action: "Users can view and edit profile details to keep recommendations relevant.",
-    expectation: "Profile changes improve recommendation quality and matching precision over time.",
+    stage: "Your details",
+    title: "Update your profile anytime",
+    purpose:
+      "This page lets you review and change your information so the platform continues to reflect who you are.",
+    outcome:
+      "Keeping your profile current helps VisionTech AI make better suggestions over time.",
     image: "/demo/05-view-edit-profile.png",
   },
   {
     id: 6,
-    stage: "Matching",
-    title: "Explore smart matches",
-    action: "The user opens matching views to discover collaborators and opportunity-aligned connections.",
-    expectation: "VisionTech surfaces high-fit matches with transparent relevance context.",
+    stage: "Connections",
+    title: "Find people and opportunities that fit",
+    purpose:
+      "This page helps you discover useful matches, such as collaborators, communities, or opportunities that align with your goals.",
+    outcome:
+      "You can explore connections with clearer context on why they may be a good fit for you.",
     image: "/demo/06-explore-matching.png",
   },
   {
     id: 7,
-    stage: "Execution",
-    title: "Work in collaboration space",
-    action: "Users move into workspace/collaboration surfaces to execute projects and tasks.",
-    expectation: "Guidance turns into measurable progress through practical, team-ready workflow.",
+    stage: "Working together",
+    title: "Collaborate and take action",
+    purpose:
+      "This page is where ideas turn into action, helping you work on tasks, projects, and shared goals with others.",
+    outcome:
+      "It gives you a practical space to stay organized, make progress, and collaborate with confidence.",
     image: "/demo/07-collab-workspace.png",
   },
 ];
@@ -101,13 +115,14 @@ export default function OnboardingWalkthroughSlideshow(): JSX.Element {
       <div className="mx-auto max-w-6xl space-y-10">
         <div className="space-y-3 text-center">
           <p className="font-label text-[11px] font-bold uppercase tracking-[0.3em] text-[#1f0954]">
-            Demo Story
+            Platform Tour
           </p>
           <h2 className="font-headline text-3xl font-bold text-slate-900 md:text-4xl">
-            How a new user experiences VisionTech
+            A simple guide to each VisionTech AI page
           </h2>
           <p className="mx-auto max-w-3xl leading-relaxed text-slate-700">
-            A professional end-to-end walkthrough from sign-in through matching and collaboration.
+            Explore what each part of the platform is for, what you can do there, and how it helps
+            you move forward.
           </p>
         </div>
 
@@ -133,12 +148,12 @@ export default function OnboardingWalkthroughSlideshow(): JSX.Element {
               </p>
               <h3 className="mt-3 font-headline text-2xl font-bold text-slate-900">{activeSlide.title}</h3>
               <p className="mt-4 text-sm leading-relaxed text-slate-700">
-                <span className="font-semibold text-slate-900">What to do: </span>
-                {activeSlide.action}
+                <span className="font-semibold text-slate-900">What this page is for: </span>
+                {activeSlide.purpose}
               </p>
               <p className="mt-3 text-sm leading-relaxed text-slate-700">
-                <span className="font-semibold text-slate-900">What to expect: </span>
-                {activeSlide.expectation}
+                <span className="font-semibold text-slate-900">How it helps you: </span>
+                {activeSlide.outcome}
               </p>
 
               <div className="mt-6 flex items-center gap-2">

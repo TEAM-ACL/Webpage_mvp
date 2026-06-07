@@ -44,20 +44,20 @@ const featureCards = [
 
 const advancedFeatureItems = [
   {
-    title: "Unified Intelligence Layer",
-    body: "Bring profile signal, matching logic, and pathway guidance into one operating view.",
+    title: "Intelligence Workspace",
+    body: "This is your main working area. It brings your goals, progress, learning steps, projects, and AI guidance together in one place so you can see what to focus on next.",
   },
   {
-    title: "Fast Team Decision Support",
-    body: "Surface high-fit collaborators and actionable recommendations without slowing workflow.",
+    title: "Network Page",
+    body: "This page helps you discover people, mentors, and opportunities that match your interests and direction, so it is easier to know who to connect with and why.",
   },
   {
-    title: "Scale-Ready Experience",
-    body: "Designed to stay clear and responsive as users, use cases, and data volume grow.",
+    title: "Clear Next Steps",
+    body: "VisionTech AI turns your profile and activity into simple suggestions, helping beginners understand what action to take without needing to figure everything out alone.",
   },
   {
-    title: "Low-Friction Operations",
-    body: "Simple controls and guided actions reduce complexity while preserving advanced capability.",
+    title: "From Insight to Action",
+    body: "The platform does more than show information. It helps you learn, build, collaborate, and move forward step by step in a practical way.",
   },
 ];
 
@@ -244,8 +244,8 @@ export default function Home(): JSX.Element {
                 Designed to be clear, actionable, and dynamic.
               </h2>
               <p className="max-w-xl leading-relaxed text-slate-700">
-                VisionTech combines high-signal intelligence with clean interaction patterns so users can move quickly
-                without losing depth.
+                VisionTech AI is designed to feel simple to use, even if you are new. Each page has a clear purpose,
+                from understanding your progress to finding the right people and opportunities.
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
                 {featureCards.slice(0, 2).map((card) => (
