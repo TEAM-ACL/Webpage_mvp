@@ -12,6 +12,7 @@ type ProfileForm = {
   experienceLevel: string;
   preferredWorkStyle: string;
   region: string;
+  personalSummary: string;
   goals: string;
   interests: string;
   skills: string;
@@ -41,6 +42,7 @@ export default function Profile(): JSX.Element {
     experienceLevel: "",
     preferredWorkStyle: "",
     region: "",
+    personalSummary: "",
     goals: "",
     interests: "",
     skills: "",
@@ -69,6 +71,7 @@ export default function Profile(): JSX.Element {
       experienceLevel: profile.experienceLevel || "",
       preferredWorkStyle: profile.preferredWorkStyle || "",
       region: profile.region || "",
+      personalSummary: profile.personalSummary || "",
       goals: Array.isArray(profile.goals) ? profile.goals.join(", ") : "",
       interests: Array.isArray(profile.interests) ? profile.interests.join(", ") : "",
       skills: Array.isArray(profile.skills) ? profile.skills.join(", ") : "",
@@ -115,11 +118,17 @@ export default function Profile(): JSX.Element {
       || profileForm.experienceLevel !== (profile.experienceLevel || "")
       || profileForm.preferredWorkStyle !== (profile.preferredWorkStyle || "")
       || profileForm.region !== (profile.region || "")
+      || profileForm.personalSummary !== (profile.personalSummary || "")
       || profileForm.goals !== (Array.isArray(profile.goals) ? profile.goals.join(", ") : "")
       || profileForm.interests !== (Array.isArray(profile.interests) ? profile.interests.join(", ") : "")
       || profileForm.skills !== (Array.isArray(profile.skills) ? profile.skills.join(", ") : "")
     );
   }, [profile, profileForm]);
+  const personalSummaryWordCount = useMemo(
+    () => profileForm.personalSummary.split(/\s+/).filter((word) => word.trim().length > 0).length,
+    [profileForm.personalSummary],
+  );
+  const personalSummaryLimitReached = personalSummaryWordCount > 250;
 
   const handleAccountSave = async () => {
     setError(null);
@@ -164,6 +173,12 @@ export default function Profile(): JSX.Element {
       showSuccess("No profile changes to save.");
       return;
     }
+    if (personalSummaryLimitReached) {
+      const message = "Please keep your personal background summary within 250 words.";
+      setError(message);
+      showError(message);
+      return;
+    }
 
     const payload = {
       preferred_nickname: profileForm.preferredNickname.trim(),
@@ -172,6 +187,7 @@ export default function Profile(): JSX.Element {
       experience_level: profileForm.experienceLevel.trim(),
       preferred_work_style: profileForm.preferredWorkStyle.trim(),
       region: profileForm.region.trim(),
+      personal_summary: profileForm.personalSummary.trim(),
       goals: splitCsv(profileForm.goals),
       interests: splitCsv(profileForm.interests),
       skills: splitCsv(profileForm.skills),
@@ -319,6 +335,17 @@ export default function Profile(): JSX.Element {
             <Field label="Region" value={profileForm.region} onChange={(v) => setProfileForm((p) => ({ ...p, region: v }))} />
           </div>
           <div className="mt-4 grid gap-4">
+            <TextArea
+              label="Tell us a little about you"
+              hint="Optional. Briefly describe your background, experience, strengths, or the kind of work you have done. Max 250 words."
+              value={profileForm.personalSummary}
+              onChange={(v) => setProfileForm((p) => ({ ...p, personalSummary: v }))}
+            />
+            <div className="mt-[-8px] flex justify-end">
+              <p className={`text-xs ${personalSummaryLimitReached ? "text-red-600" : "text-[var(--color-on-surface-variant)]"}`}>
+                {personalSummaryWordCount}/250 words
+              </p>
+            </div>
             <TextArea label="Goals (comma separated)" value={profileForm.goals} onChange={(v) => setProfileForm((p) => ({ ...p, goals: v }))} />
             <TextArea label="Interests (comma separated)" value={profileForm.interests} onChange={(v) => setProfileForm((p) => ({ ...p, interests: v }))} />
             <TextArea label="Skills (comma separated)" value={profileForm.skills} onChange={(v) => setProfileForm((p) => ({ ...p, skills: v }))} />
@@ -439,14 +466,17 @@ function TextArea({
   label,
   value,
   onChange,
+  hint,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  hint?: string;
 }) {
   return (
     <label className="flex flex-col gap-2 text-sm text-[var(--color-on-surface)]">
       <span className="text-xs font-semibold uppercase tracking-wide text-[var(--color-on-surface-variant)]">{label}</span>
+      {hint ? <span className="text-xs text-[var(--color-on-surface-variant)]">{hint}</span> : null}
       <textarea
         className="min-h-[90px] rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--color-primary)]/70"
         value={value}
