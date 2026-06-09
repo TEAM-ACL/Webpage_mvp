@@ -38,6 +38,7 @@ type FormState = {
   country: string;
   otherFieldDetail: string;
   otherRegionDetail: string;
+  personalSummary: string;
   goals: string[];
   interests: string[];
   skills: string[];
@@ -737,6 +738,7 @@ export default function OnboardingPage(): JSX.Element {
     country: "",
     otherFieldDetail: "",
     otherRegionDetail: "",
+    personalSummary: "",
     goals: [],
     interests: [],
     skills: [],
@@ -763,6 +765,11 @@ export default function OnboardingPage(): JSX.Element {
   ];
 
   const completion = Math.round((totalRequiredChecks.filter(Boolean).length / totalRequiredChecks.length) * 100);
+  const personalSummaryWordCount = useMemo(
+    () => form.personalSummary.split(/\s+/).filter((word) => word.trim().length > 0).length,
+    [form.personalSummary],
+  );
+  const personalSummaryLimitReached = personalSummaryWordCount > 250;
 
   useEffect(() => {
     if (!user) return;
@@ -936,6 +943,7 @@ export default function OnboardingPage(): JSX.Element {
 
   async function handleSubmit() {
     if (submitting) return;
+    if (personalSummaryLimitReached) return;
     setSubmitting(true);
     setSubmitError(null);
 
@@ -1259,6 +1267,55 @@ export default function OnboardingPage(): JSX.Element {
           )}
         </motion.section>
 
+        <motion.section
+          className="mt-8 rounded-3xl border border-[var(--color-outline-variant)] bg-white p-6 shadow-sm"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+        >
+          <div className="mb-5">
+            <h2 className="text-xl font-bold text-[var(--color-on-surface)]">Tell us a little about you</h2>
+            <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">
+              This optional section helps VisionTech AI understand your background more clearly so it can give better recommendations for your current position and future growth pathway.
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+            <p className="text-sm font-semibold text-[var(--color-on-surface)]">What to include</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--color-on-surface-variant)]">
+              Briefly describe who you are, the kind of experience you already have, what you have worked on, the strengths you use most, and anything else you want VisionTech AI to understand about your current position. You can also mention career context, transferable experience, industries you have worked in, or the type of opportunities you feel ready for now.
+            </p>
+            <p className="mt-2 text-xs text-[var(--color-on-surface-variant)]/80">
+              Keep it clear and practical. Maximum 250 words. You can skip this now and edit it later from your profile page.
+            </p>
+          </div>
+
+          <div className="mt-4">
+            <label className="mb-2 block text-sm font-semibold text-[var(--color-on-surface)]/80">
+              Personal background summary
+            </label>
+            <textarea
+              value={form.personalSummary}
+              onChange={(e) => updateField("personalSummary", e.target.value)}
+              placeholder="Example: I have experience supporting operations, using spreadsheets, solving day-to-day problems, and working with teams. I am comfortable learning new tools and I want guidance on roles and opportunities that fit my current strengths while helping me grow."
+              className="min-h-[180px] w-full rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-[var(--color-primary)]/70"
+            />
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <p className="text-xs text-[var(--color-on-surface-variant)]/80">
+                Optional but helpful for more precise AI guidance.
+              </p>
+              <p className={`text-xs font-medium ${personalSummaryLimitReached ? "text-red-600" : "text-[var(--color-on-surface-variant)]/80"}`}>
+                {personalSummaryWordCount}/250 words
+              </p>
+            </div>
+            {personalSummaryLimitReached ? (
+              <p className="mt-2 text-xs font-semibold text-red-600">
+                Please shorten this section to 250 words or fewer before continuing.
+              </p>
+            ) : null}
+          </div>
+        </motion.section>
+
         <SelectionBlock
           title="Goals"
           subtitle="Choose the main outcomes you want VisionTech to help you achieve. Select at least 3."
@@ -1411,6 +1468,13 @@ export default function OnboardingPage(): JSX.Element {
                     {form.preferredWorkStyle || "Not set yet"}
                   </p>
                 </div>
+
+                <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4 sm:col-span-2">
+                  <p className="text-xs uppercase tracking-wide text-[var(--color-on-surface-variant)]">About you</p>
+                  <p className="mt-2 text-sm font-semibold text-[var(--color-on-surface)]">
+                    {form.personalSummary || "Skipped for now"}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -1440,10 +1504,15 @@ export default function OnboardingPage(): JSX.Element {
                     We couldn't complete onboarding. Please check the notification and try again.
                   </p>
                 )}
+                {personalSummaryLimitReached ? (
+                  <p className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    Please reduce your personal background summary to 250 words or fewer.
+                  </p>
+                ) : null}
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  disabled={submitting}
+                  disabled={submitting || personalSummaryLimitReached}
                   className="inline-flex h-11 items-center justify-center rounded-2xl bg-white px-4 text-sm font-semibold text-[var(--color-primary)] transition hover:bg-[var(--color-surface-container-low)] disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {submitting ? "Submitting..." : "Complete onboarding"}

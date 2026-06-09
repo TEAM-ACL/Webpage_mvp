@@ -41,7 +41,7 @@ import {
 } from "../services/collaboration";
 import type { CollaborationRequestItem } from "../types/collaboration";
 import { getRecommendedOpportunities } from "../services/opportunities";
-import type { Opportunity } from "../types/opportunities";
+import type { Opportunity, OpportunityType } from "../types/opportunities";
 import { getVerifiedSkills, refreshVerifiedSkills } from "../services/verifiedSkills";
 import type { SkillVerificationLevel, VerifiedSkill } from "../types/verifiedSkills";
 
@@ -115,7 +115,7 @@ type IntelligenceStatCard = {
   source: string;
 };
 
-type IntelligenceTab = "overview" | "journey" | "projects" | "learning" | "opportunities" | "profile";
+type IntelligenceTab = "overview" | "journey" | "projects" | "learning" | "opportunities";
 
 function buildStats({
   pathwayProgressPercent,
@@ -251,6 +251,10 @@ function getOpportunityFitClassName(score: number): string {
   if (score >= 80) return "bg-emerald-100 text-emerald-700";
   if (score >= 60) return "bg-amber-100 text-amber-700";
   return "bg-slate-100 text-slate-700";
+}
+
+function formatOpportunityTypeLabel(type: OpportunityType): string {
+  return type.charAt(0).toUpperCase() + type.slice(1);
 }
 
 function getVerificationBadgeClassName(level: SkillVerificationLevel): string {
@@ -562,6 +566,10 @@ export default function Intelligence(): JSX.Element {
     ? `Explore: ${profile.interests[0]}`
     : "Complete your next pathway task";
   const [activeTab, setActiveTab] = useState<IntelligenceTab>("overview");
+  const isJourneyTab = activeTab === "journey";
+  const isProjectsTab = activeTab === "projects";
+  const isLearningTab = activeTab === "learning";
+  const isOpportunitiesTab = activeTab === "opportunities";
   const firstName =
     user?.first_name?.trim()
     || user?.display_name?.trim()?.split(" ")[0]
@@ -881,6 +889,90 @@ export default function Intelligence(): JSX.Element {
       : null;
     return { strongMatches, goodMatches, topMatch };
   }, [recommendedOpportunities]);
+  const currentStateOpportunitySignals = useMemo(() => {
+    const aiCurrentFitRoles = aiInsight?.current_fit_roles ?? [];
+    if (aiCurrentFitRoles.length > 0) {
+      return aiCurrentFitRoles.slice(0, 4).map((role, index) => ({
+        id: `ai-current-fit-${index}-${role.title}`,
+        title: role.title,
+        typeLabel: "Current Role Fit",
+        readinessHeadline: `Based on your current skills and experience, you are already in a good position to explore ${role.title}.`,
+        matchScore: undefined,
+        reason: role.reason,
+        evidence: [
+          profileSkills.length > 0
+            ? `${profileSkills.length} saved skill${profileSkills.length === 1 ? "" : "s"} support this direction`
+            : "Your profile context supports this direction",
+          verifiedSkills.length > 0
+            ? `${verifiedSkills.length} verified or evidence-backed skill signal${verifiedSkills.length === 1 ? "" : "s"} recorded`
+            : "More verified evidence can strengthen this fit",
+          projects.filter((project) => project.status === "completed").length > 0
+            ? `${projects.filter((project) => project.status === "completed").length} completed project${projects.filter((project) => project.status === "completed").length === 1 ? "" : "s"} add practical proof`
+            : "Completed projects would make this fit easier to prove",
+          learningItems.filter((item) => item.status === "completed").length > 0
+            ? `${learningItems.filter((item) => item.status === "completed").length} completed learning item${learningItems.filter((item) => item.status === "completed").length === 1 ? "" : "s"} add readiness evidence`
+            : "Completed learning would improve confidence for this role",
+        ],
+        nextStep: "Compare this role with the opportunities below and decide which one feels most realistic to pursue now.",
+      }));
+    }
+
+    const profileSkillSet = new Set(profileSkills.map((skill) => skill.trim().toLowerCase()));
+    const projectSkillSet = new Set(
+      projects.flatMap((project) => project.skills_used.map((skill) => skill.trim().toLowerCase())),
+    );
+    const completedProjectsCount = projects.filter((project) => project.status === "completed").length;
+    const completedLearningCount = learningItems.filter((item) => item.status === "completed").length;
+    const scored = recommendedOpportunities
+      .filter((item): item is Opportunity & { match_score: number } => typeof item.match_score === "number")
+      .sort((left, right) => right.match_score - left.match_score);
+    const prioritized = (scored.length > 0 ? scored : recommendedOpportunities).slice(0, 3);
+
+    return prioritized.map((item) => {
+      const alignedSkills = item.required_skills.filter((skill) => {
+        const normalizedSkill = skill.trim().toLowerCase();
+        return (
+          profileSkillSet.has(normalizedSkill)
+          || projectSkillSet.has(normalizedSkill)
+          || verifiedSkillMap.has(normalizedSkill)
+        );
+      });
+      const verifiedAlignedSkills = alignedSkills.filter((skill) =>
+        verifiedSkillMap.has(skill.trim().toLowerCase()),
+      );
+      const readinessHeadline =
+        typeof item.match_score === "number" && item.match_score >= 80
+          ? `Based on your current skills and experience, you are already in a strong position for this ${item.opportunity_type} opportunity.`
+          : typeof item.match_score === "number" && item.match_score >= 60
+            ? `Based on your current profile, you already have a solid starting point for this ${item.opportunity_type} opportunity.`
+            : `Your current background shows early potential for this ${item.opportunity_type} opportunity, especially if you keep building evidence.`;
+      const evidence = [
+        alignedSkills.length > 0
+          ? `${alignedSkills.length} required skill${alignedSkills.length === 1 ? "" : "s"} already align`
+          : "Your saved interests and experience still show early alignment",
+        verifiedAlignedSkills.length > 0
+          ? `${verifiedAlignedSkills.length} aligned skill${verifiedAlignedSkills.length === 1 ? "" : "s"} already verified`
+          : "More verified proof can strengthen your fit",
+        completedProjectsCount > 0
+          ? `${completedProjectsCount} completed project${completedProjectsCount === 1 ? "" : "s"} adds practical evidence`
+          : "Completed projects would make this fit easier to prove",
+        completedLearningCount > 0
+          ? `${completedLearningCount} completed learning item${completedLearningCount === 1 ? "" : "s"} supports readiness`
+          : "Completed learning would improve readiness confidence",
+      ];
+
+      return {
+        id: item.id,
+        title: item.title,
+        typeLabel: formatOpportunityTypeLabel(item.opportunity_type),
+        readinessHeadline,
+        matchScore: item.match_score,
+        reason: item.reason,
+        evidence,
+        nextStep: item.recommended_actions?.[0] ?? "Review this opportunity and decide if you want to explore it now.",
+      };
+    });
+  }, [aiInsight, recommendedOpportunities, profileSkills, projects, learningItems, verifiedSkillMap, verifiedSkills]);
   const profileCredibility = useMemo(() => {
     const stronglyVerified = verifiedSkills.filter((skill) => skill.verification_level === "strongly_verified").length;
     const completedProjects = projects.filter((project) => project.status === "completed").length;
@@ -2458,7 +2550,6 @@ export default function Intelligence(): JSX.Element {
             { id: "projects", label: "Projects" },
             { id: "learning", label: "Learning" },
             { id: "opportunities", label: "Opportunities" },
-            { id: "profile", label: "Profile" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -2669,6 +2760,12 @@ export default function Intelligence(): JSX.Element {
           <p className="mt-2 max-w-2xl text-sm text-fuchsia-900/75">
             You are building real momentum. Stay consistent with practical tasks and your opportunity readiness will continue to rise.
           </p>
+          <div className="mt-4 rounded-2xl border border-fuchsia-200 bg-white/85 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-fuchsia-700">Summary</p>
+            <p className="mt-2 text-sm leading-6 text-fuchsia-950/85">
+              {aiInsight?.summary ?? "AI fundamentals and practical projects are the fastest route to stronger opportunities right now."}
+            </p>
+          </div>
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-sm text-emerald-900">✅ Profile complete</div>
             <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-sm text-emerald-900">✅ Skills mapped</div>
@@ -2696,9 +2793,9 @@ export default function Intelligence(): JSX.Element {
       </section>
       <section className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white p-5 shadow-sm lg:col-span-2">
-          <p className="text-sm font-semibold text-violet-700">Your AI Coach Recommends</p>
+          <p className="text-sm font-semibold text-violet-700">Your Next Best Actions</p>
           <p className="mt-2 text-sm text-violet-950/85">
-            {aiInsight?.summary ?? "AI fundamentals and practical projects are the fastest route to stronger opportunities right now."}
+            Focus on these practical steps to keep your progress moving.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             {aiInsightNextBestActions.slice(0, 3).map((action, idx) => (
@@ -2747,6 +2844,7 @@ export default function Intelligence(): JSX.Element {
           {/* Left and center content */}
           <div className="space-y-6 xl:col-span-2">
             {/* Pathway section */}
+            {isJourneyTab ? (
             <div className="rounded-3xl border border-indigo-200/70 bg-gradient-to-br from-indigo-50 via-white to-sky-50 p-6 shadow-sm">
               <div className="mb-6 flex items-center justify-between">
                 <div>
@@ -2819,8 +2917,10 @@ export default function Intelligence(): JSX.Element {
                 )}
               </div>
             </div>
+            ) : null}
 
             {/* AI insights */}
+            {isJourneyTab ? (
             <div className="rounded-3xl border border-violet-200/80 bg-gradient-to-br from-violet-50 via-white to-indigo-50 p-6 shadow-sm">
               <div className="mb-6 flex items-start justify-between gap-4">
                 <div>
@@ -2951,8 +3051,10 @@ export default function Intelligence(): JSX.Element {
                 </div>
               )}
             </div>
+            ) : null}
 
             {/* Recommendations section */}
+            {isJourneyTab ? (
             <div className="rounded-3xl border border-cyan-200/70 bg-gradient-to-br from-cyan-50 via-white to-sky-50 p-6 shadow-sm">
               <div className="mb-6 flex items-start justify-between gap-3">
                 <div>
@@ -3127,8 +3229,10 @@ export default function Intelligence(): JSX.Element {
                 </div>
               )}
             </div>
+            ) : null}
 
             {/* Projects tracker section */}
+            {isProjectsTab ? (
             <div className="rounded-3xl border border-blue-200/80 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6 shadow-sm">
               <div className="mb-6 flex items-start justify-between gap-3">
                 <div>
@@ -3452,8 +3556,10 @@ export default function Intelligence(): JSX.Element {
                 </div>
               )}
             </div>
+            ) : null}
 
             {/* Learning progress section */}
+            {isLearningTab ? (
             <div className="rounded-3xl border border-indigo-200/80 bg-gradient-to-br from-indigo-50 via-white to-blue-50 p-6 shadow-sm">
               <div className="mb-6 flex items-start justify-between gap-3">
                 <div>
@@ -3596,8 +3702,10 @@ export default function Intelligence(): JSX.Element {
                 </div>
               )}
             </div>
+            ) : null}
 
             {/* Custom pathways section */}
+            {isJourneyTab ? (
             <div className="rounded-3xl border border-amber-200/80 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-6 shadow-sm">
               <div className="mb-6 flex items-start justify-between gap-3">
                 <div>
@@ -3809,8 +3917,10 @@ export default function Intelligence(): JSX.Element {
                 </div>
               )}
             </div>
+            ) : null}
 
             {/* Match section */}
+            {isOpportunitiesTab ? (
             <div className="rounded-3xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-6 shadow-sm">
               <div className="mb-6 flex items-center justify-between">
                 <div>
@@ -4009,11 +4119,13 @@ export default function Intelligence(): JSX.Element {
                 </div>
               )}
             </div>
+            ) : null}
           </div>
 
           {/* Right sidebar content */}
           <aside className="space-y-6">
             {/* Quick actions */}
+            {isJourneyTab || isProjectsTab || isLearningTab ? (
             <div className="rounded-3xl border border-rose-200/80 bg-gradient-to-br from-rose-50 to-white p-6 shadow-sm">
               <p className="text-sm font-semibold text-rose-700">Quick Actions</p>
               <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Move faster</h3>
@@ -4039,7 +4151,9 @@ export default function Intelligence(): JSX.Element {
                 ))}
               </div>
             </div>
+            ) : null}
 
+            {isProjectsTab || isOpportunitiesTab ? (
             <div className="rounded-3xl border border-amber-200/80 bg-gradient-to-br from-amber-50 to-white p-6 shadow-sm">
               <p className="text-sm font-semibold text-amber-700">Collaboration Requests</p>
               <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Team Signals</h3>
@@ -4077,7 +4191,9 @@ export default function Intelligence(): JSX.Element {
                 </div>
               ))}
             </div>
+            ) : null}
 
+            {isOpportunitiesTab ? (
             <div className="rounded-3xl border border-cyan-200/80 bg-gradient-to-br from-cyan-50 to-white p-6 shadow-sm">
               <p className="text-sm font-semibold text-cyan-700">Open Opportunities</p>
               <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Projects needing your skills</h3>
@@ -4105,7 +4221,60 @@ export default function Intelligence(): JSX.Element {
                 ) : null}
               </div>
             </div>
+            ) : null}
 
+            {isOpportunitiesTab ? (
+            <div className="rounded-3xl border border-violet-200/80 bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 p-6 shadow-sm">
+              <p className="text-sm font-semibold text-violet-700">What You Can Go For Right Now</p>
+              <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Current-fit opportunities from your existing skills</h3>
+              <p className="mt-2 text-sm text-violet-900/75">
+                Before planning your next pathway, here are opportunities VisionTech AI believes you may already be in a position to explore today based on your current skills, experience, learning, and project evidence.
+              </p>
+              <div className="mt-4 space-y-3">
+                {currentStateOpportunitySignals.map((item) => (
+                  <div key={item.id} className="rounded-2xl border border-violet-200 bg-white/90 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-violet-950">{item.title}</p>
+                        <p className="mt-1 text-xs text-violet-900/70">{item.typeLabel}</p>
+                      </div>
+                      {typeof item.matchScore === "number" ? (
+                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${getOpportunityFitClassName(item.matchScore)}`}>
+                          {item.matchScore}% current fit
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-violet-950/80">{item.readinessHeadline}</p>
+                    {item.reason ? (
+                      <p className="mt-2 text-xs text-violet-900/75">Why this suits you now: {item.reason}</p>
+                    ) : null}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {item.evidence.map((evidencePoint) => (
+                        <span key={`${item.id}-${evidencePoint}`} className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] text-violet-800">
+                          {evidencePoint}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="mt-3 text-xs text-violet-900/75">
+                      Suggested next step: {item.nextStep}
+                    </p>
+                  </div>
+                ))}
+                {currentStateOpportunitySignals.length === 0 ? (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-sm font-medium text-slate-800">
+                      No current-fit opportunity signals yet.
+                    </p>
+                    <p className={`mt-1 text-sm ${subtle}`}>
+                      Add more skills, projects, or completed learning so VisionTech AI can show what your current profile is already suitable for.
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            ) : null}
+
+            {isOpportunitiesTab ? (
             <div className="rounded-3xl border border-indigo-200/80 bg-gradient-to-br from-indigo-50 to-white p-6 shadow-sm">
               <p className="text-sm font-semibold text-indigo-700">Recommended Opportunities</p>
               <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Capability to opportunity</h3>
@@ -4183,7 +4352,9 @@ export default function Intelligence(): JSX.Element {
                 ) : null}
               </div>
             </div>
+            ) : null}
 
+            {isOpportunitiesTab ? (
             <div className="rounded-3xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-sm">
               <p className="text-sm font-semibold text-emerald-700">Verified Skills</p>
               <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Profile credibility</h3>
@@ -4238,8 +4409,10 @@ export default function Intelligence(): JSX.Element {
                 ) : null}
               </div>
             </div>
+            ) : null}
 
             {/* Activity timeline */}
+            {isJourneyTab || isLearningTab ? (
             <div className="rounded-3xl border border-slate-200/80 bg-gradient-to-br from-slate-50 to-white p-6 shadow-sm">
               <p className="text-sm font-semibold text-slate-700">Recent Activity</p>
               <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Your momentum</h3>
@@ -4277,8 +4450,10 @@ export default function Intelligence(): JSX.Element {
                 )}
               </div>
             </div>
+            ) : null}
 
             {/* Opportunity readiness box */}
+            {isJourneyTab || isOpportunitiesTab ? (
             <div className="rounded-3xl bg-gradient-to-br from-[var(--color-primary)] via-[#2d0d72] to-[#0f766e] p-6 text-white shadow-sm">
               <p className="text-sm font-semibold text-white/80">VisionTech Signal</p>
               <h3 className="mt-1 text-xl font-bold">Opportunity readiness is improving</h3>
@@ -4297,6 +4472,7 @@ export default function Intelligence(): JSX.Element {
                 className="text-white/80"
               />
             </div>
+            ) : null}
           </aside>
         </section>
       </>

@@ -25,6 +25,7 @@ export type Profile = {
   country?: string | null;
   otherFieldDetail?: string | null;
   otherRegionDetail?: string | null;
+  personalSummary?: string | null;
   goals: string[];
   interests: string[];
   skills: string[];
@@ -123,6 +124,7 @@ function mapBackendProfile(resp: BackendProfileResponse): ProfileState {
     country: (snake("country") as string) ?? null,
     otherFieldDetail: (snake("other_field_detail") as string) ?? null,
     otherRegionDetail: (snake("other_region_detail") as string) ?? null,
+    personalSummary: (snake("personal_summary") as string) ?? (snake("personalSummary") as string) ?? null,
     goals: coerceStrArr(snake("goals") ?? []),
     interests: coerceStrArr(snake("interests") ?? []),
     skills: coerceStrArr(snake("skills") ?? []),
@@ -185,6 +187,7 @@ export const api = {
     country?: string;
     other_field_detail?: string;
     other_region_detail?: string;
+    personal_summary?: string;
     goals?: string[];
     interests?: string[];
     skills?: string[];
