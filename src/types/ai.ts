@@ -32,6 +32,10 @@ export type AIInsightResponse = {
     platform: string;
   }>;
   summary: string;
+  current_fit_roles?: Array<{
+    title: string;
+    reason: string;
+  }>;
   confidence_level?: "high" | "medium" | "low";
   confidence_reason?: string;
   next_best_actions?: string[];
