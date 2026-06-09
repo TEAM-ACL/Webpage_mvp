@@ -229,25 +229,25 @@ export default function Home(): JSX.Element {
       <section id="advanced" className="relative border-t border-[#e0d4ff] bg-[#f6f0ff] px-6 py-20 md:px-12 lg:px-16">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(216,207,252,0.32),transparent_42%),radial-gradient(circle_at_88%_20%,rgba(178,211,255,0.18),transparent_42%)]" />
         <div className="relative mx-auto max-w-6xl">
-          <div className="grid items-start gap-10 lg:grid-cols-[1fr,1.05fr]">
+          <div className="space-y-10">
             <motion.div
               initial={{ opacity: 0, y: 18 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.45 }}
-              className="space-y-4"
+              className="space-y-4 text-center"
             >
               <p className="font-label text-[11px] font-bold uppercase tracking-[0.3em] text-[#1f0954]">
-                Advanced Experience
+                How VisionTech AI Works for You
               </p>
               <h2 className="font-headline text-3xl font-bold text-[#1f0954] md:text-5xl">
                 Designed to be clear, actionable, and dynamic.
               </h2>
-              <p className="max-w-xl leading-relaxed text-slate-700">
+              <p className="mx-auto max-w-4xl leading-relaxed text-slate-700">
                 VisionTech AI is designed to feel simple to use, even if you are new. Each page has a clear purpose,
                 from understanding your progress to finding the right people and opportunities.
               </p>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="mx-auto grid max-w-2xl gap-3 sm:grid-cols-2">
                 {featureCards.slice(0, 2).map((card) => (
                   <div key={card.title} className="rounded-xl border border-[#e6defc] bg-[#1f0954] p-3">
                     <p className="text-sm font-semibold text-white/90">{card.title}</p>
@@ -280,7 +280,7 @@ export default function Home(): JSX.Element {
       <section id="how-it-works" className="border-t border-[#e7deff] bg-[#fcf9ff] px-6 py-20 md:px-12 lg:px-16">
         <div className="mx-auto max-w-6xl space-y-10">
           <div className="space-y-3 text-center">
-            <p className="font-label text-[11px] font-bold uppercase tracking-[0.3em] text-[#1f0954]">How it works</p>
+            <p className="font-label text-[11px] font-bold uppercase tracking-[0.3em] text-[#1f0954]">Getting Started</p>
             <h2 className="font-headline text-3xl font-bold text-slate-900 md:text-4xl">Start your journey in four steps</h2>
             <p className="mx-auto max-w-3xl leading-relaxed text-slate-700">
               Move from profile setup to execution with a flow that keeps momentum and removes uncertainty.
