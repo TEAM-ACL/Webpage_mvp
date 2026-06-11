@@ -889,90 +889,125 @@ export default function Intelligence(): JSX.Element {
       : null;
     return { strongMatches, goodMatches, topMatch };
   }, [recommendedOpportunities]);
-  const currentStateOpportunitySignals = useMemo(() => {
-    const aiCurrentFitRoles = aiInsight?.current_fit_roles ?? [];
-    if (aiCurrentFitRoles.length > 0) {
-      return aiCurrentFitRoles.slice(0, 4).map((role, index) => ({
+  const currentStateOpportunitySignals = useMemo(
+    () =>
+      (aiInsight?.current_fit_roles ?? []).map((role, index) => ({
         id: `ai-current-fit-${index}-${role.title}`,
         title: role.title,
-        typeLabel: "Current Role Fit",
-        readinessHeadline: `Based on your current skills and experience, you are already in a good position to explore ${role.title}.`,
-        matchScore: undefined,
         reason: role.reason,
-        evidence: [
-          profileSkills.length > 0
-            ? `${profileSkills.length} saved skill${profileSkills.length === 1 ? "" : "s"} support this direction`
-            : "Your profile context supports this direction",
-          verifiedSkills.length > 0
-            ? `${verifiedSkills.length} verified or evidence-backed skill signal${verifiedSkills.length === 1 ? "" : "s"} recorded`
-            : "More verified evidence can strengthen this fit",
-          projects.filter((project) => project.status === "completed").length > 0
-            ? `${projects.filter((project) => project.status === "completed").length} completed project${projects.filter((project) => project.status === "completed").length === 1 ? "" : "s"} add practical proof`
-            : "Completed projects would make this fit easier to prove",
-          learningItems.filter((item) => item.status === "completed").length > 0
-            ? `${learningItems.filter((item) => item.status === "completed").length} completed learning item${learningItems.filter((item) => item.status === "completed").length === 1 ? "" : "s"} add readiness evidence`
-            : "Completed learning would improve confidence for this role",
-        ],
-        nextStep: "Compare this role with the opportunities below and decide which one feels most realistic to pursue now.",
-      }));
-    }
+      })),
+    [aiInsight],
+  );
+  const growthJourneyMilestones = useMemo(() => {
+    const hasStartedProfile =
+      profileSkills.length > 0
+      || profileInterests.length > 0
+      || profileGoals.length > 0
+      || Boolean(profile?.fieldOfInterest);
+    const skillsMappedCount = Math.max(profileSkills.length, aiDetectedSkillCount, verifiedSkills.length);
+    const hasOpportunityReadiness = currentStateOpportunitySignals.length > 0;
+    const hasOpportunityMomentum =
+      hasOpportunityReadiness
+      || opportunityRoutingSummary.strongMatches > 0
+      || opportunityRoutingSummary.goodMatches > 0;
 
-    const profileSkillSet = new Set(profileSkills.map((skill) => skill.trim().toLowerCase()));
-    const projectSkillSet = new Set(
-      projects.flatMap((project) => project.skills_used.map((skill) => skill.trim().toLowerCase())),
-    );
-    const completedProjectsCount = projects.filter((project) => project.status === "completed").length;
-    const completedLearningCount = learningItems.filter((item) => item.status === "completed").length;
-    const scored = recommendedOpportunities
-      .filter((item): item is Opportunity & { match_score: number } => typeof item.match_score === "number")
-      .sort((left, right) => right.match_score - left.match_score);
-    const prioritized = (scored.length > 0 ? scored : recommendedOpportunities).slice(0, 3);
-
-    return prioritized.map((item) => {
-      const alignedSkills = item.required_skills.filter((skill) => {
-        const normalizedSkill = skill.trim().toLowerCase();
-        return (
-          profileSkillSet.has(normalizedSkill)
-          || projectSkillSet.has(normalizedSkill)
-          || verifiedSkillMap.has(normalizedSkill)
-        );
-      });
-      const verifiedAlignedSkills = alignedSkills.filter((skill) =>
-        verifiedSkillMap.has(skill.trim().toLowerCase()),
-      );
-      const readinessHeadline =
-        typeof item.match_score === "number" && item.match_score >= 80
-          ? `Based on your current skills and experience, you are already in a strong position for this ${item.opportunity_type} opportunity.`
-          : typeof item.match_score === "number" && item.match_score >= 60
-            ? `Based on your current profile, you already have a solid starting point for this ${item.opportunity_type} opportunity.`
-            : `Your current background shows early potential for this ${item.opportunity_type} opportunity, especially if you keep building evidence.`;
-      const evidence = [
-        alignedSkills.length > 0
-          ? `${alignedSkills.length} required skill${alignedSkills.length === 1 ? "" : "s"} already align`
-          : "Your saved interests and experience still show early alignment",
-        verifiedAlignedSkills.length > 0
-          ? `${verifiedAlignedSkills.length} aligned skill${verifiedAlignedSkills.length === 1 ? "" : "s"} already verified`
-          : "More verified proof can strengthen your fit",
-        completedProjectsCount > 0
-          ? `${completedProjectsCount} completed project${completedProjectsCount === 1 ? "" : "s"} adds practical evidence`
-          : "Completed projects would make this fit easier to prove",
-        completedLearningCount > 0
-          ? `${completedLearningCount} completed learning item${completedLearningCount === 1 ? "" : "s"} supports readiness`
-          : "Completed learning would improve readiness confidence",
-      ];
-
-      return {
-        id: item.id,
-        title: item.title,
-        typeLabel: formatOpportunityTypeLabel(item.opportunity_type),
-        readinessHeadline,
-        matchScore: item.match_score,
-        reason: item.reason,
-        evidence,
-        nextStep: item.recommended_actions?.[0] ?? "Review this opportunity and decide if you want to explore it now.",
-      };
-    });
-  }, [aiInsight, recommendedOpportunities, profileSkills, projects, learningItems, verifiedSkillMap, verifiedSkills]);
+    return [
+      onboardingComplete === true
+        ? {
+            id: "profile",
+            label: "Profile complete",
+            detail: "Your core profile is ready and can support stronger AI guidance.",
+            status: "completed" as const,
+          }
+        : hasStartedProfile
+          ? {
+              id: "profile",
+              label: "Profile in progress",
+              detail: "You have started your profile. Finish onboarding to complete this milestone.",
+              status: "active" as const,
+            }
+          : {
+              id: "profile",
+              label: "Profile setup next",
+              detail: "Complete your onboarding details to unlock more accurate guidance.",
+              status: "upcoming" as const,
+            },
+      skillsMappedCount >= minimumSkillsForStrongInsight
+        ? {
+            id: "skills",
+            label: "Skills mapped",
+            detail: `${skillsMappedCount} skill signal${skillsMappedCount === 1 ? "" : "s"} are already helping shape recommendations.`,
+            status: "completed" as const,
+          }
+        : skillsMappedCount > 0
+          ? {
+              id: "skills",
+              label: "Skills mapping in progress",
+              detail: "Add a few more skills to strengthen role-fit and pathway accuracy.",
+              status: "active" as const,
+            }
+          : {
+              id: "skills",
+              label: "Skills mapping next",
+              detail: "Add your skills so VisionTech AI can understand what you already bring.",
+              status: "upcoming" as const,
+            },
+      learningSummary.inProgress > 0
+        ? {
+            id: "learning",
+            label: "Learning in progress",
+            detail: `${learningSummary.inProgress} learning item${learningSummary.inProgress === 1 ? "" : "s"} currently underway.`,
+            status: "active" as const,
+          }
+        : learningSummary.completed > 0
+          ? {
+              id: "learning",
+              label: "Learning progress started",
+              detail: `${learningSummary.completed} completed learning item${learningSummary.completed === 1 ? "" : "s"} are already building your readiness.`,
+              status: "completed" as const,
+            }
+          : {
+              id: "learning",
+              label: "Learning milestone next",
+              detail: "Start one learning step to begin building momentum in your pathway.",
+              status: "upcoming" as const,
+            },
+      hasOpportunityReadiness
+        ? {
+            id: "opportunities",
+            label: "Opportunity-ready now",
+            detail: `${currentStateOpportunitySignals.length} current-fit role${currentStateOpportunitySignals.length === 1 ? "" : "s"} identified from your profile.`,
+            status: "completed" as const,
+          }
+        : hasOpportunityMomentum
+          ? {
+              id: "opportunities",
+              label: "Opportunity readiness building",
+              detail: "You already have opportunity signals. Keep building proof to improve your fit.",
+              status: "active" as const,
+            }
+          : {
+              id: "opportunities",
+              label: "Opportunity-ready milestone next",
+              detail: "As your profile, skills, and learning grow, this milestone will unlock next.",
+              status: "upcoming" as const,
+            },
+    ];
+  }, [
+    aiDetectedSkillCount,
+    currentStateOpportunitySignals.length,
+    learningSummary.completed,
+    learningSummary.inProgress,
+    minimumSkillsForStrongInsight,
+    onboardingComplete,
+    opportunityRoutingSummary.goodMatches,
+    opportunityRoutingSummary.strongMatches,
+    profile?.fieldOfInterest,
+    profileGoals.length,
+    profileInterests.length,
+    profileSkills.length,
+    verifiedSkills.length,
+  ]);
   const profileCredibility = useMemo(() => {
     const stronglyVerified = verifiedSkills.filter((skill) => skill.verification_level === "strongly_verified").length;
     const completedProjects = projects.filter((project) => project.status === "completed").length;
@@ -2767,10 +2802,40 @@ export default function Intelligence(): JSX.Element {
             </p>
           </div>
           <div className="mt-5 grid gap-3 md:grid-cols-2">
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-sm text-emerald-900">✅ Profile complete</div>
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-sm text-emerald-900">✅ Skills mapped</div>
-            <div className="rounded-xl border border-violet-200 bg-violet-50/80 p-3 text-sm text-violet-900">🟣 Learning in progress</div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">⚪ Opportunity-ready milestone next</div>
+            {growthJourneyMilestones.map((milestone) => {
+              const cardClassName =
+                milestone.status === "completed"
+                  ? "border-emerald-200 bg-emerald-50/80 text-emerald-900"
+                  : milestone.status === "active"
+                    ? "border-violet-200 bg-violet-50/80 text-violet-900"
+                    : "border-slate-200 bg-slate-50 text-slate-800";
+              const iconClassName =
+                milestone.status === "completed"
+                  ? "text-emerald-600"
+                  : milestone.status === "active"
+                    ? "text-violet-600"
+                    : "text-slate-400";
+
+              return (
+                <div key={milestone.id} className={`rounded-xl border p-3 ${cardClassName}`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`mt-0.5 ${iconClassName}`}>
+                      {milestone.status === "completed" ? (
+                        <CheckCircle2 className="h-4 w-4" />
+                      ) : milestone.status === "active" ? (
+                        <Clock3 className="h-4 w-4" />
+                      ) : (
+                        <ArrowRight className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">{milestone.label}</p>
+                      <p className="mt-1 text-xs leading-5 opacity-80">{milestone.detail}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
         <div className="rounded-3xl border border-violet-200/80 bg-gradient-to-br from-violet-50 to-white p-6 shadow-sm">
@@ -4233,31 +4298,8 @@ export default function Intelligence(): JSX.Element {
               <div className="mt-4 space-y-3">
                 {currentStateOpportunitySignals.map((item) => (
                   <div key={item.id} className="rounded-2xl border border-violet-200 bg-white/90 p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-violet-950">{item.title}</p>
-                        <p className="mt-1 text-xs text-violet-900/70">{item.typeLabel}</p>
-                      </div>
-                      {typeof item.matchScore === "number" ? (
-                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${getOpportunityFitClassName(item.matchScore)}`}>
-                          {item.matchScore}% current fit
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-3 text-sm leading-6 text-violet-950/80">{item.readinessHeadline}</p>
-                    {item.reason ? (
-                      <p className="mt-2 text-xs text-violet-900/75">Why this suits you now: {item.reason}</p>
-                    ) : null}
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {item.evidence.map((evidencePoint) => (
-                        <span key={`${item.id}-${evidencePoint}`} className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] text-violet-800">
-                          {evidencePoint}
-                        </span>
-                      ))}
-                    </div>
-                    <p className="mt-3 text-xs text-violet-900/75">
-                      Suggested next step: {item.nextStep}
-                    </p>
+                    <p className="text-sm font-semibold text-violet-950">{item.title}</p>
+                    <p className="mt-2 text-sm leading-6 text-violet-950/80">{item.reason}</p>
                   </div>
                 ))}
                 {currentStateOpportunitySignals.length === 0 ? (
