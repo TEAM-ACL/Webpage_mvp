@@ -1,7 +1,8 @@
-import type { ElementType } from "react";
+import { useMemo } from "react";
 import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
 import SummaryGrid, { type SummaryItem } from "../components/dashboard/SummaryGrid";
+import { useAuth } from "../context/AuthContext";
 import {
   FolderKanban,
   CheckCircle2,
@@ -10,47 +11,89 @@ import {
   Plus,
   ArrowRight,
   BookOpen,
-  FileText,
   MessageSquare,
   Sparkles,
 } from "lucide-react";
 
 type Project = { id: number; title: string; description: string; progress: number; status: "Active" | "In Review" | "Completed"; members: number };
-type Task = { id: number; title: string; project: string; priority: "Low" | "Medium" | "High"; due: string; status: "To Do" | "In Progress" | "Done" };
-type Resource = { id: number; title: string; type: "Guide" | "Document" | "Template" | "Note"; description: string };
+type WorkspaceProject = Project & { nextAction: string; relatedGoal: string };
+type Task = { id: number; title: string; project: string; priority: "Low" | "Medium" | "High"; due: string; status: "To Do" | "In Progress" | "Done"; action: "Start" | "Mark Complete" | "View" };
+type LearningAction = { id: number; title: string; skillArea: string; provider: string; reason: string; status: "Recommended" | "In Progress" | "Saved" };
 type CollaborationItem = { id: number; name: string; action: string; time: string };
+type ReadinessItem = { label: string; value: number };
 
 const summaryCards: SummaryItem[] = [
   { title: "Active Projects", value: "3", note: "Projects currently being worked on", icon: FolderKanban },
   { title: "Tasks Due", value: "7", note: "Action items that need attention", icon: Clock3 },
   { title: "Completed Tasks", value: "18", note: "Finished tasks across your workspace", icon: CheckCircle2 },
   { title: "Collaborators", value: "5", note: "People connected to your workspaces", icon: Users },
+  { title: "Readiness Score", value: "68%", note: "Current opportunity readiness signal", icon: Sparkles },
 ];
 
-const projects: Project[] = [
-  { id: 1, title: "Cloud Security Mini Project", description: "Hands-on project focused on identity and access control practice in cloud environments.", progress: 68, status: "Active", members: 2 },
-  { id: 2, title: "VisionTech Pathway Research", description: "Organising ideas, notes, and opportunity signals that support pathway recommendations.", progress: 42, status: "In Review", members: 3 },
-  { id: 3, title: "Portfolio Readiness Tasks", description: "A structured effort to build practical evidence and project visibility for opportunity readiness.", progress: 90, status: "Completed", members: 1 },
+const fallbackTodaysFocus = {
+  mainAction: "Complete one project task",
+  reason: "This improves your opportunity readiness by adding practical evidence to your profile.",
+  estimatedTime: "45 minutes",
+};
+
+const projects: WorkspaceProject[] = [
+  {
+    id: 1,
+    title: "Cloud Support Portfolio",
+    description: "Build practical cloud support evidence through troubleshooting notes, IAM practice, and deployment documentation.",
+    progress: 45,
+    status: "Active",
+    members: 2,
+    nextAction: "Add troubleshooting notes",
+    relatedGoal: "IT Support / Cloud Support",
+  },
+  {
+    id: 2,
+    title: "VisionTech Pathway Research",
+    description: "Organise ideas, notes, and opportunity signals that support pathway recommendations.",
+    progress: 62,
+    status: "In Review",
+    members: 3,
+    nextAction: "Summarise two opportunity patterns",
+    relatedGoal: "Career direction",
+  },
+  {
+    id: 3,
+    title: "Portfolio Readiness Tasks",
+    description: "A structured effort to build practical evidence and project visibility for opportunity readiness.",
+    progress: 90,
+    status: "Completed",
+    members: 1,
+    nextAction: "Review final project evidence",
+    relatedGoal: "Portfolio credibility",
+  },
 ];
 
 const tasks: Task[] = [
-  { id: 1, title: "Complete IAM lab notes", project: "Cloud Security Mini Project", priority: "High", due: "Today", status: "In Progress" },
-  { id: 2, title: "Upload project documentation", project: "Portfolio Readiness Tasks", priority: "Medium", due: "Tomorrow", status: "To Do" },
-  { id: 3, title: "Review AI-generated pathway suggestions", project: "VisionTech Pathway Research", priority: "Medium", due: "This week", status: "To Do" },
-  { id: 4, title: "Finish workspace summary update", project: "Cloud Security Mini Project", priority: "Low", due: "This week", status: "Done" },
+  { id: 1, title: "Complete IAM lab notes", project: "Cloud Support Portfolio", priority: "High", due: "Today", status: "In Progress", action: "Mark Complete" },
+  { id: 2, title: "Upload project documentation", project: "Portfolio Readiness Tasks", priority: "Medium", due: "Tomorrow", status: "To Do", action: "Start" },
+  { id: 3, title: "Review AI-generated pathway suggestions", project: "VisionTech Pathway Research", priority: "Medium", due: "This week", status: "To Do", action: "Start" },
+  { id: 4, title: "Finish workspace summary update", project: "Cloud Support Portfolio", priority: "Low", due: "This week", status: "Done", action: "View" },
 ];
 
-const resources: Resource[] = [
-  { id: 1, title: "Cloud IAM Best Practices", type: "Guide", description: "Reference material for access control and permission design." },
-  { id: 2, title: "Project Structure Template", type: "Template", description: "Reusable format for breaking projects into stages." },
-  { id: 3, title: "Workspace Planning Notes", type: "Note", description: "Personal notes and execution ideas saved from recent sessions." },
-  { id: 4, title: "VisionTech MVP Tasks", type: "Document", description: "Working document outlining practical deliverables for the MVP." },
+const fallbackLearningActions: LearningAction[] = [
+  { id: 1, title: "Cloud IAM Best Practices", skillArea: "Cloud security", provider: "External guide", reason: "Strengthens evidence for your Cloud Support Portfolio.", status: "Recommended" },
+  { id: 2, title: "Troubleshooting Documentation Practice", skillArea: "Technical writing", provider: "Project template", reason: "Helps turn project activity into visible portfolio proof.", status: "In Progress" },
+  { id: 3, title: "Intro to Ticket Handling Workflows", skillArea: "IT support", provider: "External course", reason: "Connects your current project to practical support-role workflows.", status: "Saved" },
+  { id: 4, title: "Portfolio Case Study Structure", skillArea: "Career readiness", provider: "Template", reason: "Improves how employers and mentors understand your project evidence.", status: "Recommended" },
 ];
 
 const collaborationFeed: CollaborationItem[] = [
-  { id: 1, name: "Esther A.", action: "commented on Cloud Security Mini Project", time: "1 hour ago" },
+  { id: 1, name: "Esther A.", action: "left mentor feedback on Cloud Support Portfolio", time: "1 hour ago" },
   { id: 2, name: "Daniel K.", action: "joined VisionTech Pathway Research workspace", time: "3 hours ago" },
-  { id: 3, name: "Miriam O.", action: "shared a new document in Portfolio Readiness Tasks", time: "Yesterday" },
+  { id: 3, name: "Miriam O.", action: "shared a project comment in Portfolio Readiness Tasks", time: "Yesterday" },
+];
+
+const readinessBreakdown: ReadinessItem[] = [
+  { label: "Skills", value: 70 },
+  { label: "Projects", value: 45 },
+  { label: "CV", value: 80 },
+  { label: "Interview", value: 60 },
 ];
 
 const card = "rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] shadow-sm";
@@ -73,28 +116,125 @@ function taskStatusBadge(status: Task["status"]): string {
   if (status === "In Progress") return "bg-[color:var(--color-primary)/0.12] text-[var(--color-primary)]";
   return "bg-slate-100 text-slate-700";
 }
+function learningStatusBadge(status: LearningAction["status"]): string {
+  if (status === "In Progress") return "bg-[color:var(--color-primary)/0.12] text-[var(--color-primary)]";
+  if (status === "Saved") return "bg-slate-100 text-slate-700";
+  return "bg-emerald-100 text-emerald-700";
+}
+
+function NotLiveBadge({ label = "Not live yet" }: { label?: string }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+      {label}
+    </span>
+  );
+}
 
 export default function Workspace() {
+  const { aiInsight, aiInsightUpdatedAt, recommendations } = useAuth();
+
+  const intelligenceLearningActions = useMemo<LearningAction[]>(() => {
+    const resourceActions = (recommendations?.recommended_resources ?? []).map((item, index) => ({
+      id: index + 1,
+      title: item.title || "Recommended learning resource",
+      skillArea: item.level || item.type || "Pathway skill",
+      provider: item.sources?.[0]?.platform || "External provider",
+      reason: item.reason || "Recommended from your Intelligence plan.",
+      status: "Recommended" as const,
+    }));
+
+    const pathwayActions = (recommendations?.recommendations ?? []).map((item, index) => ({
+      id: resourceActions.length + index + 1,
+      title: item.title,
+      skillArea: item.skill_level || "Pathway skill",
+      provider: "VisionTech pathway",
+      reason: item.match_reason || item.next_steps[0] || "Recommended from your AI pathway guidance.",
+      status: item.action_state?.started || item.action_state?.completed ? "In Progress" as const : "Recommended" as const,
+    }));
+
+    return [...resourceActions, ...pathwayActions].slice(0, 4);
+  }, [recommendations]);
+
+  const learningActions = intelligenceLearningActions.length > 0
+    ? intelligenceLearningActions
+    : fallbackLearningActions;
+  const learningActionsAreLive = intelligenceLearningActions.length > 0;
+
+  const focus = useMemo(() => {
+    const topRecommendation = recommendations?.recommendations?.[0];
+    const action =
+      aiInsight?.next_best_actions?.[0]
+      || aiInsight?.next_steps?.[0]
+      || topRecommendation?.next_steps?.[0]
+      || fallbackTodaysFocus.mainAction;
+
+    const reason = topRecommendation
+      ? `This moves your recommended ${topRecommendation.title} pathway from insight into evidence.`
+      : aiInsight?.summary
+        ? "This action is based on your latest AI insight and helps turn guidance into visible progress."
+        : fallbackTodaysFocus.reason;
+
+    return {
+      mainAction: action,
+      reason,
+      estimatedTime: fallbackTodaysFocus.estimatedTime,
+    };
+  }, [aiInsight, recommendations]);
+
   return (
     <DashboardShell>
       <PageHeader
-        eyebrow="VisionTech Workspace"
-        title="Build, organise, and execute your work"
-        description="Manage projects, track tasks, save resources, and collaborate with people aligned to your pathway."
+        eyebrow="Continue from your Intelligence Plan"
+        title="Action Workspace"
+        description="Turn your AI insight into practical progress, projects, and opportunity readiness."
         actions={
           <>
             <button className={outlineButton}>
               <Sparkles className="mr-2 h-4 w-4" />
-              AI Suggestions
+              Refresh AI Guidance
             </button>
             <button className={primaryButton}>
-              <Plus className="mr-2 h-4 w-4" />
-              New Workspace
+              <ArrowRight className="mr-2 h-4 w-4" />
+              Continue My Plan
             </button>
           </>
         }
       />
 
+      <section className={`${card} mb-6 p-6`}>
+        <p className={`text-sm font-semibold ${subtle}`}>Your AI Insight Summary</p>
+        <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Diagnosis becomes execution here</h2>
+        <p className={`mt-3 max-w-4xl text-sm leading-6 ${subtle}`}>
+          {aiInsight?.summary
+            || "Load or refresh your Intelligence plan to turn AI guidance into workspace tasks, project evidence, and learning actions."}
+        </p>
+        <p className={`mt-3 text-xs ${subtle}`}>
+          Last AI update: {aiInsightUpdatedAt ? new Date(aiInsightUpdatedAt).toLocaleString() : "Not loaded yet"}
+        </p>
+      </section>
+
+      <section className={`${card} mb-6 overflow-hidden p-6`}>
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-[var(--color-primary)]">Today's Focus</p>
+            <h2 className="mt-2 text-2xl font-bold text-[var(--color-on-surface)]">{focus.mainAction}</h2>
+            <p className={`mt-3 max-w-3xl text-sm leading-6 ${subtle}`}>
+              <span className="font-semibold text-[var(--color-on-surface)]">Recommended by VisionTech AI:</span>{" "}
+              {focus.reason}
+            </p>
+            <p className={`mt-2 text-sm ${subtle}`}>Estimated time: {focus.estimatedTime}</p>
+          </div>
+          <button className={primaryButton}>
+            <ArrowRight className="mr-2 h-4 w-4" />
+            Start Focus Task
+          </button>
+        </div>
+      </section>
+
+      <section className="mb-3 flex items-center justify-between gap-3">
+        <p className={`text-sm font-semibold ${subtle}`}>Workspace metrics preview</p>
+        <NotLiveBadge />
+      </section>
       <SummaryGrid items={summaryCards} />
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -105,6 +245,7 @@ export default function Workspace() {
                 <p className={`text-sm font-semibold ${subtle}`}>Active Projects</p>
                 <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Your current workspaces</h2>
               </div>
+              <NotLiveBadge />
               <button className="inline-flex items-center text-sm font-medium text-[var(--color-on-surface)] hover:text-[var(--color-primary)]">
                 View all
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -118,6 +259,7 @@ export default function Workspace() {
                       <div className="flex flex-wrap items-center gap-3">
                         <h3 className="text-lg font-semibold text-[var(--color-on-surface)]">{project.title}</h3>
                         <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusBadge(project.status)}`}>{project.status}</span>
+                        <NotLiveBadge label="Preview data" />
                       </div>
                       <p className={`mt-2 max-w-2xl text-sm leading-6 ${subtle}`}>{project.description}</p>
                       <div className={`mt-4 flex flex-wrap gap-4 text-sm ${subtle}`}>
@@ -126,8 +268,18 @@ export default function Workspace() {
                       </div>
                     </div>
                     <button className="inline-flex h-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90">
-                      Open
+                      Open Project
                     </button>
+                  </div>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                      <p className={`text-xs font-semibold uppercase tracking-wide ${subtle}`}>Next action</p>
+                      <p className="mt-1 text-sm font-medium text-[var(--color-on-surface)]">{project.nextAction}</p>
+                    </div>
+                    <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+                      <p className={`text-xs font-semibold uppercase tracking-wide ${subtle}`}>Related goal</p>
+                      <p className="mt-1 text-sm font-medium text-[var(--color-on-surface)]">{project.relatedGoal}</p>
+                    </div>
                   </div>
                   <div className="mt-4">
                     <div className="h-2 w-full rounded-full bg-[var(--color-surface-container-low)]">
@@ -145,6 +297,7 @@ export default function Workspace() {
                 <p className={`text-sm font-semibold ${subtle}`}>Task Board</p>
                 <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Tasks that need your attention</h2>
               </div>
+              <NotLiveBadge />
               <button className="inline-flex items-center text-sm font-medium text-[var(--color-on-surface)] hover:text-[var(--color-primary)]">
                 Manage tasks
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -155,10 +308,11 @@ export default function Workspace() {
                 <thead>
                   <tr className={`text-left text-sm ${subtle}`}>
                     <th className="pb-2 pr-4 font-medium">Task</th>
-                    <th className="pb-2 pr-4 font-medium">Project</th>
+                    <th className="pb-2 pr-4 font-medium">Linked Project</th>
                     <th className="pb-2 pr-4 font-medium">Priority</th>
-                    <th className="pb-2 pr-4 font-medium">Due</th>
                     <th className="pb-2 pr-4 font-medium">Status</th>
+                    <th className="pb-2 pr-4 font-medium">Due Date</th>
+                    <th className="pb-2 pr-4 font-medium">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -169,9 +323,14 @@ export default function Workspace() {
                       <td className="px-4 py-4">
                         <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${priorityBadge(task.priority)}`}>{task.priority}</span>
                       </td>
+                      <td className="px-4 py-4">
+                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${taskStatusBadge(task.status)}`}>{task.status}</span>
+                      </td>
                       <td className={`px-4 py-4 text-sm ${subtle}`}>{task.due}</td>
                       <td className="rounded-r-2xl px-4 py-4">
-                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${taskStatusBadge(task.status)}`}>{task.status}</span>
+                        <button className="inline-flex h-9 items-center justify-center rounded-xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-3 text-xs font-semibold text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]">
+                          {task.action}
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -183,32 +342,34 @@ export default function Workspace() {
           <div className={`${card} p-6`}>
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <p className={`text-sm font-semibold ${subtle}`}>Saved Resources</p>
-                <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Helpful items in your workspace</h2>
+                <p className={`text-sm font-semibold ${subtle}`}>Recommended Learning Actions</p>
+                <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Learning pulled from your Intelligence plan</h2>
               </div>
+              {!learningActionsAreLive ? <NotLiveBadge label="Preview fallback" /> : null}
               <button className="inline-flex items-center text-sm font-medium text-[var(--color-on-surface)] hover:text-[var(--color-primary)]">
-                Open library
+                Add learning resource
                 <ArrowRight className="ml-2 h-4 w-4" />
               </button>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              {resources.map((resource) => (
+              {learningActions.map((resource) => (
                 <div key={resource.id} className="rounded-2xl border border-[var(--color-outline-variant)] p-4 transition hover:border-[var(--color-primary)]">
                   <div className="flex items-start gap-3">
                     <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-3">
-                      {resource.type === "Guide" && <BookOpen className="h-5 w-5 text-[var(--color-on-surface)]" />}
-                      {resource.type === "Document" && <FileText className="h-5 w-5 text-[var(--color-on-surface)]" />}
-                      {resource.type === "Template" && <FolderKanban className="h-5 w-5 text-[var(--color-on-surface)]" />}
-                      {resource.type === "Note" && <MessageSquare className="h-5 w-5 text-[var(--color-on-surface)]" />}
+                      <BookOpen className="h-5 w-5 text-[var(--color-on-surface)]" />
                     </div>
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-semibold text-[var(--color-on-surface)]">{resource.title}</h3>
-                        <span className="rounded-full bg-[var(--color-surface-container-low)] px-2.5 py-1 text-xs font-medium text-[var(--color-on-surface-variant)]">
-                          {resource.type}
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${learningStatusBadge(resource.status)}`}>
+                          {resource.status}
                         </span>
                       </div>
-                      <p className={`mt-2 text-sm leading-6 ${subtle}`}>{resource.description}</p>
+                      <p className={`mt-2 text-xs font-medium ${subtle}`}>{resource.skillArea} · {resource.provider}</p>
+                      <p className={`mt-2 text-sm leading-6 ${subtle}`}>{resource.reason}</p>
+                      <button className="mt-4 inline-flex h-9 items-center justify-center rounded-xl border border-[var(--color-outline-variant)] px-3 text-xs font-semibold text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]">
+                        Open Resource
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -219,8 +380,39 @@ export default function Workspace() {
 
         <aside className="space-y-6">
           <div className={`${card} p-6`}>
-            <p className={`text-sm font-semibold ${subtle}`}>Collaboration Feed</p>
-            <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Recent team activity</h2>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className={`text-sm font-semibold ${subtle}`}>Opportunity Readiness</p>
+                <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Where to improve next</h2>
+              </div>
+              <NotLiveBadge />
+            </div>
+            <div className="mt-5 space-y-4">
+              {readinessBreakdown.map((item) => (
+                <div key={item.label}>
+                  <div className="mb-2 flex items-center justify-between text-sm">
+                    <span className="font-medium text-[var(--color-on-surface)]">{item.label}</span>
+                    <span className={subtle}>{item.value}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-[var(--color-surface-container-low)]">
+                    <div className="h-2 rounded-full bg-[var(--color-primary)]" style={{ width: `${item.value}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button className="mt-5 inline-flex h-10 w-full items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90">
+              Improve Readiness
+            </button>
+          </div>
+
+          <div className={`${card} p-6`}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className={`text-sm font-semibold ${subtle}`}>Support & Collaboration</p>
+                <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Recent pathway support</h2>
+              </div>
+              <NotLiveBadge />
+            </div>
             <div className="mt-5 space-y-4">
               {collaborationFeed.map((item) => (
                 <div key={item.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
@@ -234,13 +426,20 @@ export default function Workspace() {
           </div>
 
           <div className={`${card} p-6`}>
-            <p className={`text-sm font-semibold ${subtle}`}>Quick Actions</p>
-            <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Keep moving</h2>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className={`text-sm font-semibold ${subtle}`}>Quick Actions</p>
+                <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Keep moving</h2>
+              </div>
+              <NotLiveBadge />
+            </div>
             <div className="mt-5 space-y-3">
               {[
                 { label: "Create project", icon: Plus },
                 { label: "Add task", icon: CheckCircle2 },
-                { label: "Invite collaborator", icon: Users },
+                { label: "Add learning resource", icon: BookOpen },
+                { label: "Request feedback", icon: MessageSquare },
+                { label: "Update progress", icon: Clock3 },
               ].map((action) => (
                 <button
                   key={action.label}
@@ -257,10 +456,17 @@ export default function Workspace() {
           </div>
 
           <div className="rounded-3xl bg-[var(--color-primary)] text-white p-6 shadow-sm">
-            <p className="text-sm font-semibold text-white/80">Workspace Insight</p>
-            <h2 className="mt-1 text-xl font-bold">Your execution rhythm is improving</h2>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-white/80">Workspace Insight</p>
+                <h2 className="mt-1 text-xl font-bold">Your execution rhythm is improving</h2>
+              </div>
+              <span className="inline-flex items-center rounded-full border border-white/30 bg-white/15 px-3 py-1 text-xs font-semibold text-white">
+                Not live yet
+              </span>
+            </div>
             <p className="mt-3 text-sm leading-6 text-white/80">
-              You are making stronger progress when tasks are linked directly to your pathway goals. Keep projects small, practical, and outcome-focused.
+              You are making good progress, but your project evidence is still weaker than your skills signal. Complete one practical project task this week to improve your readiness score.
             </p>
             <button className="mt-5 inline-flex h-11 items-center justify-center rounded-2xl bg-white px-4 text-sm font-semibold text-[var(--color-primary)] transition hover:bg-[var(--color-surface-container-low)]">
               View recommendations
