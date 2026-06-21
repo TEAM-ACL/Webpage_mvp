@@ -1,9 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
 import SummaryGrid, { type SummaryItem } from "../components/dashboard/SummaryGrid";
 import { useAuth } from "../context/AuthContext";
-import { getWorkspaceState } from "../services/workspace";
+import {
+  getWorkspaceState,
+  runWorkspaceLearningAction,
+  runWorkspaceTaskAction,
+  startWorkspaceFocus,
+} from "../services/workspace";
 import type { WorkspaceStateResponse, WorkspaceSummaryCard } from "../types/workspace";
 import {
   FolderKanban,
@@ -17,10 +22,10 @@ import {
   Sparkles,
 } from "lucide-react";
 
-type Project = { id: number; title: string; description: string; progress: number; status: "Active" | "In Review" | "Completed"; members: number };
+type Project = { id: string; title: string; description: string; progress: number; status: "Active" | "In Review" | "Completed"; members: number };
 type WorkspaceProject = Project & { nextAction: string; relatedGoal: string };
-type Task = { id: number; title: string; project: string; priority: "Low" | "Medium" | "High"; due: string; status: "To Do" | "In Progress" | "Done"; action: "Start" | "Mark Complete" | "View" };
-type LearningAction = { id: number; title: string; skillArea: string; provider: string; reason: string; status: "Recommended" | "In Progress" | "Saved" };
+type Task = { id: string; title: string; project: string; priority: "Low" | "Medium" | "High"; due: string; status: "To Do" | "In Progress" | "Done"; action: "Start" | "Mark Complete" | "View"; backendId?: string };
+type LearningAction = { id: string; title: string; skillArea: string; provider: string; reason: string; status: "Recommended" | "In Progress" | "Saved" | "Completed"; backendId?: string; sourceUrl?: string | null };
 type CollaborationItem = { id: number; name: string; action: string; time: string };
 type ReadinessItem = { label: string; value: number };
 
@@ -40,7 +45,7 @@ const fallbackTodaysFocus = {
 
 const projects: WorkspaceProject[] = [
   {
-    id: 1,
+    id: "preview-project-1",
     title: "Cloud Support Portfolio",
     description: "Build practical cloud support evidence through troubleshooting notes, IAM practice, and deployment documentation.",
     progress: 45,
@@ -50,7 +55,7 @@ const projects: WorkspaceProject[] = [
     relatedGoal: "IT Support / Cloud Support",
   },
   {
-    id: 2,
+    id: "preview-project-2",
     title: "VisionTech Pathway Research",
     description: "Organise ideas, notes, and opportunity signals that support pathway recommendations.",
     progress: 62,
@@ -60,7 +65,7 @@ const projects: WorkspaceProject[] = [
     relatedGoal: "Career direction",
   },
   {
-    id: 3,
+    id: "preview-project-3",
     title: "Portfolio Readiness Tasks",
     description: "A structured effort to build practical evidence and project visibility for opportunity readiness.",
     progress: 90,
@@ -72,17 +77,17 @@ const projects: WorkspaceProject[] = [
 ];
 
 const tasks: Task[] = [
-  { id: 1, title: "Complete IAM lab notes", project: "Cloud Support Portfolio", priority: "High", due: "Today", status: "In Progress", action: "Mark Complete" },
-  { id: 2, title: "Upload project documentation", project: "Portfolio Readiness Tasks", priority: "Medium", due: "Tomorrow", status: "To Do", action: "Start" },
-  { id: 3, title: "Review AI-generated pathway suggestions", project: "VisionTech Pathway Research", priority: "Medium", due: "This week", status: "To Do", action: "Start" },
-  { id: 4, title: "Finish workspace summary update", project: "Cloud Support Portfolio", priority: "Low", due: "This week", status: "Done", action: "View" },
+  { id: "preview-task-1", title: "Complete IAM lab notes", project: "Cloud Support Portfolio", priority: "High", due: "Today", status: "In Progress", action: "Mark Complete" },
+  { id: "preview-task-2", title: "Upload project documentation", project: "Portfolio Readiness Tasks", priority: "Medium", due: "Tomorrow", status: "To Do", action: "Start" },
+  { id: "preview-task-3", title: "Review AI-generated pathway suggestions", project: "VisionTech Pathway Research", priority: "Medium", due: "This week", status: "To Do", action: "Start" },
+  { id: "preview-task-4", title: "Finish workspace summary update", project: "Cloud Support Portfolio", priority: "Low", due: "This week", status: "Done", action: "View" },
 ];
 
 const fallbackLearningActions: LearningAction[] = [
-  { id: 1, title: "Cloud IAM Best Practices", skillArea: "Cloud security", provider: "External guide", reason: "Strengthens evidence for your Cloud Support Portfolio.", status: "Recommended" },
-  { id: 2, title: "Troubleshooting Documentation Practice", skillArea: "Technical writing", provider: "Project template", reason: "Helps turn project activity into visible portfolio proof.", status: "In Progress" },
-  { id: 3, title: "Intro to Ticket Handling Workflows", skillArea: "IT support", provider: "External course", reason: "Connects your current project to practical support-role workflows.", status: "Saved" },
-  { id: 4, title: "Portfolio Case Study Structure", skillArea: "Career readiness", provider: "Template", reason: "Improves how employers and mentors understand your project evidence.", status: "Recommended" },
+  { id: "preview-learning-1", title: "Cloud IAM Best Practices", skillArea: "Cloud security", provider: "External guide", reason: "Strengthens evidence for your Cloud Support Portfolio.", status: "Recommended" },
+  { id: "preview-learning-2", title: "Troubleshooting Documentation Practice", skillArea: "Technical writing", provider: "Project template", reason: "Helps turn project activity into visible portfolio proof.", status: "In Progress" },
+  { id: "preview-learning-3", title: "Intro to Ticket Handling Workflows", skillArea: "IT support", provider: "External course", reason: "Connects your current project to practical support-role workflows.", status: "Saved" },
+  { id: "preview-learning-4", title: "Portfolio Case Study Structure", skillArea: "Career readiness", provider: "Template", reason: "Improves how employers and mentors understand your project evidence.", status: "Recommended" },
 ];
 
 const collaborationFeed: CollaborationItem[] = [
@@ -119,6 +124,7 @@ function taskStatusBadge(status: Task["status"]): string {
   return "bg-slate-100 text-slate-700";
 }
 function learningStatusBadge(status: LearningAction["status"]): string {
+  if (status === "Completed") return "bg-emerald-100 text-emerald-700";
   if (status === "In Progress") return "bg-[color:var(--color-primary)/0.12] text-[var(--color-primary)]";
   if (status === "Saved") return "bg-slate-100 text-slate-700";
   return "bg-emerald-100 text-emerald-700";
@@ -169,6 +175,7 @@ function mapTaskStatus(status: string): Task["status"] {
 }
 
 function mapLearningStatus(status: string): LearningAction["status"] {
+  if (status === "completed") return "Completed";
   if (status === "in_progress") return "In Progress";
   if (status === "saved") return "Saved";
   return "Recommended";
@@ -179,37 +186,81 @@ export default function Workspace() {
   const [workspaceState, setWorkspaceState] = useState<WorkspaceStateResponse | null>(null);
   const [workspaceLoading, setWorkspaceLoading] = useState(false);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
+  const [workspaceActionLoading, setWorkspaceActionLoading] = useState<string | null>(null);
+  const [workspaceActionMessage, setWorkspaceActionMessage] = useState<string | null>(null);
+
+  const loadWorkspaceState = useCallback(async () => {
+    setWorkspaceLoading(true);
+    setWorkspaceError(null);
+    try {
+      const state = await getWorkspaceState();
+      setWorkspaceState(state);
+    } catch (error) {
+      setWorkspaceError(
+        error instanceof Error ? error.message : "Workspace state could not be loaded.",
+      );
+    } finally {
+      setWorkspaceLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadWorkspaceState(): Promise<void> {
-      setWorkspaceLoading(true);
-      setWorkspaceError(null);
-      try {
-        const state = await getWorkspaceState();
-        if (!cancelled) {
-          setWorkspaceState(state);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setWorkspaceError(
-            error instanceof Error ? error.message : "Workspace state could not be loaded.",
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setWorkspaceLoading(false);
-        }
-      }
-    }
-
     void loadWorkspaceState();
+  }, [loadWorkspaceState]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  async function runWorkspaceAction(
+    actionKey: string,
+    action: () => Promise<{ message: string; redirect_url: string | null; state: WorkspaceStateResponse | null }>,
+  ): Promise<void> {
+    setWorkspaceActionLoading(actionKey);
+    setWorkspaceActionMessage(null);
+    setWorkspaceError(null);
+    try {
+      const result = await action();
+      if (result.state) {
+        setWorkspaceState(result.state);
+      }
+      setWorkspaceActionMessage(result.message);
+      if (result.redirect_url) {
+        window.open(result.redirect_url, "_blank", "noopener,noreferrer");
+      }
+    } catch (error) {
+      setWorkspaceError(
+        error instanceof Error ? error.message : "Workspace action could not be completed.",
+      );
+    } finally {
+      setWorkspaceActionLoading(null);
+    }
+  }
+
+  function taskPayloadFromLabel(actionLabel: Task["action"]): "start" | "complete" | "view" {
+    if (actionLabel === "Mark Complete") return "complete";
+    if (actionLabel === "View") return "view";
+    return "start";
+  }
+
+  async function handleStartFocus(): Promise<void> {
+    await runWorkspaceAction("focus:start", () => startWorkspaceFocus());
+  }
+
+  async function handleTaskAction(task: Task): Promise<void> {
+    if (!task.backendId) return;
+    await runWorkspaceAction(`task:${task.backendId}`, () =>
+      runWorkspaceTaskAction(task.backendId!, { action: taskPayloadFromLabel(task.action) }),
+    );
+  }
+
+  async function handleLearningAction(resource: LearningAction): Promise<void> {
+    if (!resource.backendId) {
+      if (resource.sourceUrl) {
+        window.open(resource.sourceUrl, "_blank", "noopener,noreferrer");
+      }
+      return;
+    }
+    await runWorkspaceAction(`learning:${resource.backendId}`, () =>
+      runWorkspaceLearningAction(resource.backendId!, { action: "open" }),
+    );
+  }
 
   const notLiveSections = workspaceState?.not_live_sections ?? [];
   const hasNotLiveSection = (section: string): boolean =>
@@ -220,8 +271,8 @@ export default function Workspace() {
     : summaryCards;
 
   const displayedProjects: WorkspaceProject[] = workspaceState?.projects?.length
-    ? workspaceState.projects.map((project, index) => ({
-      id: index + 1,
+    ? workspaceState.projects.map((project) => ({
+      id: project.project_id,
       title: project.title,
       description: project.description,
       progress: project.progress_percent,
@@ -233,8 +284,9 @@ export default function Workspace() {
     : projects;
 
   const displayedTasks: Task[] = workspaceState?.tasks?.length
-    ? workspaceState.tasks.map((task, index) => ({
-      id: index + 1,
+    ? workspaceState.tasks.map((task) => ({
+      id: task.task_id,
+      backendId: task.task_id,
       title: task.title,
       project: task.linked_project,
       priority: mapTaskPriority(task.priority),
@@ -245,13 +297,15 @@ export default function Workspace() {
     : tasks;
 
   const backendLearningActions: LearningAction[] = workspaceState?.learning_actions?.length
-    ? workspaceState.learning_actions.map((action, index) => ({
-      id: index + 1,
+    ? workspaceState.learning_actions.map((action) => ({
+      id: action.action_id,
+      backendId: action.action_id,
       title: action.title,
       skillArea: action.skill_area,
       provider: action.provider,
       reason: action.reason,
       status: mapLearningStatus(action.status),
+      sourceUrl: action.source_url,
     }))
     : [];
 
@@ -270,16 +324,17 @@ export default function Workspace() {
 
   const intelligenceLearningActions = useMemo<LearningAction[]>(() => {
     const resourceActions = (recommendations?.recommended_resources ?? []).map((item, index) => ({
-      id: index + 1,
+      id: `intelligence-resource-${index + 1}`,
       title: item.title || "Recommended learning resource",
       skillArea: item.level || item.type || "Pathway skill",
       provider: item.sources?.[0]?.platform || "External provider",
       reason: item.reason || "Recommended from your Intelligence plan.",
       status: "Recommended" as const,
+      sourceUrl: item.sources?.[0]?.url ?? null,
     }));
 
     const pathwayActions = (recommendations?.recommendations ?? []).map((item, index) => ({
-      id: resourceActions.length + index + 1,
+      id: `intelligence-pathway-${item.pathway_id || index + 1}`,
       title: item.title,
       skillArea: item.skill_level || "Pathway skill",
       provider: "VisionTech pathway",
@@ -338,11 +393,15 @@ export default function Workspace() {
         description="Turn your AI insight into practical progress, projects, and opportunity readiness."
         actions={
           <>
-            <button className={outlineButton}>
+            <button className={outlineButton} onClick={() => void loadWorkspaceState()} disabled={workspaceLoading}>
               <Sparkles className="mr-2 h-4 w-4" />
-              Refresh AI Guidance
+              {workspaceLoading ? "Refreshing..." : "Refresh AI Guidance"}
             </button>
-            <button className={primaryButton}>
+            <button
+              className={primaryButton}
+              onClick={() => void handleStartFocus()}
+              disabled={workspaceActionLoading !== null}
+            >
               <ArrowRight className="mr-2 h-4 w-4" />
               Continue My Plan
             </button>
@@ -358,6 +417,11 @@ export default function Workspace() {
       {workspaceError ? (
         <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           Workspace backend state is unavailable, so preview data is shown. {workspaceError}
+        </div>
+      ) : null}
+      {workspaceActionMessage ? (
+        <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+          {workspaceActionMessage}
         </div>
       ) : null}
 
@@ -384,9 +448,13 @@ export default function Workspace() {
             </p>
             <p className={`mt-2 text-sm ${subtle}`}>Estimated time: {focus.estimatedTime}</p>
           </div>
-          <button className={primaryButton}>
+          <button
+            className={primaryButton}
+            onClick={() => void handleStartFocus()}
+            disabled={workspaceActionLoading !== null}
+          >
             <ArrowRight className="mr-2 h-4 w-4" />
-            Start Focus Task
+            {workspaceActionLoading === "focus:start" ? "Starting..." : "Start Focus Task"}
           </button>
         </div>
       </section>
@@ -488,8 +556,12 @@ export default function Workspace() {
                       </td>
                       <td className={`px-4 py-4 text-sm ${subtle}`}>{task.due}</td>
                       <td className="rounded-r-2xl px-4 py-4">
-                        <button className="inline-flex h-9 items-center justify-center rounded-xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-3 text-xs font-semibold text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]">
-                          {task.action}
+                        <button
+                          className="inline-flex h-9 items-center justify-center rounded-xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-3 text-xs font-semibold text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
+                          onClick={() => void handleTaskAction(task)}
+                          disabled={!task.backendId || workspaceActionLoading !== null}
+                        >
+                          {workspaceActionLoading === `task:${task.backendId}` ? "Updating..." : task.action}
                         </button>
                       </td>
                     </tr>
@@ -527,8 +599,12 @@ export default function Workspace() {
                       </div>
                       <p className={`mt-2 text-xs font-medium ${subtle}`}>{resource.skillArea} · {resource.provider}</p>
                       <p className={`mt-2 text-sm leading-6 ${subtle}`}>{resource.reason}</p>
-                      <button className="mt-4 inline-flex h-9 items-center justify-center rounded-xl border border-[var(--color-outline-variant)] px-3 text-xs font-semibold text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]">
-                        Open Resource
+                      <button
+                        className="mt-4 inline-flex h-9 items-center justify-center rounded-xl border border-[var(--color-outline-variant)] px-3 text-xs font-semibold text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)] disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => void handleLearningAction(resource)}
+                        disabled={workspaceActionLoading !== null || (!resource.backendId && !resource.sourceUrl)}
+                      >
+                        {workspaceActionLoading === `learning:${resource.backendId}` ? "Opening..." : "Open Resource"}
                       </button>
                     </div>
                   </div>

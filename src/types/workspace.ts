@@ -82,3 +82,24 @@ export type WorkspaceStateResponse = {
   not_live_sections: string[];
   source_messages: string[];
 };
+
+export type WorkspaceFocusActionRequest = {
+  action: "start";
+};
+
+export type WorkspaceTaskActionRequest = {
+  action: "start" | "complete" | "view";
+};
+
+export type WorkspaceLearningActionRequest = {
+  action: "start" | "save" | "complete" | "open";
+};
+
+export type WorkspaceActionResponse = {
+  success: boolean;
+  message: string;
+  updated_resource_type: "focus" | "project" | "learning" | "derived" | null;
+  updated_resource_id: string | null;
+  redirect_url: string | null;
+  state: WorkspaceStateResponse | null;
+};
