@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import { useState } from "react";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "motion/react";
 import { api, storeSession } from "../lib/api";
 import { hasOrganisationDashboardAccess, setAdminFlag } from "../lib/auth";
@@ -14,6 +14,7 @@ const isAllowedAdminEmail = (value: string): boolean => value.trim().toLowerCase
 
 export default function AdminLogin(): JSX.Element {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { showError } = useToast();
   const { refreshProfile, setUser } = useAuth();
   const [email, setEmail] = useState("");
@@ -50,7 +51,7 @@ export default function AdminLogin(): JSX.Element {
         return;
       }
       setAdminFlag(true);
-      navigate("/organisation");
+      navigate(getSafeRedirectPath(searchParams.get("redirect")), { replace: true });
     } catch (err) {
       const message = toUserMessage(err, "Unable to sign in to admin.");
       setError(message);
@@ -130,4 +131,11 @@ export default function AdminLogin(): JSX.Element {
       </main>
     </div>
   );
+}
+
+function getSafeRedirectPath(value: string | null): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/organisation";
+  }
+  return value;
 }

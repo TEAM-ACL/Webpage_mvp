@@ -51,9 +51,18 @@ export function RequireAdmin({ children }: Props): JSX.Element {
 }
 
 export function RequireOrganisationAdmin({ children }: Props): JSX.Element {
+  const location = useLocation();
   const { user, profile, loading, profileLoading } = useAuth();
   if (loading || profileLoading) return <></>;
-  if (!user) return <Navigate to="/admin/login" replace />;
+  if (!user) {
+    const redirectTo = `${location.pathname}${location.search}`;
+    return (
+      <Navigate
+        to={`/admin/login?redirect=${encodeURIComponent(redirectTo)}`}
+        replace
+      />
+    );
+  }
 
   const role = profile?.role || user.role;
   if (!hasOrganisationDashboardAccess(role)) {
