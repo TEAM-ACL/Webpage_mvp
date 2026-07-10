@@ -4,22 +4,18 @@ import { Mail, Lock, ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import { api, storeSession } from "../lib/api";
-import { setAdminFlag } from "../lib/auth";
+import { hasOrganisationDashboardAccess, setAdminFlag } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { toUserMessage } from "../lib/userErrors";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const hasAdminRole = (role: string | null | undefined): boolean => {
-  const normalized = (role || "").toLowerCase();
-  return normalized === "admin" || normalized === "super_admin" || normalized === "superadmin";
-};
 const isAllowedAdminEmail = (value: string): boolean => value.trim().toLowerCase().endsWith("@visiontech.ai");
 
 export default function AdminLogin(): JSX.Element {
   const navigate = useNavigate();
   const { showError } = useToast();
-  const { setUser } = useAuth();
+  const { refreshProfile, setUser } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -40,17 +36,21 @@ export default function AdminLogin(): JSX.Element {
     setLoading(true);
     try {
       const session = await api.login(cleanEmail, password);
-      const hasAdminAccess = hasAdminRole(session.user.role) || isAllowedAdminEmail(session.user.email);
+      storeSession(session);
+      setUser(session.user);
+      const profileState = await refreshProfile();
+      const hasAdminAccess =
+        hasOrganisationDashboardAccess(session.user.role)
+        || hasOrganisationDashboardAccess(profileState?.profile?.role)
+        || isAllowedAdminEmail(session.user.email);
       if (!hasAdminAccess) {
-        const message = "This account does not have admin access.";
+        const message = "This account does not have administrator access.";
         setError(message);
         showError(message);
         return;
       }
-      storeSession(session);
-      setUser(session.user);
       setAdminFlag(true);
-      navigate("/admin");
+      navigate("/organisation");
     } catch (err) {
       const message = toUserMessage(err, "Unable to sign in to admin.");
       setError(message);
@@ -76,9 +76,9 @@ export default function AdminLogin(): JSX.Element {
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md">
           <div className="bg-white/70 backdrop-blur-3xl rounded-[2rem] p-8 md:p-12 shadow-2xl border border-white/20">
             <div className="mb-10 text-left">
-              <h1 className="font-headline text-4xl font-bold tracking-tight text-on-surface mb-3">Admin Login</h1>
+              <h1 className="font-headline text-4xl font-bold tracking-tight text-on-surface mb-3">Administrator Login</h1>
               <p className="text-on-surface-variant font-sans opacity-70 leading-relaxed">
-                Sign in with an admin account to access the control centre.
+                Sign in with an authorised administrator account to access the organisation dashboard.
               </p>
             </div>
 
@@ -122,7 +122,7 @@ export default function AdminLogin(): JSX.Element {
                 disabled={loading}
                 className="w-full bg-[#1f0954] hover:bg-black disabled:opacity-60 text-white py-4 rounded-xl font-headline font-bold text-lg"
               >
-                {loading ? "Signing in..." : "Sign In as Admin"}
+                {loading ? "Signing in..." : "Sign In as Administrator"}
               </button>
             </form>
           </div>

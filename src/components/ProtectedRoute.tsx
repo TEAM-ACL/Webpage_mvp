@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { isAdmin } from "../lib/auth";
+import { hasOrganisationDashboardAccess, isAdmin } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
 
 type Props = { children: JSX.Element };
@@ -47,6 +47,19 @@ export function RequireAdmin({ children }: Props): JSX.Element {
       </div>
     );
   }
+  return children;
+}
+
+export function RequireOrganisationAdmin({ children }: Props): JSX.Element {
+  const { user, profile, loading, profileLoading } = useAuth();
+  if (loading || profileLoading) return <></>;
+  if (!user) return <Navigate to="/admin/login" replace />;
+
+  const role = profile?.role || user.role;
+  if (!hasOrganisationDashboardAccess(role)) {
+    return <Navigate to="/intelligence" replace />;
+  }
+
   return children;
 }
 
