@@ -18,6 +18,11 @@ export type BackendAccountResponse = {
 export type Profile = {
   preferredNickname?: string | null;
   fullName?: string | null;
+  role?: string | null;
+  organisationId?: string | null;
+  organisationName?: string | null;
+  jobTitle?: string | null;
+  accountStatus?: string | null;
   fieldOfInterest?: string | null;
   experienceLevel?: string | null;
   preferredWorkStyle?: string | null;
@@ -117,6 +122,11 @@ function mapBackendProfile(resp: BackendProfileResponse): ProfileState {
   const profile: Profile = {
     preferredNickname: (snake("preferred_nickname") as string) ?? (snake("preferredNickname") as string) ?? null,
     fullName: (snake("full_name") as string) ?? (snake("fullName") as string) ?? null,
+    role: (snake("role") as string) ?? null,
+    organisationId: (snake("organisation_id") as string) ?? (snake("organization_id") as string) ?? null,
+    organisationName: (snake("organisation_name") as string) ?? (snake("organization_name") as string) ?? null,
+    jobTitle: (snake("job_title") as string) ?? null,
+    accountStatus: (snake("account_status") as string) ?? null,
     fieldOfInterest: (snake("field_of_interest") as string) ?? (snake("fieldOfInterest") as string) ?? null,
     experienceLevel: (snake("experience_level") as string) ?? (snake("experienceLevel") as string) ?? null,
     preferredWorkStyle: (snake("preferred_work_style") as string) ?? (snake("preferredWorkStyle") as string) ?? null,

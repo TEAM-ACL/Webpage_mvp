@@ -5,6 +5,7 @@ import type {
   WorkspaceStateResponse,
   WorkspaceTaskActionRequest,
 } from "../types/workspace";
+import { getAccessToken } from "../lib/api";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -12,13 +13,22 @@ if (!API_BASE_URL) {
   throw new Error("VITE_API_BASE_URL is not defined");
 }
 
+function workspaceHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const token = getAccessToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 export async function getWorkspaceState(): Promise<WorkspaceStateResponse> {
   const response = await fetch(`${API_BASE_URL}/workspace/state`, {
     method: "GET",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: workspaceHeaders(),
   });
 
   if (!response.ok) {
@@ -36,9 +46,7 @@ async function postWorkspaceAction<TPayload>(
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: workspaceHeaders(),
     body: JSON.stringify(payload),
   });
 

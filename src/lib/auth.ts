@@ -44,10 +44,31 @@ export function isAdmin(): boolean {
   if (sessionStorage.getItem(ADMIN_KEY) === "true") return true;
   const user = getUser();
   const role = user?.role?.toLowerCase();
-  if (role === "admin" || role === "super_admin" || role === "superadmin") {
+  if (isPlatformAdminRole(role)) {
     return true;
   }
   return user?.email?.toLowerCase().endsWith("@visiontech.ai") ?? false;
+}
+
+export function isPlatformAdminRole(role: string | null | undefined): boolean {
+  const normalized = (role || "").toLowerCase();
+  return (
+    normalized === "admin"
+    || normalized === "super_admin"
+    || normalized === "superadmin"
+    || normalized === "platform_admin"
+  );
+}
+
+export function isOrganisationAdminRole(role: string | null | undefined): boolean {
+  const normalized = (role || "").toLowerCase();
+  return normalized === "organisation_admin" || normalized === "organization_admin";
+}
+
+export function hasOrganisationDashboardAccess(
+  role: string | null | undefined,
+): boolean {
+  return isOrganisationAdminRole(role) || isPlatformAdminRole(role);
 }
 
 export function signOut(): void {

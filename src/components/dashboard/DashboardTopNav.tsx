@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { Bell, ChevronDown } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { isAdmin as checkAdmin } from "../../lib/auth";
+import { hasOrganisationDashboardAccess, isAdmin as checkAdmin } from "../../lib/auth";
 
 type NavItem = { label: string; href: string };
 
@@ -21,6 +21,11 @@ export default function DashboardTopNav() {
     { label: "Workspace", href: "/workspace" },
     { label: "Network", href: "/network" },
   ];
+
+  const role = profile?.role || user?.role;
+  if (user && hasOrganisationDashboardAccess(role)) {
+    navItems.push({ label: "Organisation", href: "/organisation" });
+  }
 
   if (user && checkAdmin()) {
     navItems.push({ label: "Admin", href: "/admin" });

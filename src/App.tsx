@@ -12,6 +12,7 @@ import Workspace from './pages/Workspace';
 import Onboarding from './pages/Onboarding';
 import Admin from './pages/Admin';
 import Network from './pages/Network';
+import Organisation from './pages/Organisation';
 import Organizations from './pages/Organizations';
 import About from './pages/About';
 import Platform from './pages/Platform';
@@ -29,7 +30,7 @@ import AuthCallback from './pages/AuthCallback';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import ResetPassword from './pages/ResetPassword';
-import { RequireAdmin, RequireAuth, RequireOnboardingComplete, RedirectIfOnboarded } from './components/ProtectedRoute';
+import { RequireAdmin, RequireAuth, RequireOnboardingComplete, RequireOrganisationAdmin, RedirectIfOnboarded } from './components/ProtectedRoute';
 
 function AuthHashBridge() {
   const navigate = useNavigate();
@@ -103,7 +104,8 @@ export default function App() {
             <Routes>
             {/* Standalone layouts (no global header/footer) */}
             <Route path="/login" element={<RedirectIfOnboarded><Login /></RedirectIfOnboarded>} />
-            <Route path="/admin-login" element={<RedirectIfOnboarded><AdminLogin /></RedirectIfOnboarded>} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/organization-auth" element={<RedirectIfOnboarded><OrganizationAuth /></RedirectIfOnboarded>} />
             <Route path="/organization-login" element={<RedirectIfOnboarded><OrganizationLogin /></RedirectIfOnboarded>} />
             <Route path="/organization-signup" element={<RedirectIfOnboarded><OrganizationSignup /></RedirectIfOnboarded>} />
@@ -143,6 +145,14 @@ export default function App() {
                 <RequireAuth>
                   <Organizations />
                 </RequireAuth>
+              }
+            />
+            <Route
+              path="/organisation"
+              element={
+                <RequireOrganisationAdmin>
+                  <Organisation />
+                </RequireOrganisationAdmin>
               }
             />
             <Route
