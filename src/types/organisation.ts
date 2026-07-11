@@ -39,6 +39,70 @@ export type OrganisationActivityItem = {
   time: string;
 };
 
+export interface OrganisationSummary {
+  organisationId: string;
+  organisationName: string;
+  organisationType: string | null;
+  totalMembers: number;
+  activeMembers: number;
+  activeCohorts: number;
+  averageReadiness: number;
+  membersNeedingSupport: number;
+}
+
+export interface OrganisationActivity {
+  id: string;
+  title: string;
+  description: string;
+  createdAt: string;
+}
+
+export interface OrganisationOverviewResponse {
+  summary: OrganisationSummary;
+  recentActivity: OrganisationActivity[];
+}
+
+export type MemberStatus = "active" | "inactive" | "invited" | "suspended";
+
+export interface OrganisationMember {
+  id: string;
+  fullName: string;
+  email: string;
+  avatarUrl?: string | null;
+  goal?: string | null;
+  cohortName?: string | null;
+  readinessScore: number;
+  pathwayProgress: number;
+  lastActiveAt?: string | null;
+  status: MemberStatus;
+  needsSupport: boolean;
+  currentPathway?: string | null;
+  skillGaps?: string[];
+  activeProjects?: string[];
+  overdueTasks?: number;
+  recentActivity?: string[];
+  assignedOpportunities?: string[];
+  openInterventions?: string[];
+}
+
+export interface InviteOrganisationMemberRequest {
+  fullName: string;
+  email: string;
+  cohortName?: string | null;
+  goal?: string | null;
+}
+
+export interface AssignMemberToCohortRequest {
+  cohortName: string;
+}
+
+export interface CreateMemberInterventionRequest {
+  type: "inactive_member" | "low_readiness" | "incomplete_onboarding" | "overdue_tasks" | "no_active_project" | "low_pathway_progress" | "no_opportunity_engagement";
+  reason: string;
+  recommendedAction: string;
+  riskLevel: "low" | "medium" | "high";
+}
+
 export type OrganisationResponse = {
   id: string;
   name: string;

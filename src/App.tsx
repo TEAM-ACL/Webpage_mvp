@@ -13,6 +13,8 @@ import Onboarding from './pages/Onboarding';
 import Admin from './pages/Admin';
 import Network from './pages/Network';
 import Organisation from './pages/Organisation';
+import OrganisationMembers from './pages/organisation/OrganisationMembers';
+import OrganisationPlaceholder from './pages/organisation/OrganisationPlaceholder';
 import Organizations from './pages/Organizations';
 import About from './pages/About';
 import Platform from './pages/Platform';
@@ -152,6 +154,69 @@ export default function App() {
               element={
                 <RequireOrganisationAdmin>
                   <Organisation />
+                </RequireOrganisationAdmin>
+              }
+            />
+            <Route
+              path="/organisation/members"
+              element={
+                <RequireOrganisationAdmin>
+                  <OrganisationMembers />
+                </RequireOrganisationAdmin>
+              }
+            />
+            <Route
+              path="/organisation/cohorts"
+              element={
+                <RequireOrganisationAdmin>
+                  <OrganisationPlaceholder
+                    title="Cohorts"
+                    description="Create, monitor, and support institutional cohorts."
+                  />
+                </RequireOrganisationAdmin>
+              }
+            />
+            <Route
+              path="/organisation/interventions"
+              element={
+                <RequireOrganisationAdmin>
+                  <OrganisationPlaceholder
+                    title="Interventions"
+                    description="Identify struggling members and coordinate practical support."
+                  />
+                </RequireOrganisationAdmin>
+              }
+            />
+            <Route
+              path="/organisation/opportunities"
+              element={
+                <RequireOrganisationAdmin>
+                  <OrganisationPlaceholder
+                    title="Opportunities"
+                    description="Publish, assign, and track readiness-linked opportunities."
+                  />
+                </RequireOrganisationAdmin>
+              }
+            />
+            <Route
+              path="/organisation/reports"
+              element={
+                <RequireOrganisationAdmin>
+                  <OrganisationPlaceholder
+                    title="Reports"
+                    description="Generate institutional progress, readiness, engagement, and skills reports."
+                  />
+                </RequireOrganisationAdmin>
+              }
+            />
+            <Route
+              path="/organisation/settings"
+              element={
+                <RequireOrganisationAdmin>
+                  <OrganisationPlaceholder
+                    title="Organisation Settings"
+                    description="Manage organisation profile, administrators, invitations, notifications, and data settings."
+                  />
                 </RequireOrganisationAdmin>
               }
             />
