@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import { useEffect, useMemo, useState, type JSX } from "react";
 import {
   AlertTriangle,
   BarChart3,
@@ -13,10 +13,13 @@ import {
 import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
 import { useAuth } from "../context/AuthContext";
+import { getOrganisationSummary } from "../services/organisation";
 import type {
   OrganisationActivityItem,
   OrganisationCohort,
+  OrganisationInsightResponse,
   OrganisationMemberProgress,
+  OrganisationSummaryResponse,
   OrganisationSummaryMetric,
   OrganisationSupportSignal,
 } from "../types/organisation";
@@ -88,10 +91,51 @@ const reportTypes = [
 
 export default function Organisation(): JSX.Element {
   const { user, profile, logout } = useAuth();
+  const [summary, setSummary] = useState<OrganisationSummaryResponse | null>(null);
+  const [isLoadingSummary, setIsLoadingSummary] = useState(true);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadOrganisationSummary(): Promise<void> {
+      setIsLoadingSummary(true);
+      setSummaryError(null);
+      try {
+        const organisationSummary = await getOrganisationSummary();
+        if (isMounted) {
+          setSummary(organisationSummary);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setSummary(null);
+          setSummaryError(error instanceof Error ? error.message : "Organisation summary request failed.");
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingSummary(false);
+        }
+      }
+    }
+
+    void loadOrganisationSummary();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const administratorName =
     profile?.fullName || user?.display_name || user?.email || "Organisation Administrator";
   const organisationName =
-    profile?.organisationName || "VisionTech Pilot Institution";
+    summary?.organisation.name || profile?.organisationName || "VisionTech Pilot Institution";
+  const dashboardMetrics = useMemo(() => buildSummaryMetrics(summary), [summary]);
+  const dashboardMembers = useMemo(() => buildMemberProgress(summary), [summary]);
+  const dashboardCohorts = useMemo(() => buildCohorts(summary), [summary]);
+  const dashboardSupportSignals = useMemo(() => buildSupportSignals(summary), [summary]);
+  const dashboardActivity = useMemo(() => buildActivity(summary), [summary]);
+  const dashboardSkillGaps = useMemo(() => buildSkillGaps(summary), [summary]);
+  const dashboardInsight = summary?.insight ?? fallbackInsight;
 
   return (
     <DashboardShell>
@@ -113,6 +157,17 @@ export default function Organisation(): JSX.Element {
         }
       />
 
+      {(isLoadingSummary || summaryError) && (
+        <section className={`${card} mb-6 p-4`}>
+          <p className={`text-sm font-semibold ${isLoadingSummary ? subtle : "text-amber-700"}`}>
+            {isLoadingSummary
+              ? "Loading live organisation data..."
+              : "Live organisation data is unavailable, so preview data is shown."}
+          </p>
+          {summaryError && <p className={`mt-2 text-xs leading-5 ${subtle}`}>{summaryError}</p>}
+        </section>
+      )}
+
       <section className={`${card} mb-6 overflow-hidden p-6`}>
         <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-center">
           <div>
@@ -120,7 +175,7 @@ export default function Organisation(): JSX.Element {
             <h2 className="mt-1 text-2xl font-bold text-[var(--color-on-surface)]">{organisationName}</h2>
             <p className={`mt-3 text-sm leading-6 ${subtle}`}>
               Administrator: <span className="font-semibold text-[var(--color-on-surface)]">{administratorName}</span>
-              {" "}· Pilot status: <span className="font-semibold text-emerald-700">Active pilot</span>
+              {" "}· Status: <span className="font-semibold text-emerald-700">{formatOrganisationStatus(summary?.organisation.status)}</span>
               {" "}· Reporting period: July 2026
             </p>
           </div>
@@ -145,7 +200,7 @@ export default function Organisation(): JSX.Element {
       </section>
 
       <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-        {summaryMetrics.map((metric) => (
+        {dashboardMetrics.map((metric) => (
           <div key={metric.label} className={`${card} p-5`}>
             <p className={`text-xs font-semibold uppercase tracking-wide ${subtle}`}>{metric.label}</p>
             <p className="mt-3 text-2xl font-bold text-[var(--color-on-surface)]">{metric.value}</p>
@@ -156,16 +211,16 @@ export default function Organisation(): JSX.Element {
 
       <section className="grid gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
-          <MemberProgressSection />
-          <CohortSection />
-          <AnalyticsSection />
+          <MemberProgressSection members={dashboardMembers} />
+          <CohortSection cohorts={dashboardCohorts} />
+          <AnalyticsSection skillGaps={dashboardSkillGaps} />
         </div>
 
         <aside className="space-y-6">
           <QuickActions />
-          <SupportPanel />
-          <ActivityFeed />
-          <OrganisationInsight />
+          <SupportPanel supportSignals={dashboardSupportSignals} />
+          <ActivityFeed activity={dashboardActivity} />
+          <OrganisationInsight insight={dashboardInsight} />
         </aside>
       </section>
 
@@ -177,7 +232,7 @@ export default function Organisation(): JSX.Element {
   );
 }
 
-function MemberProgressSection(): JSX.Element {
+function MemberProgressSection({ members }: { members: OrganisationMemberProgress[] }): JSX.Element {
   return (
     <section className={`${card} p-6`}>
       <div className="mb-5 flex items-center justify-between gap-3">
@@ -201,7 +256,7 @@ function MemberProgressSection(): JSX.Element {
             </tr>
           </thead>
           <tbody>
-            {memberProgress.map((member) => (
+            {members.map((member) => (
               <tr key={member.id} className="rounded-2xl bg-[var(--color-surface-container-low)]">
                 <td className="rounded-l-2xl px-4 py-4 text-sm font-semibold text-[var(--color-on-surface)]">{member.name}</td>
                 <td className={`px-4 py-4 text-sm ${subtle}`}>{member.goal}</td>
@@ -227,7 +282,7 @@ function MemberProgressSection(): JSX.Element {
   );
 }
 
-function CohortSection(): JSX.Element {
+function CohortSection({ cohorts }: { cohorts: OrganisationCohort[] }): JSX.Element {
   return (
     <section className={`${card} p-6`}>
       <div className="mb-5">
@@ -251,7 +306,7 @@ function CohortSection(): JSX.Element {
   );
 }
 
-function AnalyticsSection(): JSX.Element {
+function AnalyticsSection({ skillGaps }: { skillGaps: Array<{ label: string; value: number }> }): JSX.Element {
   return (
     <section className={`${card} p-6`}>
       <div className="mb-5 flex items-center justify-between">
@@ -288,7 +343,7 @@ function QuickActions(): JSX.Element {
   );
 }
 
-function SupportPanel(): JSX.Element {
+function SupportPanel({ supportSignals }: { supportSignals: OrganisationSupportSignal[] }): JSX.Element {
   return (
     <section className={`${card} p-6`}>
       <div className="flex items-start justify-between gap-3">
@@ -313,7 +368,7 @@ function SupportPanel(): JSX.Element {
   );
 }
 
-function ActivityFeed(): JSX.Element {
+function ActivityFeed({ activity }: { activity: OrganisationActivityItem[] }): JSX.Element {
   return (
     <section className={`${card} p-6`}>
       <p className={`text-sm font-semibold ${subtle}`}>Organisation Activity</p>
@@ -331,19 +386,18 @@ function ActivityFeed(): JSX.Element {
   );
 }
 
-function OrganisationInsight(): JSX.Element {
+function OrganisationInsight({ insight }: { insight: OrganisationInsightResponse }): JSX.Element {
   return (
     <section className="rounded-3xl bg-[var(--color-primary)] p-6 text-white shadow-sm">
       <div className="flex items-start gap-3">
         <Sparkles className="mt-1 h-5 w-5 text-white/80" />
         <div>
           <p className="text-sm font-semibold text-white/80">Organisation Insight</p>
-          <h2 className="mt-1 text-xl font-bold">Create a practical project challenge</h2>
+          <h2 className="mt-1 text-xl font-bold">{insight.title}</h2>
         </div>
       </div>
       <p className="mt-4 text-sm leading-6 text-white/80">
-        Member participation is improving, but 18 users have not completed an active project.
-        A four-week practical project challenge could increase project evidence and opportunity readiness.
+        {insight.message}
       </p>
     </section>
   );
@@ -381,6 +435,125 @@ function ReportsSection(): JSX.Element {
       </div>
     </section>
   );
+}
+
+const fallbackInsight: OrganisationInsightResponse = {
+  title: "Create a practical project challenge",
+  message:
+    "Member participation is improving, but project evidence still needs attention. A practical project challenge could increase opportunity readiness.",
+  source: "placeholder",
+};
+
+function buildSummaryMetrics(summary: OrganisationSummaryResponse | null): OrganisationSummaryMetric[] {
+  if (!summary) return summaryMetrics;
+
+  return [
+    { label: "Total Members", value: String(summary.total_members), note: "Learners attached to this institution" },
+    { label: "Active This Month", value: String(summary.active_members), note: "Members with recent pathway activity" },
+    { label: "Active Cohorts", value: String(summary.active_cohorts), note: "Programmes currently in progress" },
+    { label: "Average Readiness", value: `${summary.average_readiness}%`, note: "Institution-wide opportunity readiness" },
+    { label: "Pathway Completion", value: `${summary.pathway_completion}%`, note: "Average onboarding and pathway progress" },
+    { label: "Need Support", value: String(summary.members_needing_support), note: "Members flagged for intervention" },
+  ];
+}
+
+function buildMemberProgress(summary: OrganisationSummaryResponse | null): OrganisationMemberProgress[] {
+  if (!summary) return memberProgress;
+
+  return summary.members.map((member) => ({
+    id: member.user_id,
+    name: member.name,
+    goal: member.goal || "Goal not set",
+    pathwayStage: member.cohort || "Individual pathway",
+    readinessScore: member.readiness_score,
+    lastActivity: formatDateLabel(member.last_active_at),
+    status: formatMemberStatus(member.status),
+  }));
+}
+
+function buildCohorts(summary: OrganisationSummaryResponse | null): OrganisationCohort[] {
+  if (!summary) return cohorts;
+
+  return summary.cohorts.map((cohort) => ({
+    id: cohort.cohort_id,
+    name: cohort.name,
+    members: cohort.member_count,
+    averageCompletion: cohort.average_completion,
+    averageReadiness: cohort.average_readiness,
+    startDate: formatDateLabel(cohort.start_date),
+    endDate: formatDateLabel(cohort.end_date),
+    status: formatCohortStatus(cohort.status),
+  }));
+}
+
+function buildSupportSignals(summary: OrganisationSummaryResponse | null): OrganisationSupportSignal[] {
+  if (!summary) return supportSignals;
+
+  return [
+    {
+      id: "live-support-readiness",
+      title: `${summary.members_needing_support} members need intervention`,
+      description: "Low readiness, incomplete onboarding, inactivity, or missing pathway progress.",
+      severity: summary.members_needing_support > 0 ? "High" : "Low",
+    },
+    {
+      id: "live-support-pathway",
+      title: `${summary.pathway_completion}% pathway completion`,
+      description: "Use cohorts, learning actions, and project evidence to improve completion.",
+      severity: summary.pathway_completion < 50 ? "Medium" : "Low",
+    },
+  ];
+}
+
+function buildActivity(summary: OrganisationSummaryResponse | null): OrganisationActivityItem[] {
+  if (!summary) return activity;
+
+  return summary.recent_activity.map((item) => ({
+    id: item.activity_id,
+    label: item.label,
+    detail: item.detail,
+    time: formatDateLabel(item.occurred_at),
+  }));
+}
+
+function buildSkillGaps(summary: OrganisationSummaryResponse | null): Array<{ label: string; value: number }> {
+  if (!summary || summary.common_skill_gaps.length === 0) return skillGaps;
+
+  return summary.common_skill_gaps.map((gap, index) => ({
+    label: gap,
+    value: clampPercent(75 - index * 10),
+  }));
+}
+
+function formatOrganisationStatus(status?: OrganisationSummaryResponse["organisation"]["status"]): string {
+  if (!status) return "Preview mode";
+  if (status === "active") return "Active";
+  if (status === "paused") return "Paused";
+  return "Archived";
+}
+
+function formatMemberStatus(status: OrganisationSummaryResponse["members"][number]["status"]): OrganisationMemberProgress["status"] {
+  if (status === "on_track") return "On track";
+  if (status === "needs_support") return "Needs support";
+  if (status === "incomplete_onboarding") return "Incomplete onboarding";
+  return "Inactive";
+}
+
+function formatCohortStatus(status: OrganisationSummaryResponse["cohorts"][number]["status"]): OrganisationCohort["status"] {
+  if (status === "active") return "Active";
+  if (status === "planning") return "Planning";
+  return "Completed";
+}
+
+function formatDateLabel(value: string | null): string {
+  if (!value) return "Not available";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+}
+
+function clampPercent(value: number): number {
+  return Math.min(100, Math.max(0, value));
 }
 
 function ProgressRow({ label, value }: { label: string; value: number }): JSX.Element {
