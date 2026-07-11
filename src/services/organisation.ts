@@ -1,5 +1,8 @@
 import { getAccessToken } from "../lib/api";
-import type { OrganisationSummaryResponse } from "../types/organisation";
+import type {
+  OrganisationOverviewResponse,
+  OrganisationSummaryResponse,
+} from "../types/organisation";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -31,4 +34,19 @@ export async function getOrganisationSummary(): Promise<OrganisationSummaryRespo
   }
 
   return (await response.json()) as OrganisationSummaryResponse;
+}
+
+export async function getOrganisationOverview(): Promise<OrganisationOverviewResponse> {
+  const response = await fetch(`${API_BASE_URL}/organisations/current/overview`, {
+    method: "GET",
+    credentials: "include",
+    headers: organisationHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Unable to load organisation information");
+  }
+
+  return (await response.json()) as OrganisationOverviewResponse;
 }

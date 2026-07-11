@@ -39,6 +39,29 @@ export type OrganisationActivityItem = {
   time: string;
 };
 
+export interface OrganisationSummary {
+  organisationId: string;
+  organisationName: string;
+  organisationType: string | null;
+  totalMembers: number;
+  activeMembers: number;
+  activeCohorts: number;
+  averageReadiness: number;
+  membersNeedingSupport: number;
+}
+
+export interface OrganisationActivity {
+  id: string;
+  title: string;
+  description: string;
+  createdAt: string;
+}
+
+export interface OrganisationOverviewResponse {
+  summary: OrganisationSummary;
+  recentActivity: OrganisationActivity[];
+}
+
 export type OrganisationResponse = {
   id: string;
   name: string;

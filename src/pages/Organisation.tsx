@@ -13,13 +13,13 @@ import {
 import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
 import { useAuth } from "../context/AuthContext";
-import { getOrganisationSummary } from "../services/organisation";
+import { getOrganisationOverview } from "../services/organisation";
 import type {
   OrganisationActivityItem,
   OrganisationCohort,
   OrganisationInsightResponse,
   OrganisationMemberProgress,
-  OrganisationSummaryResponse,
+  OrganisationOverviewResponse,
   OrganisationSummaryMetric,
   OrganisationSupportSignal,
 } from "../types/organisation";
@@ -91,34 +91,34 @@ const reportTypes = [
 
 export default function Organisation(): JSX.Element {
   const { user, profile, logout } = useAuth();
-  const [summary, setSummary] = useState<OrganisationSummaryResponse | null>(null);
-  const [isLoadingSummary, setIsLoadingSummary] = useState(true);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [overview, setOverview] = useState<OrganisationOverviewResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
-    async function loadOrganisationSummary(): Promise<void> {
-      setIsLoadingSummary(true);
-      setSummaryError(null);
+    async function loadOrganisationOverview(): Promise<void> {
+      setIsLoading(true);
+      setError(null);
       try {
-        const organisationSummary = await getOrganisationSummary();
+        const organisationOverview = await getOrganisationOverview();
         if (isMounted) {
-          setSummary(organisationSummary);
+          setOverview(organisationOverview);
         }
       } catch (error) {
         if (isMounted) {
-          setSummary(null);
-          setSummaryError(error instanceof Error ? error.message : "Organisation summary request failed.");
+          setOverview(null);
+          setError(error instanceof Error ? error.message : "Unable to load the organisation dashboard");
         }
       } finally {
         if (isMounted) {
-          setIsLoadingSummary(false);
+          setIsLoading(false);
         }
       }
     }
 
-    void loadOrganisationSummary();
+    void loadOrganisationOverview();
 
     return () => {
       isMounted = false;
@@ -128,14 +128,36 @@ export default function Organisation(): JSX.Element {
   const administratorName =
     profile?.fullName || user?.display_name || user?.email || "Organisation Administrator";
   const organisationName =
-    summary?.organisation.name || profile?.organisationName || "VisionTech Pilot Institution";
-  const dashboardMetrics = useMemo(() => buildSummaryMetrics(summary), [summary]);
-  const dashboardMembers = useMemo(() => buildMemberProgress(summary), [summary]);
-  const dashboardCohorts = useMemo(() => buildCohorts(summary), [summary]);
-  const dashboardSupportSignals = useMemo(() => buildSupportSignals(summary), [summary]);
-  const dashboardActivity = useMemo(() => buildActivity(summary), [summary]);
-  const dashboardSkillGaps = useMemo(() => buildSkillGaps(summary), [summary]);
-  const dashboardInsight = summary?.insight ?? fallbackInsight;
+    overview?.summary.organisationName || profile?.organisationName || "VisionTech Organisation";
+  const organisationType = overview?.summary.organisationType || "Institution";
+  const dashboardMetrics = useMemo(() => buildSummaryMetrics(overview), [overview]);
+  const dashboardSupportSignals = useMemo(() => buildSupportSignals(overview), [overview]);
+  const dashboardActivity = useMemo(() => buildActivity(overview), [overview]);
+  const dashboardInsight = fallbackInsight;
+
+  if (isLoading) {
+    return (
+      <DashboardShell>
+        <div className="flex min-h-[400px] items-center justify-center">
+          <p className={`text-sm ${subtle}`}>Loading organisation dashboard...</p>
+        </div>
+      </DashboardShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardShell>
+        <div className="rounded-3xl border border-red-200 bg-red-50 p-6">
+          <h2 className="font-semibold text-red-700">Organisation dashboard unavailable</h2>
+          <p className="mt-2 text-sm leading-6 text-red-900/80">{error}</p>
+          <button type="button" onClick={() => window.location.reload()} className={primaryButton}>
+            Try again
+          </button>
+        </div>
+      </DashboardShell>
+    );
+  }
 
   return (
     <DashboardShell>
@@ -157,17 +179,6 @@ export default function Organisation(): JSX.Element {
         }
       />
 
-      {(isLoadingSummary || summaryError) && (
-        <section className={`${card} mb-6 p-4`}>
-          <p className={`text-sm font-semibold ${isLoadingSummary ? subtle : "text-amber-700"}`}>
-            {isLoadingSummary
-              ? "Loading live organisation data..."
-              : "Live organisation data is unavailable, so preview data is shown."}
-          </p>
-          {summaryError && <p className={`mt-2 text-xs leading-5 ${subtle}`}>{summaryError}</p>}
-        </section>
-      )}
-
       <section className={`${card} mb-6 overflow-hidden p-6`}>
         <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-center">
           <div>
@@ -175,7 +186,7 @@ export default function Organisation(): JSX.Element {
             <h2 className="mt-1 text-2xl font-bold text-[var(--color-on-surface)]">{organisationName}</h2>
             <p className={`mt-3 text-sm leading-6 ${subtle}`}>
               Administrator: <span className="font-semibold text-[var(--color-on-surface)]">{administratorName}</span>
-              {" "}· Status: <span className="font-semibold text-emerald-700">{formatOrganisationStatus(summary?.organisation.status)}</span>
+              {" "}· Type: <span className="font-semibold text-emerald-700">{organisationType}</span>
               {" "}· Reporting period: July 2026
             </p>
           </div>
@@ -211,9 +222,9 @@ export default function Organisation(): JSX.Element {
 
       <section className="grid gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
-          <MemberProgressSection members={dashboardMembers} />
-          <CohortSection cohorts={dashboardCohorts} />
-          <AnalyticsSection skillGaps={dashboardSkillGaps} />
+          <MemberProgressSection members={memberProgress} />
+          <CohortSection cohorts={cohorts} />
+          <AnalyticsSection skillGaps={skillGaps} />
         </div>
 
         <aside className="space-y-6">
@@ -444,105 +455,46 @@ const fallbackInsight: OrganisationInsightResponse = {
   source: "placeholder",
 };
 
-function buildSummaryMetrics(summary: OrganisationSummaryResponse | null): OrganisationSummaryMetric[] {
-  if (!summary) return summaryMetrics;
+function buildSummaryMetrics(overview: OrganisationOverviewResponse | null): OrganisationSummaryMetric[] {
+  if (!overview) return summaryMetrics;
 
   return [
-    { label: "Total Members", value: String(summary.total_members), note: "Learners attached to this institution" },
-    { label: "Active This Month", value: String(summary.active_members), note: "Members with recent pathway activity" },
-    { label: "Active Cohorts", value: String(summary.active_cohorts), note: "Programmes currently in progress" },
-    { label: "Average Readiness", value: `${summary.average_readiness}%`, note: "Institution-wide opportunity readiness" },
-    { label: "Pathway Completion", value: `${summary.pathway_completion}%`, note: "Average onboarding and pathway progress" },
-    { label: "Need Support", value: String(summary.members_needing_support), note: "Members flagged for intervention" },
+    { label: "Total Members", value: String(overview.summary.totalMembers), note: "Registered organisation members" },
+    { label: "Active Members", value: String(overview.summary.activeMembers), note: "Members active within the reporting period" },
+    { label: "Active Cohorts", value: String(overview.summary.activeCohorts), note: "Currently running cohorts" },
+    { label: "Average Readiness", value: `${overview.summary.averageReadiness}%`, note: "Average opportunity readiness" },
+    { label: "Need Support", value: String(overview.summary.membersNeedingSupport), note: "Members requiring intervention" },
   ];
 }
 
-function buildMemberProgress(summary: OrganisationSummaryResponse | null): OrganisationMemberProgress[] {
-  if (!summary) return memberProgress;
-
-  return summary.members.map((member) => ({
-    id: member.user_id,
-    name: member.name,
-    goal: member.goal || "Goal not set",
-    pathwayStage: member.cohort || "Individual pathway",
-    readinessScore: member.readiness_score,
-    lastActivity: formatDateLabel(member.last_active_at),
-    status: formatMemberStatus(member.status),
-  }));
-}
-
-function buildCohorts(summary: OrganisationSummaryResponse | null): OrganisationCohort[] {
-  if (!summary) return cohorts;
-
-  return summary.cohorts.map((cohort) => ({
-    id: cohort.cohort_id,
-    name: cohort.name,
-    members: cohort.member_count,
-    averageCompletion: cohort.average_completion,
-    averageReadiness: cohort.average_readiness,
-    startDate: formatDateLabel(cohort.start_date),
-    endDate: formatDateLabel(cohort.end_date),
-    status: formatCohortStatus(cohort.status),
-  }));
-}
-
-function buildSupportSignals(summary: OrganisationSummaryResponse | null): OrganisationSupportSignal[] {
-  if (!summary) return supportSignals;
+function buildSupportSignals(overview: OrganisationOverviewResponse | null): OrganisationSupportSignal[] {
+  if (!overview) return supportSignals;
 
   return [
     {
       id: "live-support-readiness",
-      title: `${summary.members_needing_support} members need intervention`,
+      title: `${overview.summary.membersNeedingSupport} members need intervention`,
       description: "Low readiness, incomplete onboarding, inactivity, or missing pathway progress.",
-      severity: summary.members_needing_support > 0 ? "High" : "Low",
+      severity: overview.summary.membersNeedingSupport > 0 ? "High" : "Low",
     },
     {
-      id: "live-support-pathway",
-      title: `${summary.pathway_completion}% pathway completion`,
-      description: "Use cohorts, learning actions, and project evidence to improve completion.",
-      severity: summary.pathway_completion < 50 ? "Medium" : "Low",
+      id: "live-support-readiness-average",
+      title: `${overview.summary.averageReadiness}% average readiness`,
+      description: "Use targeted support to improve institutional opportunity readiness.",
+      severity: overview.summary.averageReadiness < 50 ? "Medium" : "Low",
     },
   ];
 }
 
-function buildActivity(summary: OrganisationSummaryResponse | null): OrganisationActivityItem[] {
-  if (!summary) return activity;
+function buildActivity(overview: OrganisationOverviewResponse | null): OrganisationActivityItem[] {
+  if (!overview) return activity;
 
-  return summary.recent_activity.map((item) => ({
-    id: item.activity_id,
-    label: item.label,
-    detail: item.detail,
-    time: formatDateLabel(item.occurred_at),
+  return overview.recentActivity.map((item) => ({
+    id: item.id,
+    label: item.title,
+    detail: item.description,
+    time: formatDateLabel(item.createdAt),
   }));
-}
-
-function buildSkillGaps(summary: OrganisationSummaryResponse | null): Array<{ label: string; value: number }> {
-  if (!summary || summary.common_skill_gaps.length === 0) return skillGaps;
-
-  return summary.common_skill_gaps.map((gap, index) => ({
-    label: gap,
-    value: clampPercent(75 - index * 10),
-  }));
-}
-
-function formatOrganisationStatus(status?: OrganisationSummaryResponse["organisation"]["status"]): string {
-  if (!status) return "Preview mode";
-  if (status === "active") return "Active";
-  if (status === "paused") return "Paused";
-  return "Archived";
-}
-
-function formatMemberStatus(status: OrganisationSummaryResponse["members"][number]["status"]): OrganisationMemberProgress["status"] {
-  if (status === "on_track") return "On track";
-  if (status === "needs_support") return "Needs support";
-  if (status === "incomplete_onboarding") return "Incomplete onboarding";
-  return "Inactive";
-}
-
-function formatCohortStatus(status: OrganisationSummaryResponse["cohorts"][number]["status"]): OrganisationCohort["status"] {
-  if (status === "active") return "Active";
-  if (status === "planning") return "Planning";
-  return "Completed";
 }
 
 function formatDateLabel(value: string | null): string {
@@ -550,10 +502,6 @@ function formatDateLabel(value: string | null): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
-}
-
-function clampPercent(value: number): number {
-  return Math.min(100, Math.max(0, value));
 }
 
 function ProgressRow({ label, value }: { label: string; value: number }): JSX.Element {
