@@ -4,33 +4,35 @@ import type { OrganisationMember } from "../../types/organisation";
 
 type MemberDetailsDrawerProps = {
   member: OrganisationMember | null;
+  isOpen: boolean;
   onClose: () => void;
-  onAssignSupport: (member: OrganisationMember) => void;
+  onCreateIntervention: (member: OrganisationMember) => void;
+  onAssignToCohort: (member: OrganisationMember) => void;
   onRecommendOpportunity: (member: OrganisationMember) => void;
-  onAddToCohort: (member: OrganisationMember) => void;
 };
 
 export default function MemberDetailsDrawer({
   member,
+  isOpen,
   onClose,
-  onAssignSupport,
+  onCreateIntervention,
+  onAssignToCohort,
   onRecommendOpportunity,
-  onAddToCohort,
 }: MemberDetailsDrawerProps): JSX.Element | null {
-  if (!member) return null;
+  if (!isOpen || !member) return null;
 
   return (
-    <>
+    <div className="fixed inset-0 z-50">
       <button
         type="button"
-        aria-label="Close member drawer overlay"
-        className="fixed inset-0 z-40 bg-slate-950/40"
+        aria-label="Close member details"
+        className="absolute inset-0 bg-slate-950/40"
         onClick={onClose}
       />
-      <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-xl overflow-y-auto bg-[var(--color-surface-container-lowest)] p-6 shadow-2xl">
+      <aside className="absolute right-0 top-0 h-full w-full max-w-xl overflow-y-auto border-l border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-primary)]">Member record</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-primary)]">Organisation Member</p>
             <h2 className="mt-2 text-2xl font-bold text-[var(--color-on-surface)]">{member.fullName}</h2>
             <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">{member.email}</p>
           </div>
@@ -57,22 +59,31 @@ export default function MemberDetailsDrawer({
         <ListSection title="Assigned opportunities" items={member.assignedOpportunities} empty="No opportunities assigned." />
         <ListSection title="Open interventions" items={member.openInterventions} empty="No open interventions." />
 
+        <section className="mt-6 rounded-2xl border border-[var(--color-outline-variant)] p-4">
+          <h3 className="font-semibold text-[var(--color-on-surface)]">Support Assessment</h3>
+          <p className="mt-3 text-sm leading-6 text-[var(--color-on-surface-variant)]">
+            {member.needsSupport
+              ? "This member has been flagged for institutional support."
+              : "No immediate support concern has been identified."}
+          </p>
+        </section>
+
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           <button type="button" className="rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white">
             View Full Profile
           </button>
-          <button type="button" className="rounded-2xl border border-[var(--color-outline-variant)] px-4 py-3 text-sm font-semibold" onClick={() => onAssignSupport(member)}>
-            Assign Support
+          <button type="button" className="rounded-2xl border border-[var(--color-outline-variant)] px-4 py-3 text-sm font-semibold" onClick={() => onCreateIntervention(member)}>
+            Create Intervention
           </button>
           <button type="button" className="rounded-2xl border border-[var(--color-outline-variant)] px-4 py-3 text-sm font-semibold" onClick={() => onRecommendOpportunity(member)}>
             Recommend Opportunity
           </button>
-          <button type="button" className="rounded-2xl border border-[var(--color-outline-variant)] px-4 py-3 text-sm font-semibold" onClick={() => onAddToCohort(member)}>
-            Add to Cohort
+          <button type="button" className="rounded-2xl border border-[var(--color-outline-variant)] px-4 py-3 text-sm font-semibold" onClick={() => onAssignToCohort(member)}>
+            Assign to Cohort
           </button>
         </div>
       </aside>
-    </>
+    </div>
   );
 }
 
