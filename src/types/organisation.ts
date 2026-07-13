@@ -103,6 +103,44 @@ export interface CreateMemberInterventionRequest {
   riskLevel: "low" | "medium" | "high";
 }
 
+export type InsightPriority = "low" | "medium" | "high" | "critical";
+
+export interface InstitutionalInsightEvidence {
+  label: string;
+  value: string;
+  explanation?: string | null;
+}
+
+export interface InstitutionalRecommendedAction {
+  id: string;
+  title: string;
+  description: string;
+  actionType:
+    | "create_cohort"
+    | "create_intervention"
+    | "assign_project"
+    | "share_resource"
+    | "share_opportunity"
+    | "review_members";
+  priority: InsightPriority;
+}
+
+export interface InstitutionalAIInsight {
+  id: string;
+  organisationId: string;
+  summary: string;
+  mainConcern: string | null;
+  priority: InsightPriority;
+  confidenceScore: number;
+  evidence: InstitutionalInsightEvidence[];
+  recommendedActions: InstitutionalRecommendedAction[];
+  generatedAt: string;
+}
+
+export interface InstitutionalAIInsightResponse {
+  insight: InstitutionalAIInsight;
+}
+
 export type OrganisationResponse = {
   id: string;
   name: string;

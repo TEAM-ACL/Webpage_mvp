@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type JSX } from "react";
+import { useCallback, useEffect, useMemo, useState, type JSX } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   BarChart3,
@@ -10,11 +11,18 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
+import InstitutionalAIInsightCard from "../components/organisation/InstitutionalAIInsightCard";
 import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
 import { useAuth } from "../context/AuthContext";
-import { getOrganisationOverview } from "../services/organisation";
+import {
+  getInstitutionalAIInsight,
+  getOrganisationOverview,
+  refreshInstitutionalAIInsight,
+} from "../services/organisation";
 import type {
+  InstitutionalAIInsight,
+  InstitutionalRecommendedAction,
   OrganisationActivityItem,
   OrganisationCohort,
   OrganisationInsightResponse,
@@ -90,10 +98,45 @@ const reportTypes = [
 ];
 
 export default function Organisation(): JSX.Element {
+  const navigate = useNavigate();
   const { user, profile, logout } = useAuth();
   const [overview, setOverview] = useState<OrganisationOverviewResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [institutionalInsight, setInstitutionalInsight] = useState<InstitutionalAIInsight | null>(null);
+  const [isInsightLoading, setIsInsightLoading] = useState(true);
+  const [isInsightRefreshing, setIsInsightRefreshing] = useState(false);
+  const [insightError, setInsightError] = useState<string | null>(null);
+
+  const loadInstitutionalInsight = useCallback(async () => {
+    try {
+      setIsInsightLoading(true);
+      setInsightError(null);
+      const response = await getInstitutionalAIInsight();
+      setInstitutionalInsight(response.insight);
+    } catch (error) {
+      setInsightError(
+        error instanceof Error ? error.message : "Unable to load institutional AI insight",
+      );
+    } finally {
+      setIsInsightLoading(false);
+    }
+  }, []);
+
+  const handleRefreshInstitutionalInsight = useCallback(async () => {
+    try {
+      setIsInsightRefreshing(true);
+      setInsightError(null);
+      const response = await refreshInstitutionalAIInsight();
+      setInstitutionalInsight(response.insight);
+    } catch (error) {
+      setInsightError(
+        error instanceof Error ? error.message : "Unable to refresh institutional AI insight",
+      );
+    } finally {
+      setIsInsightRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -124,6 +167,35 @@ export default function Organisation(): JSX.Element {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    void loadInstitutionalInsight();
+  }, [loadInstitutionalInsight]);
+
+  function handleInstitutionalAction(action: InstitutionalRecommendedAction): void {
+    switch (action.actionType) {
+      case "create_cohort":
+        navigate("/organisation/cohorts?create=true");
+        break;
+      case "create_intervention":
+        navigate("/organisation/interventions?create=true");
+        break;
+      case "share_opportunity":
+        navigate("/organisation/opportunities?create=true");
+        break;
+      case "review_members":
+        navigate("/organisation/members?filter=needs-support");
+        break;
+      case "assign_project":
+        navigate("/organisation/cohorts?action=assign-project");
+        break;
+      case "share_resource":
+        navigate("/organisation/members?action=share-resource");
+        break;
+      default:
+        console.warn("Unsupported institutional AI action:", action.actionType);
+    }
+  }
 
   const administratorName =
     profile?.fullName || user?.display_name || user?.email || "Organisation Administrator";
@@ -218,6 +290,17 @@ export default function Organisation(): JSX.Element {
             <p className={`mt-2 text-xs leading-5 ${subtle}`}>{metric.note}</p>
           </div>
         ))}
+      </section>
+
+      <section className="mb-6">
+        <InstitutionalAIInsightCard
+          insight={institutionalInsight}
+          isLoading={isInsightLoading}
+          isRefreshing={isInsightRefreshing}
+          error={insightError}
+          onRefresh={handleRefreshInstitutionalInsight}
+          onActionSelect={handleInstitutionalAction}
+        />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-3">
