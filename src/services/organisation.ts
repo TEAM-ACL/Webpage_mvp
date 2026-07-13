@@ -2,11 +2,13 @@ import { getAccessToken } from "../lib/api";
 import type {
   AssignMemberToCohortRequest,
   CreateMemberInterventionRequest,
+  InstitutionalAIInsightResponse,
   InviteOrganisationMemberRequest,
   OrganisationMember,
   OrganisationOverviewResponse,
   OrganisationSummaryResponse,
 } from "../types/organisation";
+import { mockInstitutionalInsight } from "../data/mockInstitutionalInsight";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -233,4 +235,54 @@ export async function createMemberIntervention(
     interventionId: `intervention-${Date.now()}`,
     recommendedAction: payload.recommendedAction,
   };
+}
+
+export async function getInstitutionalAIInsight(): Promise<InstitutionalAIInsightResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/organisations/current/ai-insight`, {
+      method: "GET",
+      credentials: "include",
+      headers: organisationHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Unable to load institutional AI insight");
+    }
+
+    return (await response.json()) as InstitutionalAIInsightResponse;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      return { insight: mockInstitutionalInsight };
+    }
+    throw error;
+  }
+}
+
+export async function refreshInstitutionalAIInsight(): Promise<InstitutionalAIInsightResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/organisations/current/ai-insight/refresh`, {
+      method: "POST",
+      credentials: "include",
+      headers: organisationHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Unable to refresh institutional AI insight");
+    }
+
+    return (await response.json()) as InstitutionalAIInsightResponse;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      return {
+        insight: {
+          ...mockInstitutionalInsight,
+          id: `mock-insight-${Date.now()}`,
+          generatedAt: new Date().toISOString(),
+        },
+      };
+    }
+    throw error;
+  }
 }
