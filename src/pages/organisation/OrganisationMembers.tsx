@@ -35,6 +35,7 @@ export default function OrganisationMembers(): JSX.Element {
   const [members, setMembers] = useState<OrganisationMember[]>([]);
   const [filters, setFilters] = useState<MemberFiltersState>(defaultMemberFilters);
   const [selectedMember, setSelectedMember] = useState<OrganisationMember | null>(null);
+  const [isMemberDrawerOpen, setIsMemberDrawerOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
@@ -86,6 +87,16 @@ export default function OrganisationMembers(): JSX.Element {
     const invitedMember = await inviteOrganisationMember(payload);
     setMembers((currentMembers) => [invitedMember, ...currentMembers]);
     setNotice(`${invitedMember.fullName} has been invited.`);
+  }
+
+  function handleViewMember(member: OrganisationMember): void {
+    setSelectedMember(member);
+    setIsMemberDrawerOpen(true);
+  }
+
+  function handleCloseMemberDrawer(): void {
+    setIsMemberDrawerOpen(false);
+    setSelectedMember(null);
   }
 
   async function handleAssignToCohort(member: OrganisationMember): Promise<void> {
@@ -204,7 +215,7 @@ export default function OrganisationMembers(): JSX.Element {
       ) : filteredMembers.length > 0 ? (
         <MembersTable
           members={filteredMembers}
-          onSelectMember={setSelectedMember}
+          onSelectMember={handleViewMember}
           onAssignToCohort={handleAssignToCohort}
           onCreateIntervention={handleCreateIntervention}
         />
@@ -218,10 +229,11 @@ export default function OrganisationMembers(): JSX.Element {
       <InviteMemberModal isOpen={isInviteOpen} onClose={() => setIsInviteOpen(false)} onInvite={handleInvite} />
       <MemberDetailsDrawer
         member={selectedMember}
-        onClose={() => setSelectedMember(null)}
-        onAssignSupport={handleCreateIntervention}
+        isOpen={isMemberDrawerOpen}
+        onClose={handleCloseMemberDrawer}
+        onCreateIntervention={handleCreateIntervention}
         onRecommendOpportunity={handleRecommendOpportunity}
-        onAddToCohort={handleAssignToCohort}
+        onAssignToCohort={handleAssignToCohort}
       />
     </OrganisationLayout>
   );
