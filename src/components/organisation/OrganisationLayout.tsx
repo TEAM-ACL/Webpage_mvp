@@ -1,5 +1,4 @@
 import { useState, type JSX, type ReactNode } from "react";
-import DashboardShell from "../dashboard/DashboardShell";
 import OrganisationHeader from "./OrganisationHeader";
 import OrganisationSidebar from "./OrganisationSidebar";
 
@@ -27,8 +26,8 @@ export default function OrganisationLayout({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <DashboardShell>
-      <div className="lg:flex lg:gap-6">
+    <main className="min-h-screen bg-[#F8FAFC] text-slate-900">
+      <div className="lg:flex">
         <OrganisationSidebar
           organisationName={organisationName}
           organisationType={organisationType}
@@ -37,7 +36,7 @@ export default function OrganisationLayout({
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
         />
-        <main className="min-w-0 flex-1">
+        <section className="min-w-0 flex-1 p-4 lg:p-8">
           <OrganisationHeader
             title={title}
             description={description}
@@ -45,8 +44,8 @@ export default function OrganisationLayout({
             onMenuClick={() => setIsSidebarOpen(true)}
           />
           {children}
-        </main>
+        </section>
       </div>
-    </DashboardShell>
+    </main>
   );
 }

@@ -9,25 +9,36 @@ import { hasOrganisationDashboardAccess, isAdmin as checkAdmin } from "../../lib
 type NavItem = { label: string; href: string };
 
 function isActive(pathname: string, href: string) {
-  return pathname === href;
+  return href === "/organisation" ? pathname === href || pathname === "/organizations" : pathname === href;
 }
 
 export default function DashboardTopNav() {
   const { pathname } = useLocation();
   const { user, profile } = useAuth();
+  const isOrganisationArea = pathname.startsWith("/organisation") || pathname.startsWith("/organizations");
 
-  const navItems: NavItem[] = [
-    { label: "Intelligence", href: "/intelligence" },
-    { label: "Workspace", href: "/workspace" },
-    { label: "Network", href: "/network" },
-  ];
+  const navItems: NavItem[] = isOrganisationArea
+    ? [
+        { label: "Overview", href: "/organisation" },
+        { label: "Members", href: "/organisation/members" },
+        { label: "Cohorts", href: "/organisation/cohorts" },
+        { label: "Interventions", href: "/organisation/interventions" },
+        { label: "Opportunities", href: "/organisation/opportunities" },
+        { label: "Reports", href: "/organisation/reports" },
+        { label: "Settings", href: "/organisation/settings" },
+      ]
+    : [
+        { label: "Intelligence", href: "/intelligence" },
+        { label: "Workspace", href: "/workspace" },
+        { label: "Network", href: "/network" },
+      ];
 
   const role = profile?.role || user?.role;
-  if (user && hasOrganisationDashboardAccess(role)) {
+  if (!isOrganisationArea && user && hasOrganisationDashboardAccess(role)) {
     navItems.push({ label: "Organisation", href: "/organisation" });
   }
 
-  if (user && checkAdmin()) {
+  if (!isOrganisationArea && user && checkAdmin()) {
     navItems.push({ label: "Admin", href: "/admin" });
   }
 
