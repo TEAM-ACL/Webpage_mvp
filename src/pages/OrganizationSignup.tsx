@@ -72,7 +72,7 @@ export default function OrganizationSignup(): JSX.Element {
       storeSession(session);
       setUser(session.user);
       setAdminFlag(false);
-      navigate("/organizations");
+      navigate("/organisation");
     } catch (err) {
       const message = toUserMessage(err, "Unable to create organization account right now.");
       setError(message);

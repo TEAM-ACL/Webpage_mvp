@@ -38,7 +38,7 @@ export default function OrganizationLogin(): JSX.Element {
       storeSession(session);
       setUser(session.user);
       setAdminFlag(false);
-      navigate("/organizations");
+      navigate("/organisation");
     } catch (err) {
       const message = toUserMessage(err, "Unable to sign in to organization workspace.");
       setError(message);

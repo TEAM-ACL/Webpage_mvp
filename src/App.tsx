@@ -15,7 +15,6 @@ import Network from './pages/Network';
 import Organisation from './pages/Organisation';
 import OrganisationMembers from './pages/organisation/OrganisationMembers';
 import OrganisationPlaceholder from './pages/organisation/OrganisationPlaceholder';
-import Organizations from './pages/Organizations';
 import About from './pages/About';
 import Platform from './pages/Platform';
 import Pricing from './pages/Pricing';
@@ -144,9 +143,7 @@ export default function App() {
             <Route
               path="/organizations"
               element={
-                <RequireAuth>
-                  <Organizations />
-                </RequireAuth>
+                <Navigate to="/organisation" replace />
               }
             />
             <Route
