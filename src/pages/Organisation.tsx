@@ -1,609 +1,890 @@
-import { useCallback, useEffect, useMemo, useState, type JSX } from "react";
+import { useCallback, useEffect, useMemo, useState, type JSX, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  AlertTriangle,
+  AlertCircle,
+  Award,
   BarChart3,
-  BriefcaseBusiness,
-  FileText,
+  Bell,
+  BrainCircuit,
+  Briefcase,
+  ChevronRight,
+  Filter,
+  GraduationCap,
+  LayoutDashboard,
   LogOut,
-  MailPlus,
-  Plus,
+  Menu,
+  MessageSquare,
+  Search,
+  Settings,
   Sparkles,
+  Target,
+  TrendingUp,
   Users,
+  X,
+  Zap,
 } from "lucide-react";
-import InstitutionalAIInsightCard from "../components/organisation/InstitutionalAIInsightCard";
-import DashboardShell from "../components/dashboard/DashboardShell";
-import PageHeader from "../components/dashboard/PageHeader";
 import { useAuth } from "../context/AuthContext";
 import {
   getInstitutionalAIInsight,
+  getOrganisationMembers,
   getOrganisationOverview,
   refreshInstitutionalAIInsight,
 } from "../services/organisation";
 import type {
   InstitutionalAIInsight,
   InstitutionalRecommendedAction,
-  OrganisationActivityItem,
-  OrganisationCohort,
-  OrganisationInsightResponse,
-  OrganisationMemberProgress,
+  OrganisationMember,
   OrganisationOverviewResponse,
-  OrganisationSummaryMetric,
-  OrganisationSupportSignal,
 } from "../types/organisation";
 
-const card = "rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] shadow-sm";
-const subtle = "text-[var(--color-on-surface-variant)]";
-const primaryButton = "inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-semibold text-white transition hover:opacity-90";
-const outlineButton = "inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-semibold text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]";
+type NavItem =
+  | "Dashboard"
+  | "People"
+  | "Programmes"
+  | "Opportunities"
+  | "Intelligence"
+  | "Interventions"
+  | "Reports"
+  | "Settings";
 
-const summaryMetrics: OrganisationSummaryMetric[] = [
-  { label: "Total Members", value: "128", note: "Learners attached to this institution" },
-  { label: "Active This Month", value: "94", note: "Members with recent pathway activity" },
-  { label: "Active Cohorts", value: "6", note: "Programmes currently in progress" },
-  { label: "Average Readiness", value: "67%", note: "Institution-wide opportunity readiness" },
-  { label: "Opportunities Shared", value: "21", note: "Open roles, projects, and programmes" },
-  { label: "Need Support", value: "18", note: "Members flagged for intervention" },
+type HealthMetric = {
+  label: string;
+  value: number;
+  color: string;
+};
+
+const navItems: Array<{ label: NavItem; icon: typeof LayoutDashboard }> = [
+  { label: "Dashboard", icon: LayoutDashboard },
+  { label: "People", icon: Users },
+  { label: "Programmes", icon: GraduationCap },
+  { label: "Opportunities", icon: Briefcase },
+  { label: "Intelligence", icon: BrainCircuit },
+  { label: "Interventions", icon: Zap },
+  { label: "Reports", icon: BarChart3 },
+  { label: "Settings", icon: Settings },
 ];
 
-const memberProgress: OrganisationMemberProgress[] = [
-  { id: "member-1", name: "Amara Okafor", goal: "Cloud support role", pathwayStage: "Project evidence", readinessScore: 72, lastActivity: "Today", status: "On track" },
-  { id: "member-2", name: "Jayden Smith", goal: "Digital skills bootcamp", pathwayStage: "Learning actions", readinessScore: 48, lastActivity: "9 days ago", status: "Needs support" },
-  { id: "member-3", name: "Priya Nair", goal: "Graduate employability", pathwayStage: "Interview readiness", readinessScore: 81, lastActivity: "Yesterday", status: "On track" },
-  { id: "member-4", name: "Lewis Carter", goal: "Software project portfolio", pathwayStage: "Onboarding", readinessScore: 22, lastActivity: "18 days ago", status: "Incomplete onboarding" },
+const fallbackPeople: OrganisationMember[] = [
+  {
+    id: "person-1",
+    fullName: "Amara Okafor",
+    email: "amara@example.com",
+    goal: "Cloud Engineer",
+    cohortName: "AWS Cloud Dev",
+    readinessScore: 88,
+    pathwayProgress: 74,
+    lastActiveAt: "2026-07-17T09:00:00Z",
+    status: "active",
+    needsSupport: false,
+  },
+  {
+    id: "person-2",
+    fullName: "James Wilson",
+    email: "james@example.com",
+    goal: "Data Scientist",
+    cohortName: "Data Mastery",
+    readinessScore: 42,
+    pathwayProgress: 28,
+    lastActiveAt: "2026-07-02T13:00:00Z",
+    status: "inactive",
+    needsSupport: true,
+  },
+  {
+    id: "person-3",
+    fullName: "Sarah Chen",
+    email: "sarah@example.com",
+    goal: "AI Researcher",
+    cohortName: "ML Ops",
+    readinessScore: 76,
+    pathwayProgress: 64,
+    lastActiveAt: "2026-07-16T15:30:00Z",
+    status: "active",
+    needsSupport: false,
+  },
 ];
 
-const cohorts: OrganisationCohort[] = [
-  { id: "cohort-1", name: "Cloud Career Cohort", members: 32, averageCompletion: 61, averageReadiness: 68, startDate: "May 2026", endDate: "Aug 2026", status: "Active" },
-  { id: "cohort-2", name: "Graduate Employability Cohort", members: 44, averageCompletion: 74, averageReadiness: 71, startDate: "Apr 2026", endDate: "Jul 2026", status: "Active" },
-  { id: "cohort-3", name: "Digital Skills Bootcamp", members: 28, averageCompletion: 39, averageReadiness: 55, startDate: "Jun 2026", endDate: "Sep 2026", status: "Planning" },
-];
-
-const supportSignals: OrganisationSupportSignal[] = [
-  { id: "support-1", title: "18 members need intervention", description: "Low readiness, no active project, or no activity within 14 days.", severity: "High" },
-  { id: "support-2", title: "Project evidence is weak", description: "42 members have learning progress but no completed practical project.", severity: "Medium" },
-  { id: "support-3", title: "Onboarding completion gap", description: "11 invited members have not completed their baseline profile.", severity: "Medium" },
-];
-
-const activity: OrganisationActivityItem[] = [
-  { id: "activity-1", label: "New member joined", detail: "Amara joined Cloud Career Cohort", time: "25 minutes ago" },
-  { id: "activity-2", label: "Opportunity published", detail: "Junior Cloud Support Sprint shared with two cohorts", time: "2 hours ago" },
-  { id: "activity-3", label: "Pathway progress", detail: "Priya completed Interview Readiness stage", time: "Yesterday" },
-  { id: "activity-4", label: "Report prepared", detail: "June Skills Gap Report is ready for review", time: "2 days ago" },
-];
-
-const skillGaps = [
-  { label: "Cloud troubleshooting", value: 64 },
-  { label: "Project documentation", value: 58 },
-  { label: "Interview confidence", value: 46 },
-  { label: "Workplace communication", value: 39 },
-];
-
-const opportunityTypes = [
-  "Employment",
-  "Internship",
-  "Mentoring",
-  "Training",
-  "Scholarship",
-  "Volunteering",
-  "Project collaboration",
-];
-
-const reportTypes = [
-  "Member Progress Report",
-  "Cohort Performance Report",
-  "Skills Gap Report",
-  "Opportunity Readiness Report",
-  "Engagement Report",
-];
+function cx(...classes: Array<string | false | null | undefined>): string {
+  return classes.filter(Boolean).join(" ");
+}
 
 export default function Organisation(): JSX.Element {
   const navigate = useNavigate();
-  const { user, profile, logout } = useAuth();
+  const { profile, user, logout } = useAuth();
+  const [activeTab, setActiveTab] = useState<NavItem>("Dashboard");
+  const [isAiPanelOpen, setIsAiPanelOpen] = useState(true);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [overview, setOverview] = useState<OrganisationOverviewResponse | null>(null);
+  const [people, setPeople] = useState<OrganisationMember[]>(fallbackPeople);
+  const [insight, setInsight] = useState<InstitutionalAIInsight | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [institutionalInsight, setInstitutionalInsight] = useState<InstitutionalAIInsight | null>(null);
-  const [isInsightLoading, setIsInsightLoading] = useState(true);
   const [isInsightRefreshing, setIsInsightRefreshing] = useState(false);
-  const [insightError, setInsightError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadInstitutionalInsight = useCallback(async () => {
-    try {
-      setIsInsightLoading(true);
-      setInsightError(null);
-      const response = await getInstitutionalAIInsight();
-      setInstitutionalInsight(response.insight);
-    } catch (error) {
-      setInsightError(
-        error instanceof Error ? error.message : "Unable to load institutional AI insight",
-      );
-    } finally {
-      setIsInsightLoading(false);
+  const loadDashboard = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    const [overviewResult, peopleResult, insightResult] = await Promise.allSettled([
+      getOrganisationOverview(),
+      getOrganisationMembers(),
+      getInstitutionalAIInsight(),
+    ]);
+
+    if (overviewResult.status === "fulfilled") {
+      setOverview(overviewResult.value);
+    } else {
+      setError(overviewResult.reason instanceof Error ? overviewResult.reason.message : "Unable to load organisation data.");
     }
+    if (peopleResult.status === "fulfilled") {
+      setPeople(peopleResult.value);
+    }
+    if (insightResult.status === "fulfilled") {
+      setInsight(insightResult.value.insight);
+    }
+    setIsLoading(false);
   }, []);
 
-  const handleRefreshInstitutionalInsight = useCallback(async () => {
+  useEffect(() => {
+    void loadDashboard();
+  }, [loadDashboard]);
+
+  const organisationName = overview?.summary.organisationName || profile?.organisationName || "VisionTech Organisation";
+  const organisationType = overview?.summary.organisationType || "Training Provider";
+  const administratorName = profile?.fullName || user?.display_name || user?.email || "Organisation Admin";
+  const healthMetrics = useMemo(() => buildHealthMetrics(overview), [overview]);
+  const summaryStats = useMemo(() => buildSummaryStats(overview, insight), [overview, insight]);
+  const peopleNeedingSupport = people.filter((person) => person.needsSupport);
+
+  async function handleRefreshInsight(): Promise<void> {
+    setIsInsightRefreshing(true);
     try {
-      setIsInsightRefreshing(true);
-      setInsightError(null);
       const response = await refreshInstitutionalAIInsight();
-      setInstitutionalInsight(response.insight);
+      setInsight(response.insight);
+      setError(null);
     } catch (error) {
-      setInsightError(
-        error instanceof Error ? error.message : "Unable to refresh institutional AI insight",
-      );
+      setError(error instanceof Error ? error.message : "Unable to refresh institutional AI insight.");
     } finally {
       setIsInsightRefreshing(false);
     }
-  }, []);
+  }
 
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadOrganisationOverview(): Promise<void> {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const organisationOverview = await getOrganisationOverview();
-        if (isMounted) {
-          setOverview(organisationOverview);
-        }
-      } catch (error) {
-        if (isMounted) {
-          setOverview(null);
-          setError(error instanceof Error ? error.message : "Unable to load the organisation dashboard");
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadOrganisationOverview();
-
-    return () => {
-      isMounted = false;
+  function handleAction(action: InstitutionalRecommendedAction): void {
+    const destinations: Record<InstitutionalRecommendedAction["actionType"], string> = {
+      create_cohort: "/organisation/cohorts?create=true",
+      create_intervention: "/organisation/interventions?create=true",
+      assign_project: "/organisation/cohorts?action=assign-project",
+      share_resource: "/organisation/members?action=share-resource",
+      share_opportunity: "/organisation/opportunities?create=true",
+      review_members: "/organisation/members?filter=needs-support",
     };
-  }, []);
-
-  useEffect(() => {
-    void loadInstitutionalInsight();
-  }, [loadInstitutionalInsight]);
-
-  function handleInstitutionalAction(action: InstitutionalRecommendedAction): void {
-    switch (action.actionType) {
-      case "create_cohort":
-        navigate("/organisation/cohorts?create=true");
-        break;
-      case "create_intervention":
-        navigate("/organisation/interventions?create=true");
-        break;
-      case "share_opportunity":
-        navigate("/organisation/opportunities?create=true");
-        break;
-      case "review_members":
-        navigate("/organisation/members?filter=needs-support");
-        break;
-      case "assign_project":
-        navigate("/organisation/cohorts?action=assign-project");
-        break;
-      case "share_resource":
-        navigate("/organisation/members?action=share-resource");
-        break;
-      default:
-        console.warn("Unsupported institutional AI action:", action.actionType);
-    }
+    navigate(destinations[action.actionType]);
   }
 
-  const administratorName =
-    profile?.fullName || user?.display_name || user?.email || "Organisation Administrator";
-  const organisationName =
-    overview?.summary.organisationName || profile?.organisationName || "VisionTech Organisation";
-  const organisationType = overview?.summary.organisationType || "Institution";
-  const dashboardMetrics = useMemo(() => buildSummaryMetrics(overview), [overview]);
-  const dashboardSupportSignals = useMemo(() => buildSupportSignals(overview), [overview]);
-  const dashboardActivity = useMemo(() => buildActivity(overview), [overview]);
-  const dashboardInsight = fallbackInsight;
-
-  if (isLoading) {
-    return (
-      <DashboardShell>
-        <div className="flex min-h-[400px] items-center justify-center">
-          <p className={`text-sm ${subtle}`}>Loading organisation dashboard...</p>
-        </div>
-      </DashboardShell>
-    );
-  }
-
-  if (error) {
-    return (
-      <DashboardShell>
-        <div className="rounded-3xl border border-red-200 bg-red-50 p-6">
-          <h2 className="font-semibold text-red-700">Organisation dashboard unavailable</h2>
-          <p className="mt-2 text-sm leading-6 text-red-900/80">{error}</p>
-          <button type="button" onClick={() => window.location.reload()} className={primaryButton}>
-            Try again
-          </button>
-        </div>
-      </DashboardShell>
-    );
+  function handleNavSelect(label: NavItem): void {
+    setActiveTab(label);
+    setIsMobileNavOpen(false);
   }
 
   return (
-    <DashboardShell>
-      <PageHeader
-        eyebrow="Institutional Command Centre"
-        title="Organisation Dashboard"
-        description="Manage members, cohorts, opportunities, progress signals, and institutional readiness from one protected workspace."
-        actions={
-          <>
-            <button className={outlineButton}>
-              <MailPlus className="mr-2 h-4 w-4" />
-              Invite Members
-            </button>
-            <button className={primaryButton}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Cohort
-            </button>
-          </>
-        }
+    <div className="flex min-h-screen bg-[#F8FAFC] text-slate-900">
+      <OrganisationSidebar
+        activeTab={activeTab}
+        organisationName={organisationName}
+        organisationType={organisationType}
+        administratorName={administratorName}
+        isOpen={isMobileNavOpen}
+        onSelect={handleNavSelect}
+        onClose={() => setIsMobileNavOpen(false)}
+        onLogout={() => void logout()}
       />
 
-      <section className={`${card} mb-6 overflow-hidden p-6`}>
-        <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-center">
+      <main className="min-w-0 flex-1">
+        <header className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-slate-200 bg-white/85 px-4 py-4 backdrop-blur-md lg:px-8">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <button
+              type="button"
+              className="rounded-xl border border-slate-200 bg-white p-2 text-slate-600 lg:hidden"
+              onClick={() => setIsMobileNavOpen(true)}
+            >
+              <Menu size={20} />
+            </button>
+            <div className="hidden w-full max-w-md items-center gap-3 rounded-full border border-slate-200 bg-slate-100 px-4 py-2 transition focus-within:border-indigo-500 md:flex">
+              <Search size={16} className="text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search people, programmes, or insights..."
+                className="w-full border-none bg-transparent text-sm outline-none"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {error && (
+              <span className="hidden rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 md:inline">
+                Preview fallback active
+              </span>
+            )}
+            <button className="relative rounded-full p-2 text-slate-500 transition hover:bg-slate-100">
+              <Bell size={20} />
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-red-500" />
+            </button>
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-slate-200 text-xs font-bold text-slate-700">
+              {administratorName.slice(0, 1).toUpperCase()}
+            </div>
+          </div>
+        </header>
+
+        <div className="mx-auto max-w-7xl space-y-8 p-4 lg:p-8">
+          {activeTab === "Dashboard" ? (
+            <DashboardView
+              organisationName={organisationName}
+              summaryStats={summaryStats}
+              healthMetrics={healthMetrics}
+              insight={insight}
+              peopleNeedingSupport={peopleNeedingSupport}
+              isLoading={isLoading}
+              isRefreshing={isInsightRefreshing}
+              onRefreshInsight={handleRefreshInsight}
+              onReviewPeople={() => navigate("/organisation/members?filter=needs-support")}
+              onCreateSprint={() => navigate("/organisation/cohorts?create=true")}
+              onPostOpportunity={() => navigate("/organisation/opportunities?create=true")}
+              onAction={handleAction}
+            />
+          ) : activeTab === "People" ? (
+            <PeopleView people={people} onOpenPeoplePage={() => navigate("/organisation/members")} />
+          ) : (
+            <ModulePreview activeTab={activeTab} onOpenModule={() => navigate(moduleDestination(activeTab))} />
+          )}
+        </div>
+      </main>
+
+      <AiCopilotPanel
+        isOpen={isAiPanelOpen}
+        insight={insight}
+        healthMetrics={healthMetrics}
+        onClose={() => setIsAiPanelOpen(false)}
+        onOpen={() => setIsAiPanelOpen(true)}
+        onRefresh={() => void handleRefreshInsight()}
+      />
+    </div>
+  );
+}
+
+function OrganisationSidebar({
+  activeTab,
+  organisationName,
+  organisationType,
+  administratorName,
+  isOpen,
+  onSelect,
+  onClose,
+  onLogout,
+}: {
+  activeTab: NavItem;
+  organisationName: string;
+  organisationType: string;
+  administratorName: string;
+  isOpen: boolean;
+  onSelect: (label: NavItem) => void;
+  onClose: () => void;
+  onLogout: () => void;
+}): JSX.Element {
+  return (
+    <>
+      {isOpen && <button aria-label="Close navigation" className="fixed inset-0 z-40 bg-slate-950/40 lg:hidden" onClick={onClose} />}
+      <aside
+        className={cx(
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-slate-200 bg-white p-4 transition lg:static lg:z-auto lg:translate-x-0",
+          isOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
+        <div className="mb-8 flex items-start justify-between gap-3 px-2">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600">
+              <Sparkles className="text-white" size={18} />
+            </div>
+            <div>
+              <span className="block text-lg font-bold tracking-tight">VisionTech</span>
+              <span className="block text-xs font-medium text-slate-500">Institution OS</span>
+            </div>
+          </div>
+          <button type="button" className="rounded-xl border border-slate-200 p-2 lg:hidden" onClick={onClose}>
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="mb-5 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+          <p className="truncate text-sm font-bold tracking-tight text-slate-900">{organisationName}</p>
+          <p className="mt-1 text-xs font-medium capitalize text-slate-500">{organisationType}</p>
+          <p className="mt-3 rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-700">
+            {administratorName}
+          </p>
+        </div>
+
+        <nav className="flex-1 space-y-1">
+          {navItems.map((item) => (
+            <SidebarItem
+              key={item.label}
+              icon={item.icon}
+              label={item.label}
+              active={activeTab === item.label}
+              onClick={() => onSelect(item.label)}
+            />
+          ))}
+        </nav>
+
+        <button
+          type="button"
+          onClick={onLogout}
+          className="mt-4 flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+        >
+          <LogOut size={18} />
+          Admin Logout
+        </button>
+      </aside>
+    </>
+  );
+}
+
+function SidebarItem({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: typeof LayoutDashboard;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}): JSX.Element {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cx(
+        "group flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all",
+        active ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900",
+      )}
+    >
+      <Icon size={18} className={active ? "text-indigo-400" : "group-hover:text-slate-900"} />
+      {label}
+    </button>
+  );
+}
+
+function DashboardView({
+  organisationName,
+  summaryStats,
+  healthMetrics,
+  insight,
+  peopleNeedingSupport,
+  isLoading,
+  isRefreshing,
+  onRefreshInsight,
+  onReviewPeople,
+  onCreateSprint,
+  onPostOpportunity,
+  onAction,
+}: {
+  organisationName: string;
+  summaryStats: Array<{ label: string; value: string; trend: string; color?: string }>;
+  healthMetrics: HealthMetric[];
+  insight: InstitutionalAIInsight | null;
+  peopleNeedingSupport: OrganisationMember[];
+  isLoading: boolean;
+  isRefreshing: boolean;
+  onRefreshInsight: () => Promise<void>;
+  onReviewPeople: () => void;
+  onCreateSprint: () => void;
+  onPostOpportunity: () => void;
+  onAction: (action: InstitutionalRecommendedAction) => void;
+}): JSX.Element {
+  return (
+    <div className="space-y-8">
+      <section>
+        <p className="text-sm font-semibold text-indigo-600">Outcome-first command centre</p>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">
+          Good morning, {organisationName}
+        </h1>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+          Your organisation dashboard now starts with intelligence, people outcomes, and actions — not static tables.
+        </p>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {summaryStats.map((stat) => (
+            <Card key={stat.label} className="px-6 py-4 hover:border-indigo-200">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{stat.label}</p>
+              <div className="mt-1 flex items-end justify-between">
+                <h3 className="text-2xl font-black tracking-tight text-slate-900">{stat.value}</h3>
+                <span className={cx("rounded-full bg-slate-100 px-2 py-1 text-xs font-bold", stat.color || "text-indigo-600")}>
+                  {stat.trend}
+                </span>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-8 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <ExecutiveBrief
+            insight={insight}
+            isLoading={isLoading}
+            isRefreshing={isRefreshing}
+            onRefresh={onRefreshInsight}
+            onAction={onAction}
+          />
+        </div>
+        <HealthScore metrics={healthMetrics} />
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className={`text-sm font-semibold ${subtle}`}>Organisation</p>
-            <h2 className="mt-1 text-2xl font-bold text-[var(--color-on-surface)]">{organisationName}</h2>
-            <p className={`mt-3 text-sm leading-6 ${subtle}`}>
-              Administrator: <span className="font-semibold text-[var(--color-on-surface)]">{administratorName}</span>
-              {" "}· Type: <span className="font-semibold text-emerald-700">{organisationType}</span>
-              {" "}· Reporting period: July 2026
+            <h2 className="text-lg font-bold tracking-tight text-slate-900">Immediate Interventions</h2>
+            <p className="text-sm text-slate-500">Action cards pair risk signals with recommended administrator moves.</p>
+          </div>
+          <button type="button" onClick={onReviewPeople} className="text-sm font-bold text-indigo-600 hover:underline">
+            Review all support cases
+          </button>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <InterventionCard
+            icon={<AlertCircle size={20} />}
+            tone="amber"
+            title={`${peopleNeedingSupport.length || 1} members need attention`}
+            detail="Support risk detected from inactivity, low readiness, or incomplete progress."
+            action="Schedule Mentor Review"
+            onClick={onReviewPeople}
+          />
+          <InterventionCard
+            icon={<TrendingUp size={20} />}
+            tone="indigo"
+            title="Readiness-to-opportunity window"
+            detail="High-readiness members should be matched with opportunities before momentum fades."
+            action="Post Opportunity"
+            onClick={onPostOpportunity}
+          />
+          <InterventionCard
+            icon={<Target size={20} />}
+            tone="emerald"
+            title="Project evidence gap"
+            detail="Programme engagement is stronger than submitted evidence."
+            action="Create Portfolio Sprint"
+            onClick={onCreateSprint}
+          />
+          <InterventionCard
+            icon={<BrainCircuit size={20} />}
+            tone="sky"
+            title="AI recommendation queue"
+            detail="Use the executive brief actions before making manual changes."
+            action="Refresh Insight"
+            onClick={() => void onRefreshInsight()}
+          />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ExecutiveBrief({
+  insight,
+  isLoading,
+  isRefreshing,
+  onRefresh,
+  onAction,
+}: {
+  insight: InstitutionalAIInsight | null;
+  isLoading: boolean;
+  isRefreshing: boolean;
+  onRefresh: () => Promise<void>;
+  onAction: (action: InstitutionalRecommendedAction) => void;
+}): JSX.Element {
+  return (
+    <Card className="relative overflow-hidden border-none bg-gradient-to-br from-slate-950 to-indigo-950 text-white shadow-xl">
+      <Sparkles className="absolute right-5 top-5 text-indigo-400 opacity-40" size={44} />
+      <div className="relative z-10">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+              <BrainCircuit size={20} className="text-indigo-400" />
+              VisionTech AI Executive Brief
+            </h2>
+            <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-indigo-300">
+              {isLoading ? "Analysing institution" : `Confidence ${insight?.confidenceScore ?? 72}%`}
             </p>
           </div>
-          <div className="flex flex-wrap gap-3 lg:justify-end">
-            <button className={outlineButton}>
-              <BriefcaseBusiness className="mr-2 h-4 w-4" />
-              Add Opportunity
-            </button>
-            <button className={outlineButton}>
-              <FileText className="mr-2 h-4 w-4" />
-              Generate Report
-            </button>
-            <button
-              className="inline-flex h-11 items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700 transition hover:bg-red-100"
-              onClick={() => void logout()}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Admin Logout
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-        {dashboardMetrics.map((metric) => (
-          <div key={metric.label} className={`${card} p-5`}>
-            <p className={`text-xs font-semibold uppercase tracking-wide ${subtle}`}>{metric.label}</p>
-            <p className="mt-3 text-2xl font-bold text-[var(--color-on-surface)]">{metric.value}</p>
-            <p className={`mt-2 text-xs leading-5 ${subtle}`}>{metric.note}</p>
-          </div>
-        ))}
-      </section>
-
-      <section className="mb-6">
-        <InstitutionalAIInsightCard
-          insight={institutionalInsight}
-          isLoading={isInsightLoading}
-          isRefreshing={isInsightRefreshing}
-          error={insightError}
-          onRefresh={handleRefreshInstitutionalInsight}
-          onActionSelect={handleInstitutionalAction}
-        />
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-3">
-        <div className="space-y-6 xl:col-span-2">
-          <MemberProgressSection members={memberProgress} />
-          <CohortSection cohorts={cohorts} />
-          <AnalyticsSection skillGaps={skillGaps} />
+          <button
+            type="button"
+            onClick={() => void onRefresh()}
+            disabled={isRefreshing}
+            className="rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/15 disabled:opacity-60"
+          >
+            {isRefreshing ? "Refreshing..." : "Refresh AI"}
+          </button>
         </div>
 
-        <aside className="space-y-6">
-          <QuickActions />
-          <SupportPanel supportSignals={dashboardSupportSignals} />
-          <ActivityFeed activity={dashboardActivity} />
-          <OrganisationInsight insight={dashboardInsight} />
-        </aside>
-      </section>
-
-      <section className="mt-6 grid gap-6 xl:grid-cols-2">
-        <OpportunitiesSection />
-        <ReportsSection />
-      </section>
-    </DashboardShell>
+        <div className="mt-6 space-y-4 text-slate-300">
+          <div className="flex gap-3">
+            <div className="w-1 rounded-full bg-indigo-500" />
+            <p className="text-sm leading-6">{insight?.summary || "Loading institution-wide intelligence from your organisation data."}</p>
+          </div>
+          <div className="flex gap-3">
+            <div className="w-1 rounded-full bg-amber-500" />
+            <p className="text-sm leading-6">
+              {insight?.mainConcern || "Practical evidence and intervention signals will appear here once AI analysis completes."}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
+            <p className="mb-1 text-xs font-black uppercase tracking-widest text-indigo-300">Recommended next move</p>
+            <p className="text-sm text-white">
+              {insight?.recommendedActions[0]?.description || "Create a practical portfolio sprint to bridge the evidence gap."}
+            </p>
+            {insight?.recommendedActions[0] && (
+              <button
+                type="button"
+                onClick={() => onAction(insight.recommendedActions[0])}
+                className="mt-4 rounded-lg bg-white px-4 py-2 text-xs font-black text-slate-950"
+              >
+                Review Action
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </Card>
   );
 }
 
-function MemberProgressSection({ members }: { members: OrganisationMemberProgress[] }): JSX.Element {
+function HealthScore({ metrics }: { metrics: HealthMetric[] }): JSX.Element {
+  const overall = Math.round(metrics.reduce((total, metric) => total + metric.value, 0) / metrics.length);
   return (
-    <section className={`${card} p-6`}>
-      <div className="mb-5 flex items-center justify-between gap-3">
+    <Card>
+      <div className="mb-6 flex items-start justify-between">
         <div>
-          <p className={`text-sm font-semibold ${subtle}`}>Member Progress Overview</p>
-          <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Who needs support now?</h2>
+          <h2 className="font-bold tracking-tight text-slate-800">Organisation Health</h2>
+          <p className="mt-1 text-xs text-slate-500">Three-second institutional checkup</p>
         </div>
-        <Users className="h-5 w-5 text-[var(--color-primary)]" />
+        <span className="text-3xl font-black text-indigo-600">{overall}%</span>
       </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full border-separate border-spacing-y-3">
-          <thead>
-            <tr className={`text-left text-sm ${subtle}`}>
-              <th className="pb-2 pr-4 font-medium">Member</th>
-              <th className="pb-2 pr-4 font-medium">Current Goal</th>
-              <th className="pb-2 pr-4 font-medium">Pathway Stage</th>
-              <th className="pb-2 pr-4 font-medium">Readiness</th>
-              <th className="pb-2 pr-4 font-medium">Last Activity</th>
-              <th className="pb-2 pr-4 font-medium">Status</th>
-              <th className="pb-2 pr-4 font-medium">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {members.map((member) => (
-              <tr key={member.id} className="rounded-2xl bg-[var(--color-surface-container-low)]">
-                <td className="rounded-l-2xl px-4 py-4 text-sm font-semibold text-[var(--color-on-surface)]">{member.name}</td>
-                <td className={`px-4 py-4 text-sm ${subtle}`}>{member.goal}</td>
-                <td className={`px-4 py-4 text-sm ${subtle}`}>{member.pathwayStage}</td>
-                <td className="px-4 py-4 text-sm font-semibold text-[var(--color-on-surface)]">{member.readinessScore}%</td>
-                <td className={`px-4 py-4 text-sm ${subtle}`}>{member.lastActivity}</td>
-                <td className="px-4 py-4">
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusClass(member.status)}`}>
-                    {member.status}
-                  </span>
-                </td>
-                <td className="rounded-r-2xl px-4 py-4">
-                  <button className="rounded-xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 text-xs font-semibold text-[var(--color-on-surface)]">
-                    View Progress
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
-
-function CohortSection({ cohorts }: { cohorts: OrganisationCohort[] }): JSX.Element {
-  return (
-    <section className={`${card} p-6`}>
-      <div className="mb-5">
-        <p className={`text-sm font-semibold ${subtle}`}>Cohort Management</p>
-        <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Programme performance</h2>
-      </div>
-      <div className="grid gap-4 lg:grid-cols-3">
-        {cohorts.map((cohort) => (
-          <div key={cohort.id} className="rounded-2xl border border-[var(--color-outline-variant)] p-4">
-            <div className="flex items-start justify-between gap-3">
-              <h3 className="font-semibold text-[var(--color-on-surface)]">{cohort.name}</h3>
-              <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">{cohort.status}</span>
+      <div className="space-y-5">
+        {metrics.map((metric) => (
+          <div key={metric.label} className="space-y-1.5">
+            <div className="flex justify-between text-xs font-bold">
+              <span>{metric.label}</span>
+              <span>{metric.value}%</span>
             </div>
-            <p className={`mt-2 text-sm ${subtle}`}>{cohort.members} members · {cohort.startDate} to {cohort.endDate}</p>
-            <ProgressRow label="Completion" value={cohort.averageCompletion} />
-            <ProgressRow label="Readiness" value={cohort.averageReadiness} />
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+              <div className={cx("h-full rounded-full transition-all", metric.color)} style={{ width: `${metric.value}%` }} />
+            </div>
           </div>
         ))}
       </div>
-    </section>
+    </Card>
   );
 }
 
-function AnalyticsSection({ skillGaps }: { skillGaps: Array<{ label: string; value: number }> }): JSX.Element {
+function PeopleView({
+  people,
+  onOpenPeoplePage,
+}: {
+  people: OrganisationMember[];
+  onOpenPeoplePage: () => void;
+}): JSX.Element {
   return (
-    <section className={`${card} p-6`}>
-      <div className="mb-5 flex items-center justify-between">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className={`text-sm font-semibold ${subtle}`}>Readiness and Skills Analytics</p>
-          <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Institutional skill signals</h2>
+          <p className="text-sm font-semibold text-indigo-600">People are outcomes, not rows</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Human Potential Cards</h1>
+          <p className="mt-2 text-sm text-slate-500">Review goals, readiness, risk, and growth momentum at a glance.</p>
         </div>
-        <BarChart3 className="h-5 w-5 text-[var(--color-primary)]" />
+        <div className="flex gap-2">
+          <button className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold transition hover:bg-slate-50">
+            <Filter size={16} />
+            Filters
+          </button>
+          <button onClick={onOpenPeoplePage} className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-indigo-200">
+            Open Members Page
+          </button>
+        </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        {skillGaps.map((gap) => (
-          <ProgressRow key={gap.label} label={gap.label} value={gap.value} />
-        ))}
-      </div>
-    </section>
-  );
-}
 
-function QuickActions(): JSX.Element {
-  const actions = ["Invite Members", "Create Cohort", "Add Opportunity", "Assign Support", "Generate Report"];
-  return (
-    <section className={`${card} p-6`}>
-      <p className={`text-sm font-semibold ${subtle}`}>Quick Actions</p>
-      <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Administrator tools</h2>
-      <div className="mt-5 space-y-3">
-        {actions.map((action) => (
-          <button key={action} className="flex w-full items-center justify-between rounded-2xl border border-[var(--color-outline-variant)] px-4 py-3 text-left text-sm font-semibold text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]">
-            {action}
-            <Plus className="h-4 w-4 text-[var(--color-on-surface-variant)]" />
+      <div className="flex gap-4 border-b border-slate-200 text-sm font-bold text-slate-500">
+        {["Overview", "Progress", "Support", "Achievements"].map((tab) => (
+          <button
+            key={tab}
+            className={cx(
+              "border-b-2 px-2 pb-3 transition",
+              tab === "Overview" ? "border-indigo-600 text-indigo-600" : "border-transparent hover:text-slate-800",
+            )}
+          >
+            {tab}
           </button>
         ))}
       </div>
-    </section>
-  );
-}
 
-function SupportPanel({ supportSignals }: { supportSignals: OrganisationSupportSignal[] }): JSX.Element {
-  return (
-    <section className={`${card} p-6`}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className={`text-sm font-semibold ${subtle}`}>Members Requiring Support</p>
-          <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Intervention panel</h2>
-        </div>
-        <AlertTriangle className="h-5 w-5 text-amber-600" />
-      </div>
-      <div className="mt-5 space-y-3">
-        {supportSignals.map((signal) => (
-          <div key={signal.id} className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-amber-950">{signal.title}</p>
-              <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-amber-700">{signal.severity}</span>
-            </div>
-            <p className="mt-2 text-xs leading-5 text-amber-900/80">{signal.description}</p>
-          </div>
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {people.map((person) => (
+          <PersonCard key={person.id} person={person} />
         ))}
-      </div>
-    </section>
-  );
-}
-
-function ActivityFeed({ activity }: { activity: OrganisationActivityItem[] }): JSX.Element {
-  return (
-    <section className={`${card} p-6`}>
-      <p className={`text-sm font-semibold ${subtle}`}>Organisation Activity</p>
-      <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Recent updates</h2>
-      <div className="mt-5 space-y-3">
-        {activity.map((item) => (
-          <div key={item.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
-            <p className="text-sm font-semibold text-[var(--color-on-surface)]">{item.label}</p>
-            <p className={`mt-1 text-xs leading-5 ${subtle}`}>{item.detail}</p>
-            <p className={`mt-2 text-[11px] ${subtle}`}>{item.time}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function OrganisationInsight({ insight }: { insight: OrganisationInsightResponse }): JSX.Element {
-  return (
-    <section className="rounded-3xl bg-[var(--color-primary)] p-6 text-white shadow-sm">
-      <div className="flex items-start gap-3">
-        <Sparkles className="mt-1 h-5 w-5 text-white/80" />
-        <div>
-          <p className="text-sm font-semibold text-white/80">Organisation Insight</p>
-          <h2 className="mt-1 text-xl font-bold">{insight.title}</h2>
-        </div>
-      </div>
-      <p className="mt-4 text-sm leading-6 text-white/80">
-        {insight.message}
-      </p>
-    </section>
-  );
-}
-
-function OpportunitiesSection(): JSX.Element {
-  return (
-    <section className={`${card} p-6`}>
-      <p className={`text-sm font-semibold ${subtle}`}>Opportunities Management</p>
-      <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Assign opportunities to cohorts</h2>
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        {opportunityTypes.map((type) => (
-          <div key={type} className="rounded-2xl border border-[var(--color-outline-variant)] p-4">
-            <p className="text-sm font-semibold text-[var(--color-on-surface)]">{type}</p>
-            <p className={`mt-1 text-xs ${subtle}`}>Prepare, publish, recommend, and track readiness.</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ReportsSection(): JSX.Element {
-  return (
-    <section className={`${card} p-6`}>
-      <p className={`text-sm font-semibold ${subtle}`}>Reports</p>
-      <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Generate institutional reports</h2>
-      <div className="mt-5 space-y-3">
-        {reportTypes.map((report) => (
-          <button key={report} className="flex w-full items-center justify-between rounded-2xl border border-[var(--color-outline-variant)] px-4 py-3 text-left text-sm font-semibold text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]">
-            {report}
-            <FileText className="h-4 w-4 text-[var(--color-on-surface-variant)]" />
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-const fallbackInsight: OrganisationInsightResponse = {
-  title: "Create a practical project challenge",
-  message:
-    "Member participation is improving, but project evidence still needs attention. A practical project challenge could increase opportunity readiness.",
-  source: "placeholder",
-};
-
-function buildSummaryMetrics(overview: OrganisationOverviewResponse | null): OrganisationSummaryMetric[] {
-  if (!overview) return summaryMetrics;
-
-  return [
-    { label: "Total Members", value: String(overview.summary.totalMembers), note: "Registered organisation members" },
-    { label: "Active Members", value: String(overview.summary.activeMembers), note: "Members active within the reporting period" },
-    { label: "Active Cohorts", value: String(overview.summary.activeCohorts), note: "Currently running cohorts" },
-    { label: "Average Readiness", value: `${overview.summary.averageReadiness}%`, note: "Average opportunity readiness" },
-    { label: "Need Support", value: String(overview.summary.membersNeedingSupport), note: "Members requiring intervention" },
-  ];
-}
-
-function buildSupportSignals(overview: OrganisationOverviewResponse | null): OrganisationSupportSignal[] {
-  if (!overview) return supportSignals;
-
-  return [
-    {
-      id: "live-support-readiness",
-      title: `${overview.summary.membersNeedingSupport} members need intervention`,
-      description: "Low readiness, incomplete onboarding, inactivity, or missing pathway progress.",
-      severity: overview.summary.membersNeedingSupport > 0 ? "High" : "Low",
-    },
-    {
-      id: "live-support-readiness-average",
-      title: `${overview.summary.averageReadiness}% average readiness`,
-      description: "Use targeted support to improve institutional opportunity readiness.",
-      severity: overview.summary.averageReadiness < 50 ? "Medium" : "Low",
-    },
-  ];
-}
-
-function buildActivity(overview: OrganisationOverviewResponse | null): OrganisationActivityItem[] {
-  if (!overview) return activity;
-
-  return overview.recentActivity.map((item) => ({
-    id: item.id,
-    label: item.title,
-    detail: item.description,
-    time: formatDateLabel(item.createdAt),
-  }));
-}
-
-function formatDateLabel(value: string | null): string {
-  if (!value) return "Not available";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
-}
-
-function ProgressRow({ label, value }: { label: string; value: number }): JSX.Element {
-  return (
-    <div className="mt-4">
-      <div className="mb-2 flex items-center justify-between text-sm">
-        <span className="font-medium text-[var(--color-on-surface)]">{label}</span>
-        <span className={subtle}>{value}%</span>
-      </div>
-      <div className="h-2 rounded-full bg-[var(--color-surface-container-low)]">
-        <div className="h-2 rounded-full bg-[var(--color-primary)]" style={{ width: `${value}%` }} />
       </div>
     </div>
   );
 }
 
-function statusClass(status: OrganisationMemberProgress["status"]): string {
-  if (status === "On track") return "bg-emerald-100 text-emerald-700";
-  if (status === "Needs support") return "bg-amber-100 text-amber-700";
-  if (status === "Incomplete onboarding") return "bg-purple-100 text-purple-700";
-  return "bg-red-100 text-red-700";
+function PersonCard({ person }: { person: OrganisationMember }): JSX.Element {
+  const risk = person.needsSupport || person.readinessScore < 50 ? "High" : "Low";
+  return (
+    <Card className="group cursor-pointer hover:shadow-md">
+      <div className="mb-4 flex items-start gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100 text-sm font-black text-slate-600">
+          {person.fullName.slice(0, 1)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate font-bold tracking-tight transition group-hover:text-indigo-600">{person.fullName}</h3>
+          <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+            <Target size={12} />
+            {person.goal || "Goal not set"}
+          </p>
+          <p className="mt-1 text-xs text-slate-400">{person.cohortName || "No programme assigned"}</p>
+        </div>
+        <span
+          className={cx(
+            "rounded px-2 py-0.5 text-[10px] font-black uppercase",
+            risk === "High" ? "bg-red-100 text-red-600" : "bg-emerald-100 text-emerald-600",
+          )}
+        >
+          {risk} Risk
+        </span>
+      </div>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-bold text-slate-500">Readiness</span>
+          <span className="font-black">{person.readinessScore}%</span>
+        </div>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          <div className="h-full rounded-full bg-indigo-500" style={{ width: `${person.readinessScore}%` }} />
+        </div>
+        <div className="flex items-center justify-between pt-2">
+          <div className="flex -space-x-2">
+            {[1, 2, 3].map((badge) => (
+              <div key={badge} className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-[10px] font-bold">
+                <Award size={10} />
+              </div>
+            ))}
+          </div>
+          <button className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100">
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function AiCopilotPanel({
+  isOpen,
+  insight,
+  healthMetrics,
+  onClose,
+  onOpen,
+  onRefresh,
+}: {
+  isOpen: boolean;
+  insight: InstitutionalAIInsight | null;
+  healthMetrics: HealthMetric[];
+  onClose: () => void;
+  onOpen: () => void;
+  onRefresh: () => void;
+}): JSX.Element {
+  const weakestMetric = healthMetrics.reduce((lowest, metric) => (metric.value < lowest.value ? metric : lowest), healthMetrics[0]);
+
+  return (
+    <>
+      <aside
+        className={cx(
+          "hidden overflow-hidden border-l border-slate-200 bg-white transition-all duration-300 xl:flex xl:flex-col",
+          isOpen ? "w-80" : "w-0 border-none",
+        )}
+      >
+        <div className="flex flex-1 flex-col p-6">
+          <div className="mb-8 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-indigo-600">
+              <Sparkles size={20} />
+              <span className="font-bold tracking-tight">VisionTech AI</span>
+            </div>
+            <button onClick={onClose} className="text-slate-400 transition hover:text-slate-600">
+              <ChevronRight size={20} />
+            </button>
+          </div>
+
+          <div className="flex-1 space-y-6 overflow-y-auto pr-2">
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm">
+              <p className="mb-2 font-bold">Suggested Actions</p>
+              <ul className="space-y-3">
+                {["Who needs support?", "Which programme is improving?", "Generate impact report", "Analyse skill gaps"].map((question) => (
+                  <li key={question} className="group flex cursor-pointer items-center justify-between text-slate-600 hover:text-indigo-600">
+                    <span>{question}</span>
+                    <ChevronRight size={14} className="opacity-0 transition group-hover:opacity-100" />
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="space-y-4">
+              <p className="px-1 text-[10px] font-black uppercase tracking-widest text-slate-400">Contextual Insight</p>
+              <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-sm leading-relaxed text-indigo-950">
+                I noticed that <strong>{weakestMetric.label}</strong> is the weakest health signal at{" "}
+                <strong>{weakestMetric.value}%</strong>. Prioritise the action queue before adding new reports.
+              </div>
+              {insight?.mainConcern && (
+                <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm leading-relaxed text-amber-950">
+                  {insight.mainConcern}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-auto pt-6">
+            <div className="relative">
+              <textarea
+                placeholder="Ask anything..."
+                className="h-24 w-full resize-none rounded-2xl border border-slate-200 p-4 pr-12 text-sm outline-none focus:border-transparent focus:ring-2 focus:ring-indigo-500"
+              />
+              <button onClick={onRefresh} className="absolute bottom-3 right-3 rounded-xl bg-indigo-600 p-2 text-white shadow-lg shadow-indigo-100 transition hover:bg-indigo-700">
+                <MessageSquare size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {!isOpen && (
+        <button
+          type="button"
+          onClick={onOpen}
+          className="fixed bottom-8 right-8 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white shadow-2xl transition hover:scale-110"
+        >
+          <Sparkles size={20} />
+        </button>
+      )}
+    </>
+  );
+}
+
+function ModulePreview({ activeTab, onOpenModule }: { activeTab: NavItem; onOpenModule: () => void }): JSX.Element {
+  return (
+    <Card className="min-h-[420px]">
+      <p className="text-sm font-semibold text-indigo-600">Outcome module</p>
+      <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{activeTab}</h1>
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+        This section is now part of the outcome-first organisation structure. Open the dedicated module to manage the workflow in detail.
+      </p>
+      <button onClick={onOpenModule} className="mt-6 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-indigo-100">
+        Open {activeTab}
+      </button>
+    </Card>
+  );
+}
+
+function InterventionCard({
+  icon,
+  tone,
+  title,
+  detail,
+  action,
+  onClick,
+}: {
+  icon: ReactNode;
+  tone: "amber" | "indigo" | "emerald" | "sky";
+  title: string;
+  detail: string;
+  action: string;
+  onClick: () => void;
+}): JSX.Element {
+  const tones = {
+    amber: "border-l-amber-500 text-amber-600 bg-amber-50",
+    indigo: "border-l-indigo-500 text-indigo-600 bg-indigo-50",
+    emerald: "border-l-emerald-500 text-emerald-600 bg-emerald-50",
+    sky: "border-l-sky-500 text-sky-600 bg-sky-50",
+  };
+
+  return (
+    <div className={cx("flex items-center justify-between gap-4 rounded-r-2xl border border-l-4 border-slate-200 bg-white p-4 shadow-sm", tones[tone].split(" ")[0])}>
+      <div className="flex items-center gap-4">
+        <div className={cx("rounded-xl p-2", tones[tone])}>{icon}</div>
+        <div>
+          <p className="text-sm font-black tracking-tight text-slate-900">{title}</p>
+          <p className="mt-1 text-xs text-slate-500">{detail}</p>
+        </div>
+      </div>
+      <button onClick={onClick} className="shrink-0 text-xs font-black text-indigo-600 hover:underline">
+        {action}
+      </button>
+    </div>
+  );
+}
+
+function Card({ children, className }: { children: ReactNode; className?: string }): JSX.Element {
+  return (
+    <div className={cx("rounded-2xl border border-slate-200 bg-white p-6 transition-all", className)}>
+      {children}
+    </div>
+  );
+}
+
+function buildSummaryStats(
+  overview: OrganisationOverviewResponse | null,
+  insight: InstitutionalAIInsight | null,
+): Array<{ label: string; value: string; trend: string; color?: string }> {
+  return [
+    {
+      label: "Active Learners",
+      value: String(overview?.summary.activeMembers ?? 0),
+      trend: `${overview?.summary.totalMembers ?? 0} total`,
+    },
+    {
+      label: "New Insights",
+      value: String(insight?.recommendedActions.length ?? 0),
+      trend: insight ? "AI ready" : "Loading",
+    },
+    {
+      label: "Need Attention",
+      value: String(overview?.summary.membersNeedingSupport ?? 0),
+      trend: "Critical",
+      color: "text-red-500",
+    },
+    {
+      label: "Readiness",
+      value: `${overview?.summary.averageReadiness ?? 0}%`,
+      trend: "Health",
+    },
+  ];
+}
+
+function buildHealthMetrics(overview: OrganisationOverviewResponse | null): HealthMetric[] {
+  const totalMembers = overview?.summary.totalMembers ?? 0;
+  const activeMembers = overview?.summary.activeMembers ?? 0;
+  const supportCount = overview?.summary.membersNeedingSupport ?? 0;
+  const engagement = totalMembers > 0 ? Math.round((activeMembers / totalMembers) * 100) : 0;
+  const supportHealth = totalMembers > 0 ? Math.round(((totalMembers - supportCount) / totalMembers) * 100) : 75;
+
+  return [
+    { label: "Engagement", value: engagement, color: "bg-indigo-500" },
+    { label: "Readiness", value: overview?.summary.averageReadiness ?? 0, color: "bg-emerald-500" },
+    { label: "Projects", value: supportHealth, color: "bg-amber-500" },
+    { label: "Opportunities", value: Math.max(60, overview?.summary.averageReadiness ?? 0), color: "bg-sky-500" },
+  ];
+}
+
+function moduleDestination(activeTab: NavItem): string {
+  const destinations: Record<NavItem, string> = {
+    Dashboard: "/organisation",
+    People: "/organisation/members",
+    Programmes: "/organisation/cohorts",
+    Opportunities: "/organisation/opportunities",
+    Intelligence: "/organisation",
+    Interventions: "/organisation/interventions",
+    Reports: "/organisation/reports",
+    Settings: "/organisation/settings",
+  };
+  return destinations[activeTab];
 }
