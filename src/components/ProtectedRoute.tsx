@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { hasOrganisationDashboardAccess, isAdmin } from "../lib/auth";
+import { hasOrganisationDashboardAccessForUser, isAdmin } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
 
 type Props = { children: JSX.Element };
@@ -68,7 +68,7 @@ export function RequireOrganisationAdmin({ children }: Props): JSX.Element {
   }
 
   const role = profile?.role || user.role;
-  if (!hasOrganisationDashboardAccess(role)) {
+  if (!hasOrganisationDashboardAccessForUser(role, user.email)) {
     return (
       <main className="min-h-screen bg-slate-50 px-6 py-16 text-slate-900">
         <div className="mx-auto max-w-lg rounded-3xl border border-amber-200 bg-white p-8 text-center shadow-sm">

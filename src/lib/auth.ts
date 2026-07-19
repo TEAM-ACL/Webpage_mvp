@@ -65,10 +65,31 @@ export function isOrganisationAdminRole(role: string | null | undefined): boolea
   return normalized === "organisation_admin" || normalized === "organization_admin";
 }
 
+export function isBootstrapPlatformAdminEmail(email: string | null | undefined): boolean {
+  const normalizedEmail = (email || "").trim().toLowerCase();
+  if (!normalizedEmail) {
+    return false;
+  }
+
+  const configuredEmails = import.meta.env.VITE_BOOTSTRAP_PLATFORM_ADMIN_EMAILS as string | undefined;
+  return (configuredEmails || "")
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean)
+    .includes(normalizedEmail);
+}
+
 export function hasOrganisationDashboardAccess(
   role: string | null | undefined,
 ): boolean {
   return isOrganisationAdminRole(role) || isPlatformAdminRole(role);
+}
+
+export function hasOrganisationDashboardAccessForUser(
+  role: string | null | undefined,
+  email: string | null | undefined,
+): boolean {
+  return hasOrganisationDashboardAccess(role) || isBootstrapPlatformAdminEmail(email);
 }
 
 export function signOut(): void {
