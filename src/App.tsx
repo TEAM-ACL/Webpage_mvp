@@ -107,9 +107,9 @@ export default function App() {
             <Route path="/login" element={<RedirectIfOnboarded><Login /></RedirectIfOnboarded>} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin-login" element={<AdminLogin />} />
-            <Route path="/organization-auth" element={<RedirectIfOnboarded><OrganizationAuth /></RedirectIfOnboarded>} />
-            <Route path="/organization-login" element={<RedirectIfOnboarded><OrganizationLogin /></RedirectIfOnboarded>} />
-            <Route path="/organization-signup" element={<RedirectIfOnboarded><OrganizationSignup /></RedirectIfOnboarded>} />
+            <Route path="/organization-auth" element={<RedirectIfOnboarded redirectTo="/organisation"><OrganizationAuth /></RedirectIfOnboarded>} />
+            <Route path="/organization-login" element={<RedirectIfOnboarded redirectTo="/organisation"><OrganizationLogin /></RedirectIfOnboarded>} />
+            <Route path="/organization-signup" element={<RedirectIfOnboarded redirectTo="/organisation"><OrganizationSignup /></RedirectIfOnboarded>} />
             <Route path="/signup" element={<RedirectIfOnboarded><SignUp /></RedirectIfOnboarded>} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />

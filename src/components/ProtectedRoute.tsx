@@ -4,6 +4,9 @@ import { hasOrganisationDashboardAccess, isAdmin } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
 
 type Props = { children: JSX.Element };
+type RedirectIfOnboardedProps = Props & {
+  redirectTo?: string;
+};
 
 export function RequireAuth({ children }: Props): JSX.Element {
   const location = useLocation();
@@ -82,9 +85,12 @@ export function RequireOrganisationAdmin({ children }: Props): JSX.Element {
   return children;
 }
 
-export function RedirectIfOnboarded({ children }: Props): JSX.Element {
+export function RedirectIfOnboarded({
+  children,
+  redirectTo = "/intelligence",
+}: RedirectIfOnboardedProps): JSX.Element {
   const { user, loading, profileLoading, onboardingComplete } = useAuth();
   if (loading || profileLoading) return <></>;
-  if (user && onboardingComplete) return <Navigate to="/intelligence" replace />;
+  if (user && onboardingComplete) return <Navigate to={redirectTo} replace />;
   return children;
 }
