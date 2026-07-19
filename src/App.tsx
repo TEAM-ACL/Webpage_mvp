@@ -15,7 +15,6 @@ import Network from './pages/Network';
 import Organisation from './pages/Organisation';
 import OrganisationMembers from './pages/organisation/OrganisationMembers';
 import OrganisationPlaceholder from './pages/organisation/OrganisationPlaceholder';
-import Organizations from './pages/Organizations';
 import About from './pages/About';
 import Platform from './pages/Platform';
 import Pricing from './pages/Pricing';
@@ -144,9 +143,7 @@ export default function App() {
             <Route
               path="/organizations"
               element={
-                <RequireAuth>
-                  <Organizations />
-                </RequireAuth>
+                <Navigate to="/organisation" replace />
               }
             />
             <Route
@@ -170,8 +167,7 @@ export default function App() {
               element={
                 <RequireOrganisationAdmin>
                   <OrganisationPlaceholder
-                    title="Cohorts"
-                    description="Create, monitor, and support institutional cohorts."
+                    moduleKey="cohorts"
                   />
                 </RequireOrganisationAdmin>
               }
@@ -181,8 +177,7 @@ export default function App() {
               element={
                 <RequireOrganisationAdmin>
                   <OrganisationPlaceholder
-                    title="Interventions"
-                    description="Identify struggling members and coordinate practical support."
+                    moduleKey="interventions"
                   />
                 </RequireOrganisationAdmin>
               }
@@ -192,8 +187,7 @@ export default function App() {
               element={
                 <RequireOrganisationAdmin>
                   <OrganisationPlaceholder
-                    title="Opportunities"
-                    description="Publish, assign, and track readiness-linked opportunities."
+                    moduleKey="opportunities"
                   />
                 </RequireOrganisationAdmin>
               }
@@ -203,8 +197,7 @@ export default function App() {
               element={
                 <RequireOrganisationAdmin>
                   <OrganisationPlaceholder
-                    title="Reports"
-                    description="Generate institutional progress, readiness, engagement, and skills reports."
+                    moduleKey="reports"
                   />
                 </RequireOrganisationAdmin>
               }
@@ -214,8 +207,7 @@ export default function App() {
               element={
                 <RequireOrganisationAdmin>
                   <OrganisationPlaceholder
-                    title="Organisation Settings"
-                    description="Manage organisation profile, administrators, invitations, notifications, and data settings."
+                    moduleKey="settings"
                   />
                 </RequireOrganisationAdmin>
               }

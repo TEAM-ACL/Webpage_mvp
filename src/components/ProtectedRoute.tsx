@@ -66,7 +66,17 @@ export function RequireOrganisationAdmin({ children }: Props): JSX.Element {
 
   const role = profile?.role || user.role;
   if (!hasOrganisationDashboardAccess(role)) {
-    return <Navigate to="/intelligence" replace />;
+    return (
+      <main className="min-h-screen bg-slate-50 px-6 py-16 text-slate-900">
+        <div className="mx-auto max-w-lg rounded-3xl border border-amber-200 bg-white p-8 text-center shadow-sm">
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-amber-700">Organisation Access Required</p>
+          <h1 className="mt-3 text-2xl font-black tracking-tight">This account is not an organisation administrator yet.</h1>
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            Ask a platform administrator to assign your account the platform_admin or organisation_admin role before opening the organisation dashboard.
+          </p>
+        </div>
+      </main>
+    );
   }
 
   return children;
