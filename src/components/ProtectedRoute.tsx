@@ -1,9 +1,12 @@
 import type { JSX } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { hasOrganisationDashboardAccess, isAdmin } from "../lib/auth";
+import { hasOrganisationDashboardAccessForUser, isAdmin } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
 
 type Props = { children: JSX.Element };
+type RedirectIfOnboardedProps = Props & {
+  redirectTo?: string;
+};
 
 export function RequireAuth({ children }: Props): JSX.Element {
   const location = useLocation();
@@ -65,7 +68,7 @@ export function RequireOrganisationAdmin({ children }: Props): JSX.Element {
   }
 
   const role = profile?.role || user.role;
-  if (!hasOrganisationDashboardAccess(role)) {
+  if (!hasOrganisationDashboardAccessForUser(role, user.email)) {
     return (
       <main className="min-h-screen bg-slate-50 px-6 py-16 text-slate-900">
         <div className="mx-auto max-w-lg rounded-3xl border border-amber-200 bg-white p-8 text-center shadow-sm">
@@ -82,9 +85,12 @@ export function RequireOrganisationAdmin({ children }: Props): JSX.Element {
   return children;
 }
 
-export function RedirectIfOnboarded({ children }: Props): JSX.Element {
+export function RedirectIfOnboarded({
+  children,
+  redirectTo = "/intelligence",
+}: RedirectIfOnboardedProps): JSX.Element {
   const { user, loading, profileLoading, onboardingComplete } = useAuth();
   if (loading || profileLoading) return <></>;
-  if (user && onboardingComplete) return <Navigate to="/intelligence" replace />;
+  if (user && onboardingComplete) return <Navigate to={redirectTo} replace />;
   return children;
 }

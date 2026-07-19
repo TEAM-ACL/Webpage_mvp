@@ -10,7 +10,7 @@ import { toUserMessage } from "../lib/userErrors";
 import { getEmailConfirmationRedirectUrl } from "../lib/authRedirects";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const emailConfirmationRedirectUrl = getEmailConfirmationRedirectUrl();
+const emailConfirmationRedirectUrl = `${getEmailConfirmationRedirectUrl()}?redirect=/organisation`;
 
 export default function OrganizationSignup(): JSX.Element {
   const navigate = useNavigate();

@@ -10,6 +10,7 @@ type CallbackAuthPayload = {
   errorDescription: string | null;
   errorCode: string | null;
   verificationType: string | null;
+  redirectTo: string | null;
 };
 
 function getCallbackAuthPayload(): CallbackAuthPayload {
@@ -24,6 +25,7 @@ function getCallbackAuthPayload(): CallbackAuthPayload {
     errorDescription: readParam("error_description"),
     errorCode: readParam("error"),
     verificationType: readParam("type"),
+    redirectTo: readParam("redirect"),
   };
 }
 
@@ -95,9 +97,10 @@ export default function AuthCallback(): JSX.Element {
 
         const profileState = await refreshProfile();
         const isComplete = profileState?.isOnboardingComplete ?? false;
+        const safeRedirectTo = getSafeCallbackRedirect(callbackPayload.redirectTo);
 
         setMessage("You have been verified. Redirecting to your workspace...");
-        navigate(isComplete ? "/intelligence" : "/onboarding", { replace: true });
+        navigate(safeRedirectTo || (isComplete ? "/intelligence" : "/onboarding"), { replace: true });
       } catch (err) {
         setError(
           toUserMessage(
@@ -132,4 +135,11 @@ export default function AuthCallback(): JSX.Element {
       </div>
     </main>
   );
+}
+
+function getSafeCallbackRedirect(value: string | null): string | null {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return null;
+  }
+  return value;
 }
