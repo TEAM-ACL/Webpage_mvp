@@ -65,6 +65,8 @@ export type OrganisationModuleContent = {
   items: OrganisationModuleItem[];
   workflowTitle: string;
   workflow: OrganisationWorkflowStep[];
+  aiPrompts: string[];
+  aiResponses: Record<string, string>;
 };
 
 export const organisationModules: Record<OrganisationModuleKey, OrganisationModuleContent> = {
@@ -121,6 +123,16 @@ export const organisationModules: Record<OrganisationModuleKey, OrganisationModu
       { icon: Users, title: "Assign members", description: "Add people manually or from filtered support/readiness lists." },
       { icon: BarChart3, title: "Track progress", description: "Monitor readiness, activity, pathway completion, and evidence." },
     ],
+    aiPrompts: [
+      "Which cohort should I prioritise this week?",
+      "How should I improve project evidence?",
+      "Which members should move into a sprint?",
+    ],
+    aiResponses: {
+      "Which cohort should I prioritise this week?": "Prioritise Cloud Career Transition. It has the largest active membership and a clear support/evidence gap, so one intervention can improve the most outcomes.",
+      "How should I improve project evidence?": "Create a four-week project sprint with weekly evidence checkpoints, mentor feedback, and a final portfolio review.",
+      "Which members should move into a sprint?": "Start with members who are active but below 60% readiness or have overdue evidence tasks. They have enough engagement to respond quickly.",
+    },
   },
   interventions: {
     key: "interventions",
@@ -172,6 +184,16 @@ export const organisationModules: Record<OrganisationModuleKey, OrganisationModu
       { icon: LifeBuoy, title: "Assign support", description: "Create an action with owner, reason, and next response." },
       { icon: CheckCircle2, title: "Resolve", description: "Close the case when the member has re-engaged or progressed." },
     ],
+    aiPrompts: [
+      "Who needs support first?",
+      "What intervention should I create?",
+      "How do I reduce inactive members?",
+    ],
+    aiResponses: {
+      "Who needs support first?": "Start with high-risk members who are inactive or stuck in onboarding, then review medium-risk members with weak project evidence.",
+      "What intervention should I create?": "Create a practical project support intervention with a short task, owner, due date, and mentor feedback checkpoint.",
+      "How do I reduce inactive members?": "Use a two-step re-engagement flow: personal check-in first, then assign one lightweight completion task within 48 hours.",
+    },
   },
   opportunities: {
     key: "opportunities",
@@ -223,6 +245,16 @@ export const organisationModules: Record<OrganisationModuleKey, OrganisationModu
       { icon: Users, title: "Match members", description: "Use readiness, skill gaps, and project evidence to identify fit." },
       { icon: Megaphone, title: "Track interest", description: "Monitor applications, expressions of interest, and follow-up." },
     ],
+    aiPrompts: [
+      "Which opportunity should I review first?",
+      "Who is ready for matching?",
+      "How do I improve opportunity readiness?",
+    ],
+    aiResponses: {
+      "Which opportunity should I review first?": "Review opportunities closing soon first, especially Junior Cloud Internship because it has strong matches and a short deadline.",
+      "Who is ready for matching?": "Prioritise members above 65% readiness with recent activity and project evidence. They are most likely to convert interest into applications.",
+      "How do I improve opportunity readiness?": "Before recommending applications, ask members to add one project artifact and one short evidence note linked to the opportunity requirements.",
+    },
   },
   reports: {
     key: "reports",
@@ -274,6 +306,16 @@ export const organisationModules: Record<OrganisationModuleKey, OrganisationModu
       { icon: BarChart3, title: "Filter data", description: "Pick period, cohort, readiness band, or support status." },
       { icon: CheckCircle2, title: "Export", description: "Generate CSV, preview, and AI executive summary." },
     ],
+    aiPrompts: [
+      "What should leadership see first?",
+      "Which report should I generate?",
+      "What is the main institutional risk?",
+    ],
+    aiResponses: {
+      "What should leadership see first?": "Lead with readiness, active participation, open interventions, and project evidence. Those metrics explain both progress and risk quickly.",
+      "Which report should I generate?": "Generate the Monthly Progress Report first. It combines people, cohorts, support, and opportunity readiness into one executive narrative.",
+      "What is the main institutional risk?": "The main risk is a gap between participation and practical evidence. Members may look active without producing opportunity-ready proof.",
+    },
   },
   settings: {
     key: "settings",
@@ -326,5 +368,15 @@ export const organisationModules: Record<OrganisationModuleKey, OrganisationModu
       { icon: ShieldCheck, title: "Access control", description: "Assign admin roles and review permissions." },
       { icon: BellRing, title: "Notifications", description: "Set invitation, support, report, and opportunity alerts." },
     ],
+    aiPrompts: [
+      "What settings should I configure first?",
+      "How should admin access be managed?",
+      "Which notifications matter most?",
+    ],
+    aiResponses: {
+      "What settings should I configure first?": "Complete organisation profile, administrator access, and invitation defaults first. These affect every downstream workflow.",
+      "How should admin access be managed?": "Use platform_admin sparingly for platform operators and organisation_admin for institutional managers. Review access monthly.",
+      "Which notifications matter most?": "Enable support-risk, invitation, report-ready, and opportunity-closing notifications first. They trigger practical administrator action.",
+    },
   },
 };

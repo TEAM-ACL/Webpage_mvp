@@ -1,6 +1,8 @@
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import type { JSX, ReactNode } from "react";
+import OrganisationAIPanel from "../../components/organisation/OrganisationAIPanel";
 import OrganisationLayout from "../../components/organisation/OrganisationLayout";
 import OrganisationMetricCard from "../../components/organisation/OrganisationMetricCard";
 import { useAuth } from "../../context/AuthContext";
@@ -11,6 +13,8 @@ import {
   type OrganisationModuleKey,
   type OrganisationModuleItem,
 } from "../../data/organisationModules";
+import { getInstitutionalAIInsight, refreshInstitutionalAIInsight } from "../../services/organisation";
+import type { InstitutionalAIInsight, InstitutionalRecommendedAction } from "../../types/organisation";
 
 type OrganisationPlaceholderProps = {
   moduleKey: OrganisationModuleKey;
@@ -25,10 +29,61 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
   const navigate = useNavigate();
   const { profile, user } = useAuth();
   const content = organisationModules[moduleKey];
+  const [insight, setInsight] = useState<InstitutionalAIInsight | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(true);
+  const [isAiRefreshing, setIsAiRefreshing] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
+
+  const loadInsight = useCallback(async () => {
+    setIsAiLoading(true);
+    setAiError(null);
+    try {
+      const response = await getInstitutionalAIInsight();
+      setInsight(response.insight);
+    } catch (error) {
+      setAiError(readError(error, "Unable to load institutional AI insight."));
+    } finally {
+      setIsAiLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    setSelectedPrompt(null);
+    void loadInsight();
+  }, [loadInsight, moduleKey]);
 
   function handleAction(action: OrganisationModuleAction): void {
     navigate(action.href);
   }
+
+  async function handleRefreshInsight(): Promise<void> {
+    setIsAiRefreshing(true);
+    setAiError(null);
+    try {
+      const response = await refreshInstitutionalAIInsight();
+      setInsight(response.insight);
+    } catch (error) {
+      setAiError(readError(error, "Unable to refresh institutional AI insight."));
+    } finally {
+      setIsAiRefreshing(false);
+      setIsAiLoading(false);
+    }
+  }
+
+  function handleInsightAction(action: InstitutionalRecommendedAction): void {
+    const destinations: Record<InstitutionalRecommendedAction["actionType"], string> = {
+      create_cohort: "/organisation/cohorts?create=true",
+      create_intervention: "/organisation/interventions?create=true",
+      assign_project: "/organisation/cohorts?action=assign-project",
+      share_resource: "/organisation/members?action=share-resource",
+      share_opportunity: "/organisation/opportunities?create=true",
+      review_members: "/organisation/members?filter=needs-support",
+    };
+    navigate(destinations[action.actionType]);
+  }
+
+  const promptResponse = selectedPrompt ? buildPromptResponse(content, selectedPrompt, insight) : null;
 
   return (
     <OrganisationLayout
@@ -51,6 +106,21 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
       }
     >
       <OrganisationModuleView content={content} onAction={handleAction} />
+      <div className="mt-6">
+        <OrganisationAIPanel
+          contextLabel={`${content.title} Intelligence`}
+          insight={insight}
+          isLoading={isAiLoading}
+          isRefreshing={isAiRefreshing}
+          error={aiError}
+          prompts={content.aiPrompts}
+          selectedPrompt={selectedPrompt}
+          response={promptResponse}
+          onPromptSelect={setSelectedPrompt}
+          onRefresh={() => void handleRefreshInsight()}
+          onActionSelect={handleInsightAction}
+        />
+      </div>
     </OrganisationLayout>
   );
 }
@@ -204,4 +274,20 @@ function renderTag(tag: string): ReactNode {
 
 function formatRole(role: string): string {
   return role.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function buildPromptResponse(
+  content: OrganisationModuleContent,
+  prompt: string,
+  insight: InstitutionalAIInsight | null,
+): string {
+  const baseResponse = content.aiResponses[prompt] || "Use the latest institutional insight to prioritise practical administrator action.";
+  if (!insight?.mainConcern) {
+    return baseResponse;
+  }
+  return `${baseResponse} Current AI concern: ${insight.mainConcern}`;
+}
+
+function readError(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
 }
