@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { BriefcaseBusiness, Plus, UserPlus, Users } from "lucide-react";
 import CohortPerformancePanel from "../components/organisation/CohortPerformancePanel";
 import InstitutionalAIInsightCard from "../components/organisation/InstitutionalAIInsightCard";
+import OrganisationAIPanel from "../components/organisation/OrganisationAIPanel";
 import OpportunityActivityPanel from "../components/organisation/OpportunityActivityPanel";
 import OrganisationActivityFeed from "../components/organisation/OrganisationActivityFeed";
 import OrganisationHealthCard from "../components/organisation/OrganisationHealthCard";
@@ -44,7 +45,8 @@ export default function Organisation(): JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [isInsightRefreshing, setIsInsightRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [insightError, setInsightError] = useState<string | null>(null);
+const [insightError, setInsightError] = useState<string | null>(null);
+  const [selectedAiPrompt, setSelectedAiPrompt] = useState<string | null>(null);
 
   const loadOverview = useCallback(async () => {
     setIsLoading(true);
@@ -212,6 +214,21 @@ export default function Organisation(): JSX.Element {
           onActionSelect={handleAiAction}
         />
 
+        <OrganisationAIPanel
+          contextLabel="Overview Intelligence"
+          title="AI Command Assistant"
+          insight={insight}
+          isLoading={isLoading}
+          isRefreshing={isInsightRefreshing}
+          error={insightError}
+          prompts={overviewAiPrompts}
+          selectedPrompt={selectedAiPrompt}
+          response={selectedAiPrompt ? buildOverviewAiResponse(selectedAiPrompt, metrics, insight) : null}
+          onPromptSelect={setSelectedAiPrompt}
+          onRefresh={() => void handleRefreshInsight()}
+          onActionSelect={handleAiAction}
+        />
+
         <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
           <OrganisationHealthCard metrics={healthMetrics} />
           <PriorityActionsPanel actions={mockPriorityActions} onAction={handlePriorityAction} />
@@ -273,4 +290,31 @@ function formatRole(role: string): string {
 
 function readError(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
+}
+
+const overviewAiPrompts = [
+  "What should I do first today?",
+  "Where is the organisation weakest?",
+  "Which action improves readiness fastest?",
+];
+
+function buildOverviewAiResponse(
+  prompt: string,
+  metrics: {
+    totalMembers: number;
+    activeMembers: number;
+    activeCohorts: number;
+    averageReadiness: number;
+    openInterventions: number;
+    activeOpportunities: number;
+  },
+  insight: InstitutionalAIInsight | null,
+): string {
+  const responses: Record<string, string> = {
+    "What should I do first today?": `Start with the ${metrics.openInterventions} open interventions, then move active members into one practical project sprint.`,
+    "Where is the organisation weakest?": `The weakest current signal is project evidence versus readiness. Average readiness is ${metrics.averageReadiness}%, but members still need stronger portfolio proof.`,
+    "Which action improves readiness fastest?": "Create a short project cohort with mentor feedback. It improves readiness, evidence, and opportunity confidence at the same time.",
+  };
+  const baseResponse = responses[prompt] || "Focus on the highest-risk support signal and route it into a practical administrator workflow.";
+  return insight?.mainConcern ? `${baseResponse} Current AI concern: ${insight.mainConcern}` : baseResponse;
 }
