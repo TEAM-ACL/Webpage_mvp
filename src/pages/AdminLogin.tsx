@@ -4,7 +4,7 @@ import { Mail, Lock, ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "motion/react";
 import { api, storeSession } from "../lib/api";
-import { hasOrganisationDashboardAccess, setAdminFlag } from "../lib/auth";
+import { hasOrganisationDashboardAccess, isBootstrapPlatformAdminEmail, setAdminFlag } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { toUserMessage } from "../lib/userErrors";
@@ -43,6 +43,7 @@ export default function AdminLogin(): JSX.Element {
       const hasAdminAccess =
         hasOrganisationDashboardAccess(session.user.role)
         || hasOrganisationDashboardAccess(profileState?.profile?.role)
+        || isBootstrapPlatformAdminEmail(session.user.email)
         || isAllowedAdminEmail(session.user.email);
       if (!hasAdminAccess) {
         const message = "This account does not have administrator access.";
