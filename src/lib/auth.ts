@@ -47,6 +47,9 @@ export function isAdmin(): boolean {
   if (isPlatformAdminRole(role)) {
     return true;
   }
+  if (isBootstrapPlatformAdminEmail(user?.email)) {
+    return true;
+  }
   return user?.email?.toLowerCase().endsWith("@visiontech.ai") ?? false;
 }
 
