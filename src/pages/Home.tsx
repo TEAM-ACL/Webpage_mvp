@@ -99,10 +99,16 @@ const audienceCards = [
   {
     title: "Clear Next Steps",
     body: "VisionTech AI turns your profile and activity into simple suggestions, helping beginners understand what action to take without needing to figure everything out alone.",
+    icon: GraduationCap,
+    points: ["Personal AI insight", "Workspace actions", "Matched opportunities", "Guided progress"],
+    href: "/signup",
   },
   {
     title: "From Insight to Action",
     body: "The platform does more than show information. It helps you learn, build, collaborate, and move forward step by step in a practical way.",
+    icon: Building2,
+    points: ["Cohort visibility", "Readiness analytics", "Intervention tracking", "Institutional reports"],
+    href: "/organization-auth",
   },
 ];
 
@@ -289,33 +295,36 @@ export default function Home(): JSX.Element {
                 from understanding your progress to finding the right people and opportunities.
               </p>
               <div className="mx-auto grid max-w-2xl gap-3 sm:grid-cols-2">
-                {featureCards.slice(0, 2).map((card) => (
-                  <div key={card.title} className="rounded-xl border border-[#e6defc] bg-[#1f0954] p-3">
-                    <p className="text-sm font-semibold text-white/90">{card.title}</p>
+                {journeySteps.slice(0, 2).map((step) => (
+                  <div key={step.title} className="rounded-xl border border-[#e6defc] bg-[#1f0954] p-3">
+                    <p className="text-sm font-semibold text-white/90">{step.title}</p>
                   </div>
                 ))}
               </div>
             </motion.div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              {advancedFeatureItems.map((item, idx) => (
-                <motion.article
-                  key={step.title}
-                  initial={{ opacity: 0, y: 18 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.25 }}
-                  transition={{ duration: 0.45, delay: stepIndex * 0.04 }}
-                  className="relative rounded-3xl border border-[#e2d8ff] bg-white p-5 shadow-sm shadow-indigo-100/50"
-                >
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1f0954] text-white">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Step {stepIndex + 1}</p>
-                  <h3 className="mt-2 font-headline text-lg font-black text-slate-950">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{step.body}</p>
-                </motion.article>
-              );
-            })}
+              {journeySteps.map((step, stepIndex) => {
+                const Icon = step.icon;
+                return (
+                  <motion.article
+                    key={step.title}
+                    initial={{ opacity: 0, y: 18 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, amount: 0.25 }}
+                    transition={{ duration: 0.45, delay: stepIndex * 0.04 }}
+                    className="relative rounded-3xl border border-[#e2d8ff] bg-white p-5 shadow-sm shadow-indigo-100/50"
+                  >
+                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1f0954] text-white">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Step {stepIndex + 1}</p>
+                    <h3 className="mt-2 font-headline text-lg font-black text-slate-950">{step.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{step.body}</p>
+                  </motion.article>
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>
