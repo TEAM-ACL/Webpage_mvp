@@ -79,26 +79,22 @@ export function Header() {
         </Link>
 
         {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] p-1">
+        <div className="hidden md:flex items-center space-x-8">
           {navItems.map((item) => {
-            const Icon = item.icon;
             const isActive = location.pathname === item.path;
 
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                aria-label={item.name}
-                title={item.name}
                 className={cn(
-                  "group relative inline-flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white/60",
+                  "text-sm font-headline tracking-tight transition-all duration-300",
                   isActive
-                    ? "bg-white text-[#1f0954] shadow-lg shadow-black/10"
-                    : "text-white/70 hover:bg-white/[0.12] hover:text-white"
+                    ? "text-white font-bold border-b-2 border-white"
+                    : "text-white/70 font-medium hover:text-white"
                 )}
               >
-                <Icon className="h-4 w-4" aria-hidden="true" />
-                <span className="sr-only">{item.name}</span>
+                {item.name}
               </Link>
             );
           })}
@@ -174,21 +170,15 @@ export function Header() {
             <div className="hidden md:flex items-center gap-3">
               <Link
                 to="/login"
-                aria-label="Log in"
-                title="Log in"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-transparent text-white/75 transition-colors hover:border-white/30 hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
+                className="text-white hover:text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-white/30"
               >
-                <LogIn className="h-4 w-4" aria-hidden="true" />
-                <span className="sr-only">Log in</span>
+                Log in
               </Link>
               <Link
                 to="/signup"
-                aria-label="Sign up"
-                title="Sign up"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/15 text-white transition-colors hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-white/60"
+                className="bg-white/15 hover:bg-white/30 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors border border-white/30"
               >
-                <UserPlus className="h-4 w-4" aria-hidden="true" />
-                <span className="sr-only">Sign up</span>
+                Sign up
               </Link>
             </div>
           )}
