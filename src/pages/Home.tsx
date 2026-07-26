@@ -1,7 +1,23 @@
 import type { FormEvent, JSX } from "react";
 import { useState } from "react";
 import { motion } from "motion/react";
-import { ArrowRight, Users, CheckCircle2, ChevronDown, Sparkles, Rocket, BrainCircuit } from "lucide-react";
+import {
+  ArrowRight,
+  BrainCircuit,
+  BriefcaseBusiness,
+  Building2,
+  CheckCircle2,
+  ChevronDown,
+  GraduationCap,
+  Lightbulb,
+  MessageSquare,
+  Network,
+  Rocket,
+  ShieldCheck,
+  Sparkles,
+  Target,
+  Users,
+} from "lucide-react";
 import OnboardingWalkthroughSlideshow from "../components/home/OnboardingWalkthroughSlideshow";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
@@ -24,25 +40,32 @@ const fadeUp = {
   show: { opacity: 1, y: 0 },
 };
 
-const featureCards = [
-  {
-    icon: BrainCircuit,
-    title: "Intelligence That Adapts",
-    body: "Your recommendations and pathways evolve as your profile grows, so guidance stays relevant.",
-  },
-  {
-    icon: Users,
-    title: "Collaboration by Design",
-    body: "Find high-fit contributors by skills, goals, and momentum so teams form with less friction.",
-  },
-  {
-    icon: Rocket,
-    title: "Faster Execution Loops",
-    body: "Turn ideas into action with clear next steps and confidence signals for smarter decisions.",
-  },
+const journeySteps = [
+  { title: "Profile", body: "Tell VisionTech your goals, strengths, interests, and context.", icon: Users },
+  { title: "AI Intelligence", body: "Generate guidance that explains where you are and what to do next.", icon: BrainCircuit },
+  { title: "Gap Analysis", body: "See skill, evidence, confidence, and opportunity-readiness gaps.", icon: Target },
+  { title: "Action Workspace", body: "Turn recommendations into projects, tasks, learning, and progress.", icon: Rocket },
+  { title: "Network", body: "Find mentors, collaborators, peers, and support communities.", icon: Network },
+  { title: "Opportunities", body: "Match with internships, jobs, competitions, funding, and growth routes.", icon: BriefcaseBusiness },
 ];
 
-const advancedFeatureItems = [
+const productModules = [
+  {
+    title: "Intelligence",
+    subtitle: "Personalised AI insight",
+    body: "Understand strengths, skill gaps, career direction, readiness, and next steps from one evolving dashboard.",
+    icon: BrainCircuit,
+    href: "/intelligence",
+    accent: "bg-violet-500",
+  },
+  {
+    title: "Workspace",
+    subtitle: "Guidance into action",
+    body: "Convert AI recommendations into measurable tasks, projects, evidence, learning actions, and weekly progress.",
+    icon: Rocket,
+    href: "/workspace",
+    accent: "bg-indigo-500",
+  },
   {
     title: "Intelligence Workspace",
     body: "This is your main working area. It brings your goals, progress, learning steps, projects, and AI guidance together in one place so you can see what to focus on next.",
@@ -51,6 +74,28 @@ const advancedFeatureItems = [
     title: "Network Page",
     body: "This page helps you discover people, mentors, and opportunities that match your interests and direction, so it is easier to know who to connect with and why.",
   },
+];
+
+const opportunityTypes = [
+  "Jobs",
+  "Internships",
+  "Mentors",
+  "Scholarships",
+  "Competitions",
+  "Funding",
+  "Research",
+  "Volunteer roles",
+  "Accelerators",
+];
+
+const outcomeStats = [
+  { value: "1", label: "guided intelligence journey" },
+  { value: "6", label: "connected growth modules" },
+  { value: "24/7", label: "AI guidance availability" },
+  { value: "360°", label: "individual + institutional view" },
+];
+
+const audienceCards = [
   {
     title: "Clear Next Steps",
     body: "VisionTech AI turns your profile and activity into simple suggestions, helping beginners understand what action to take without needing to figure everything out alone.",
@@ -61,21 +106,34 @@ const advancedFeatureItems = [
   },
 ];
 
-const steps = [
-  { title: "Create your account", body: "Sign up and unlock your personal innovation workspace." },
-  { title: "Map your profile", body: "Add goals, interests, and strengths to shape your intelligence graph." },
-  { title: "Activate intelligence", body: "Generate insights, recommendations, and smart collaborator matches." },
-  { title: "Execute with clarity", body: "Track progress, reduce guesswork, and move from concept to outcome." },
+const trustItems = [
+  "Privacy-conscious profile intelligence",
+  "Administrator decisions stay human-led",
+  "Designed for learners, institutions, and opportunity partners",
+  "Built for measurable readiness and impact reporting",
 ];
 
 const faqs = [
-  { q: "What is VisionTech?", a: "VisionTech is a digital platform that helps individuals navigate technology careers through structured learning pathways and intelligent guidance." },
-  { q: "Who is VisionTech for?", a: "Students, graduates, career changers, and anyone looking to grow in their field without a clear plan." },
-  { q: "Do I need prior experience in technology?", a: "No. VisionTech supports users at all levels, from beginners to those specializing or advancing their skills." },
-  { q: "How are pathways created?", a: "Pathways are designed from industry requirements and structured learning progressions, combined with intelligent recommendation logic." },
-  { q: "Is VisionTech free to use?", a: "The MVP version provides core features for free, with premium features planned as the platform evolves." },
-  { q: "How does VisionTech use AI?", a: "AI provides guidance and recommendations based on your goals, helping you make informed decisions about learning and career paths." },
-  { q: "Can VisionTech help me get a job?", a: "Yes, by guiding you through the right skills and matching you to relevant opportunities and collaborators, improving readiness for real outcomes." },
+  {
+    q: "What is VisionTech AI?",
+    a: "VisionTech AI is an innovation intelligence platform that helps people understand their strengths, follow clearer pathways, build evidence, connect with support, and access relevant opportunities.",
+  },
+  {
+    q: "Who is VisionTech for?",
+    a: "It supports students, graduates, career changers, early professionals, mentors, training providers, universities, youth organisations, and opportunity partners.",
+  },
+  {
+    q: "Does VisionTech replace mentors or advisors?",
+    a: "No. AI supports better decisions by surfacing insight and next steps, while mentors, institutions, and users remain responsible for final action.",
+  },
+  {
+    q: "What makes VisionTech different?",
+    a: "VisionTech connects diagnosis, action, project evidence, networking, opportunities, and institutional analytics instead of leaving those steps fragmented.",
+  },
+  {
+    q: "Can institutions use VisionTech?",
+    a: "Yes. Organisation dashboards help teams monitor cohorts, interventions, readiness, opportunities, reports, and AI-guided institutional priorities.",
+  },
 ];
 
 export default function Home(): JSX.Element {
@@ -85,6 +143,7 @@ export default function Home(): JSX.Element {
   const [waitlistEmail, setWaitlistEmail] = useState("");
   const [waitlistSubmitting, setWaitlistSubmitting] = useState(false);
   const [waitlistMessage, setWaitlistMessage] = useState<string | null>(null);
+  const [demoGoal, setDemoGoal] = useState("I want to become a cybersecurity analyst.");
 
   async function handleWaitlistSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -122,69 +181,59 @@ export default function Home(): JSX.Element {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-[#f7f3ff] text-slate-900">
-      <section id="home" className="relative overflow-hidden bg-gradient-to-b from-[#12063a] via-[#1a0b4b] to-[#26125f] px-6 pb-20 pt-24 md:px-12 lg:px-16">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(216,207,252,0.24),transparent_34%),radial-gradient(circle_at_82%_22%,rgba(255,255,255,0.08),transparent_30%),radial-gradient(circle_at_70%_85%,rgba(96,66,170,0.22),transparent_44%)]" />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,3,22,0.32)_0%,rgba(10,4,30,0.18)_40%,rgba(10,4,30,0.06)_100%)]" />
-        <motion.div
-          className="pointer-events-none absolute left-[6%] top-[20%] hidden h-24 w-24 rounded-full border border-[#d8cffc] bg-white/50 md:block"
-          animate={{ y: [0, -10, 0], rotate: [0, 3, 0] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="pointer-events-none absolute right-[8%] top-[16%] hidden h-16 w-16 rounded-xl border border-[#d8cffc] bg-[#f7f3ff]/90 md:block"
-          animate={{ y: [0, 12, 0], rotate: [0, -6, 0] }}
-          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-        />
+  const demoResponse = buildDemoResponse(demoGoal);
 
-        <div className="relative mx-auto max-w-4xl">
+  return (
+    <div className="min-h-screen bg-[#f8f5ff] text-slate-950">
+      <section id="home" className="relative overflow-hidden bg-[#12063a] px-6 pb-16 pt-24 text-white md:px-12 lg:px-16">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_12%,rgba(216,207,252,0.28),transparent_32%),radial-gradient(circle_at_84%_18%,rgba(96,165,250,0.16),transparent_32%),linear-gradient(180deg,rgba(18,6,58,0)_0%,rgba(248,245,255,0.05)_100%)]" />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[0.95fr_1.05fr]">
           <motion.div
             initial="hidden"
             animate="show"
             variants={{ show: { transition: { staggerChildren: 0.1 } } }}
-            className="space-y-6 text-center"
+            className="space-y-7"
           >
-            <motion.p variants={fadeUp} className="font-label text-xs font-bold uppercase tracking-[0.35em] text-[#d8cffc]">
-              Innovation Intelligence
+            <motion.p variants={fadeUp} className="w-fit rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.26em] text-[#d8cffc]">
+              AI-Powered Innovation Intelligence Platform
             </motion.p>
-            <motion.h1
-              variants={fadeUp}
-              className="font-headline text-6xl font-extrabold leading-[0.92] tracking-tight text-white md:text-7xl"
-            >
-              The intelligence layer for <span className="text-[#d8cffc]">human innovation</span>.
+            <motion.h1 variants={fadeUp} className="font-headline text-5xl font-black leading-[0.95] tracking-tight md:text-7xl">
+              Your AI guide for learning, careers, opportunities and innovation.
             </motion.h1>
-            <motion.p variants={fadeUp} className="mx-auto max-w-2xl font-sans text-lg leading-relaxed text-white/85 md:text-xl">
-              VisionTech maps strengths, learning direction, and collaboration fit so individuals and teams can move
-              from exploration to execution with confidence.
+            <motion.p variants={fadeUp} className="max-w-2xl text-lg leading-8 text-white/82 md:text-xl">
+              Discover your strengths, uncover opportunities, connect with mentors, and receive personalised guidance that grows with you throughout your journey.
             </motion.p>
-            <motion.div variants={fadeUp} className="flex flex-wrap justify-center gap-4">
-              <a
-                href="/signup"
-                className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 font-headline font-semibold text-[#1f0954] shadow-lg transition hover:bg-white/50"
-              >
-                Join VisionTech <ArrowRight className="h-4 w-4" />
+            <motion.div variants={fadeUp} className="flex flex-wrap gap-4">
+              <a href="/signup" className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-4 font-headline font-bold text-[#1f0954] shadow-xl shadow-black/20 transition hover:bg-[#efe8ff]">
+                Start Your Intelligence Journey <ArrowRight className="h-4 w-4" />
               </a>
-              <a
-                href={intelligenceHref}
-                className="inline-flex items-center rounded-xl border border-white/40 px-8 py-4 font-headline font-semibold text-white transition hover:border-white"
-              >
+              <a href={intelligenceHref} className="inline-flex items-center rounded-2xl border border-white/30 px-6 py-4 font-headline font-bold text-white transition hover:border-white hover:bg-white/10">
                 Open Intelligence
               </a>
             </motion.div>
-            <motion.div variants={fadeUp} className="flex flex-wrap justify-center gap-3 text-xs text-white/80">
-              {["Capability Graphs", "AI Matching", "Confidence Signals", "Execution Pathways"].map((pill) => (
-                <span key={pill} className="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[#efe8ff] backdrop-blur-sm">
-                  {pill}
+            <motion.div variants={fadeUp} className="grid gap-3 text-sm text-white/78 sm:grid-cols-3">
+              {["Personal AI diagnosis", "Action workspace", "Opportunity ecosystem"].map((label) => (
+                <span key={label} className="inline-flex items-center gap-2 rounded-2xl border border-white/12 bg-white/8 px-3 py-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+                  {label}
                 </span>
               ))}
             </motion.div>
           </motion.div>
-        </div>
 
+          <motion.div
+            initial={{ opacity: 0, y: 28, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.18 }}
+            className="relative"
+          >
+            <div className="absolute -inset-6 rounded-[2.2rem] bg-gradient-to-br from-indigo-400/25 via-white/10 to-sky-400/20 blur-2xl" />
+            <DashboardPreview />
+          </motion.div>
+        </div>
         <motion.a
-          href="#how-it-works"
-          className="relative mx-auto mt-12 flex w-fit items-center gap-2 rounded-full border border-[#d8cffc] bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#1f0954]"
+          href="#problem"
+          className="relative mx-auto mt-12 flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-white"
           animate={{ y: [0, 4, 0] }}
           transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
         >
@@ -192,37 +241,29 @@ export default function Home(): JSX.Element {
         </motion.a>
       </section>
 
-      <section
-        id="solution"
-        className="border-t border-[#daccfb] bg-[#f0e8ff] px-6 py-20 md:px-12 lg:px-16"
-      >
-        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2">
-          <div className="space-y-3">
-            <p className="font-label text-[11px] font-bold uppercase tracking-[0.3em] text-[#1f0954]">Solution</p>
-            <h2 className="font-headline text-3xl font-bold text-slate-900 md:text-4xl">
-              A smarter way to navigate technology careers.
+      <section id="problem" className="border-t border-[#e7deff] bg-white px-6 py-20 md:px-12 lg:px-16">
+        <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+          <div>
+            <p className="font-label text-xs font-black uppercase tracking-[0.28em] text-[#1f0954]">The Problem</p>
+            <h2 className="mt-4 font-headline text-4xl font-black tracking-tight text-slate-950 md:text-5xl">
+              Young people don't lack potential. They lack direction.
             </h2>
-            <p className="leading-relaxed text-slate-700">
-              VisionTech connects structured learning, guided pathways, and AI recommendations so you always know the
-              next best step.
-            </p>
           </div>
-          <a
-            href="/about#problem"
-            className="block rounded-2xl border border-[#d8cffc] bg-[#f7f3ff] p-8 shadow-[0_20px_60px_rgba(31,9,84,0.08)] transition hover:shadow-[0_0_0_1px_rgba(216,207,252,0.75),0_0_26px_rgba(116,88,218,0.32),0_24px_70px_rgba(31,9,84,0.14)]"
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="font-label text-xs uppercase tracking-[0.25em] text-[#1f0954]">Explore</p>
-                <h3 className="mt-2 font-headline text-2xl font-bold text-slate-900">The problem VisionTech solves</h3>
-              </div>
-              <ArrowRight className="h-5 w-5 text-[#1f0954]" />
-            </div>
-            <p className="leading-relaxed text-slate-700">
-              See how VisionTech tackles fragmented learning, unclear pathways, and inaccessible opportunities with an
-              integrated, intelligent guide.
+          <div className="space-y-5 text-lg leading-8 text-slate-650">
+            <p>
+              Millions struggle to discover opportunities, choose the right learning path, find mentors, and understand what to do next.
             </p>
-          </a>
+            <p>
+              Learning platforms show content. Job boards show vacancies. Networks show people. VisionTech connects the full journey so guidance becomes action.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {["Unclear pathways", "Hidden opportunities", "Weak project evidence"].map((item) => (
+                <div key={item} className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -259,20 +300,54 @@ export default function Home(): JSX.Element {
             <div className="grid gap-4 sm:grid-cols-2">
               {advancedFeatureItems.map((item, idx) => (
                 <motion.article
-                  key={item.title}
+                  key={step.title}
                   initial={{ opacity: 0, y: 18 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, amount: 0.25 }}
-                  transition={{ duration: 0.45, delay: idx * 0.07 }}
-                  whileHover={{ y: -5 }}
-                  className="rounded-2xl border border-[#e6defc] bg-[#1f0954] p-5 shadow-sm transition-shadow hover:shadow-[0_0_0_1px_rgba(216,207,252,0.7),0_0_24px_rgba(140,116,236,0.34),0_20px_45px_rgba(31,9,84,0.16)]"
+                  transition={{ duration: 0.45, delay: stepIndex * 0.04 }}
+                  className="relative rounded-3xl border border-[#e2d8ff] bg-white p-5 shadow-sm shadow-indigo-100/50"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80">Feature</p>
-                  <h3 className="mt-2 font-headline text-xl font-bold text-white/50">{item.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-white">{item.body}</p>
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1f0954] text-white">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Step {stepIndex + 1}</p>
+                  <h3 className="mt-2 font-headline text-lg font-black text-slate-950">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{step.body}</p>
                 </motion.article>
-              ))}
-            </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section id="showcase" className="bg-white px-6 py-20 md:px-12 lg:px-16">
+        <div className="mx-auto max-w-7xl space-y-10">
+          <SectionHeader
+            eyebrow="Product Showcase"
+            title="Not another career tool. A connected intelligence system."
+            description="Each module has a job: diagnose direction, turn guidance into progress, connect people, and help organisations measure impact."
+          />
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {productModules.map((module) => {
+              const Icon = module.icon;
+              return (
+                <a
+                  key={module.title}
+                  href={module.href}
+                  className="group rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-100/60"
+                >
+                  <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-2xl text-white ${module.accent}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{module.subtitle}</p>
+                  <h3 className="mt-2 font-headline text-2xl font-black text-slate-950 group-hover:text-[#1f0954]">{module.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">{module.body}</p>
+                  <span className="mt-5 inline-flex items-center gap-2 text-sm font-black text-indigo-700">
+                    Explore module <ArrowRight className="h-4 w-4" />
+                  </span>
+                </a>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -286,46 +361,136 @@ export default function Home(): JSX.Element {
               Move from profile setup to execution with a flow that keeps momentum and removes uncertainty.
             </p>
           </div>
-          <div className="grid gap-6 md:grid-cols-2">
-            {steps.map((step, idx) => (
-              <motion.div
-                key={step.title}
-                initial={{ opacity: 0, y: 18 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ duration: 0.45, delay: idx * 0.07 }}
-                whileHover={{ y: -5 }}
-                className="flex gap-4 rounded-2xl border border-[#e6defc] bg-white p-6 shadow-sm transition-shadow hover:shadow-[0_0_0_1px_rgba(216,207,252,0.7),0_0_22px_rgba(120,95,228,0.28),0_22px_42px_rgba(31,9,84,0.12)]"
-              >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#1f0954] font-headline font-bold text-white">
-                  {idx + 1}
-                </div>
-                <div>
-                  <h3 className="font-headline text-xl font-bold text-slate-900">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-700">{step.body}</p>
-                </div>
-              </motion.div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {opportunityTypes.map((item) => (
+              <div key={item} className="rounded-3xl border border-white/10 bg-white/10 p-5 text-center font-bold backdrop-blur transition hover:bg-white/15">
+                {item}
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      <OnboardingWalkthroughSlideshow />
-
-      <section className="border-t border-[#eee7ff] bg-[#fffdff] px-6 py-20 md:px-12 lg:px-16">
-        <div className="mx-auto max-w-5xl space-y-8">
-          <div className="space-y-2 text-center">
-            <p className="font-label text-[11px] font-bold uppercase tracking-[0.3em] text-[#1f0954]">FAQs</p>
-            <h2 className="font-headline text-3xl font-bold text-slate-900 md:text-4xl">Your questions, answered</h2>
+      <section id="audiences" className="bg-[#fbf9ff] px-6 py-20 md:px-12 lg:px-16">
+        <div className="mx-auto max-w-7xl space-y-10">
+          <SectionHeader
+            eyebrow="Built For Both Sides"
+            title="Individuals need direction. Organisations need visibility."
+            description="VisionTech is strongest when personal growth and institutional support work together."
+          />
+          <div className="grid gap-6 lg:grid-cols-2">
+            {audienceCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <article key={card.title} className="rounded-[2rem] border border-[#e2d8ff] bg-white p-8 shadow-sm shadow-indigo-100/60">
+                  <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#1f0954] text-white">
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <h3 className="font-headline text-3xl font-black tracking-tight text-slate-950">{card.title}</h3>
+                  <p className="mt-3 text-base leading-7 text-slate-600">{card.body}</p>
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                    {card.points.map((point) => (
+                      <div key={point} className="flex items-center gap-2 rounded-2xl bg-[#f4efff] px-4 py-3 text-sm font-bold text-[#1f0954]">
+                        <CheckCircle2 className="h-4 w-4" />
+                        {point}
+                      </div>
+                    ))}
+                  </div>
+                  <a href={card.href} className="mt-7 inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-[#1f0954]">
+                    Continue <ArrowRight className="h-4 w-4" />
+                  </a>
+                </article>
+              );
+            })}
           </div>
-          <div className="overflow-hidden rounded-2xl border border-slate-200">
-            {faqs.map((item, idx) => (
-              <details key={item.q} className="group border-b border-slate-200 bg-white last:border-b-0">
-                <summary className="flex cursor-pointer items-center justify-between gap-3 px-5 py-4 font-semibold text-slate-900 transition hover:bg-[#f7f3ff]">
-                  <span>{`${idx + 1}. ${item.q}`}</span>
+        </div>
+      </section>
+
+      <section id="ai-demo" className="bg-white px-6 py-20 md:px-12 lg:px-16">
+        <div className="mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+          <div>
+            <p className="font-label text-xs font-black uppercase tracking-[0.28em] text-[#1f0954]">Interactive AI Demo</p>
+            <h2 className="mt-4 font-headline text-4xl font-black tracking-tight text-slate-950 md:text-5xl">
+              Show the transformation before asking users to sign up.
+            </h2>
+            <p className="mt-5 text-lg leading-8 text-slate-600">
+              The homepage now demonstrates the kind of guidance users can expect: strengths, missing skills, projects, mentors, and opportunities.
+            </p>
+          </div>
+          <div className="rounded-[2rem] border border-slate-200 bg-slate-950 p-5 text-white shadow-2xl shadow-indigo-100">
+            <label className="block text-xs font-black uppercase tracking-[0.22em] text-indigo-200">What are your goals?</label>
+            <textarea
+              value={demoGoal}
+              onChange={(event) => setDemoGoal(event.target.value)}
+              className="mt-3 min-h-24 w-full resize-none rounded-2xl border border-white/10 bg-white/10 p-4 text-sm leading-6 text-white outline-none placeholder:text-white/40 focus:border-indigo-300"
+            />
+            <div className="mt-4 rounded-3xl bg-white p-5 text-slate-950">
+              <div className="flex items-center gap-2 text-indigo-700">
+                <Sparkles className="h-4 w-4" />
+                <p className="text-sm font-black">VisionTech AI Response</p>
+              </div>
+              <div className="mt-4 grid gap-3">
+                {demoResponse.map((item) => (
+                  <div key={item.label} className="rounded-2xl bg-[#f4efff] p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-700">{item.label}</p>
+                    <p className="mt-1 text-sm leading-6 text-slate-700">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="outcomes" className="bg-[#f4efff] px-6 py-20 md:px-12 lg:px-16">
+        <div className="mx-auto max-w-7xl space-y-10">
+          <SectionHeader
+            eyebrow="Outcomes Over Features"
+            title="The promise is not more dashboards. It is clearer progress."
+            description="VisionTech should be judged by the confidence, readiness, evidence, and opportunity access it helps create."
+          />
+          <div className="grid gap-4 md:grid-cols-4">
+            {outcomeStats.map((stat) => (
+              <div key={stat.label} className="rounded-3xl border border-[#e2d8ff] bg-white p-6 text-center shadow-sm">
+                <p className="font-headline text-4xl font-black text-[#1f0954]">{stat.value}</p>
+                <p className="mt-2 text-sm font-semibold text-slate-600">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {trustItems.map((item) => (
+              <div key={item} className="flex gap-3 rounded-3xl bg-white p-5 text-sm font-semibold text-slate-700">
+                <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-600" />
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="vision" className="bg-white px-6 py-20 md:px-12 lg:px-16">
+        <div className="mx-auto max-w-5xl rounded-[2rem] border border-[#e2d8ff] bg-gradient-to-br from-[#1f0954] to-slate-950 p-8 text-center text-white shadow-2xl shadow-indigo-100 md:p-12">
+          <Lightbulb className="mx-auto h-10 w-10 text-[#d8cffc]" />
+          <h2 className="mt-5 font-headline text-4xl font-black tracking-tight md:text-5xl">
+            We believe opportunity should never depend on who you know.
+          </h2>
+          <p className="mx-auto mt-5 max-w-3xl text-lg leading-8 text-white/78">
+            Every person deserves intelligent guidance. Every institution deserves actionable insights. VisionTech AI connects both.
+          </p>
+        </div>
+      </section>
+
+      <section className="bg-[#fffdff] px-6 py-20 md:px-12 lg:px-16">
+        <div className="mx-auto max-w-5xl space-y-8">
+          <SectionHeader eyebrow="FAQs" title="Your questions, answered" description="Quick answers for individuals, institutions, and partners exploring VisionTech." />
+          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
+            {faqs.map((item, questionIndex) => (
+              <details key={item.q} className="group border-b border-slate-200 last:border-b-0">
+                <summary className="flex cursor-pointer items-center justify-between gap-3 px-5 py-4 font-bold text-slate-900 transition hover:bg-[#f7f3ff]">
+                  <span>{`${questionIndex + 1}. ${item.q}`}</span>
                   <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180" />
                 </summary>
-                <div className="border-t border-slate-100 bg-[#faf9ff] px-5 pb-5 text-sm leading-relaxed text-slate-700">
+                <div className="border-t border-slate-100 bg-[#faf9ff] px-5 pb-5 pt-4 text-sm leading-7 text-slate-700">
                   {item.a}
                 </div>
               </details>
@@ -334,27 +499,20 @@ export default function Home(): JSX.Element {
         </div>
       </section>
 
-      <section className="relative overflow-hidden border-t border-[#d8cbfb] bg-[#1f0954] px-6 py-20 text-white md:px-12 lg:px-16">
+      <section className="relative overflow-hidden bg-[#1f0954] px-6 py-20 text-white md:px-12 lg:px-16">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(255,255,255,0.08),transparent_35%),radial-gradient(circle_at_80%_42%,rgba(216,207,252,0.2),transparent_38%)]" />
         <div className="relative mx-auto max-w-5xl space-y-6 text-center">
-          <p className="font-label text-[11px] font-bold uppercase tracking-[0.3em] text-white/70">Call to action</p>
-          <h2 className="font-headline text-3xl font-bold md:text-4xl">Start building your future today</h2>
-          <p className="text-lg leading-relaxed text-white/80">
-            Take the first step toward a guided technology journey with clearer decisions, stronger collaboration, and
-            measurable progress.
+          <p className="font-label text-xs font-black uppercase tracking-[0.28em] text-white/70">Start Now</p>
+          <h2 className="font-headline text-4xl font-black tracking-tight md:text-5xl">Discover your next opportunity.</h2>
+          <p className="mx-auto max-w-3xl text-lg leading-8 text-white/80">
+            Start with your profile. Let VisionTech identify your direction, recommend next steps, and help you turn potential into measurable progress.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <a
-              href="/signup"
-              className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 font-headline font-semibold text-[#0b1b2d] shadow-lg transition hover:bg-slate-100"
-            >
-              Join VisionTech <Sparkles className="h-4 w-4" />
+            <a href="/signup" className="inline-flex items-center gap-2 rounded-2xl bg-white px-8 py-4 font-headline font-bold text-[#1f0954] shadow-lg transition hover:bg-slate-100">
+              Start Your Intelligence Journey <Sparkles className="h-4 w-4" />
             </a>
-            <a
-              href="/onboarding"
-              className="inline-flex items-center rounded-xl border border-white/50 px-8 py-4 font-headline font-semibold text-white transition hover:border-white"
-            >
-              Get Started
+            <a href="/pricing" className="inline-flex items-center rounded-2xl border border-white/50 px-8 py-4 font-headline font-bold text-white transition hover:border-white hover:bg-white/10">
+              Explore Plans
             </a>
           </div>
           <div className="flex items-center justify-center gap-2 text-sm text-white/70">
@@ -364,11 +522,7 @@ export default function Home(): JSX.Element {
           <div className="pt-3">
             <div className="inline-flex flex-wrap items-center justify-center gap-3">
               {socialLinks.map((social) => (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  className="rounded-full border border-white/30 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-white/80 transition hover:border-white hover:text-white"
-                >
+                <a key={social.label} href={social.href} className="rounded-full border border-white/30 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-white/80 transition hover:border-white hover:text-white">
                   {social.label}
                 </a>
               ))}
@@ -383,11 +537,10 @@ export default function Home(): JSX.Element {
           <div className="absolute bottom-0 right-[-10%] h-96 w-96 rounded-full bg-gradient-to-br from-[#efe8ff] via-[#d8cffc] to-transparent opacity-70 blur-3xl" />
         </div>
         <div className="relative mx-auto max-w-4xl space-y-8 text-center">
-          <p className="font-label text-[11px] font-bold uppercase tracking-[0.3em] text-[#1f0954]">Access</p>
-          <h3 className="font-headline text-3xl font-bold text-[#0b1b2d] md:text-4xl">Join the waitlist</h3>
+          <p className="font-label text-xs font-black uppercase tracking-[0.28em] text-[#1f0954]">Access</p>
+          <h3 className="font-headline text-3xl font-black text-[#0b1b2d] md:text-4xl">Join the waitlist</h3>
           <p className="leading-relaxed text-[#0b1b2d]">
-            Be the first to try VisionTech. We're onboarding design partners and innovation teams shaping the future of
-            collaboration intelligence.
+            Be the first to try VisionTech. We're onboarding design partners, institutions, and opportunity partners shaping the future of guidance intelligence.
           </p>
           <form onSubmit={handleWaitlistSubmit} className="mt-4 grid gap-3 md:grid-cols-[2fr,1fr]">
             <input
@@ -397,19 +550,13 @@ export default function Home(): JSX.Element {
               value={waitlistEmail}
               onChange={(event) => setWaitlistEmail(event.target.value)}
               placeholder="Work email"
-              className="rounded-lg border border-[#d8cffc] bg-white px-4 py-3 text-sm text-[#0b1b2d] placeholder-slate-500 focus:border-[#1f0954] focus:outline-none focus:ring-2 focus:ring-[#d8cffc]"
+              className="rounded-2xl border border-[#d8cffc] bg-white px-4 py-3 text-sm text-[#0b1b2d] placeholder-slate-500 focus:border-[#1f0954] focus:outline-none focus:ring-2 focus:ring-[#d8cffc]"
             />
-            <button
-              type="submit"
-              disabled={waitlistSubmitting}
-              className="flex items-center justify-center gap-2 rounded-lg bg-[#1f0954] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#1f0954]/25 transition hover:bg-black"
-            >
+            <button type="submit" disabled={waitlistSubmitting} className="flex items-center justify-center gap-2 rounded-2xl bg-[#1f0954] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#1f0954]/25 transition hover:bg-black disabled:opacity-60">
               {waitlistSubmitting ? "Submitting..." : "Request Access"} <ArrowRight className="h-4 w-4" />
             </button>
           </form>
-          {waitlistMessage ? (
-            <p className="text-sm text-[#1f0954]">{waitlistMessage}</p>
-          ) : null}
+          {waitlistMessage ? <p className="text-sm font-semibold text-[#1f0954]">{waitlistMessage}</p> : null}
           <div className="flex items-center justify-center gap-3 text-xs text-[#0b1b2d]/80">
             <Users className="h-4 w-4 text-[#1f0954]" />
             <span>We'll reach out with onboarding steps and pilot options.</span>
@@ -418,4 +565,112 @@ export default function Home(): JSX.Element {
       </section>
     </div>
   );
+}
+
+function DashboardPreview(): JSX.Element {
+  return (
+    <div className="relative rounded-[2rem] border border-white/15 bg-white/10 p-3 shadow-2xl shadow-black/35 backdrop-blur-xl">
+      <div className="rounded-[1.5rem] bg-[#f8f5ff] p-5 text-slate-950">
+        <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-700">VisionTech Intelligence</p>
+            <h3 className="mt-1 font-headline text-xl font-black">Opportunity Readiness Dashboard</h3>
+          </div>
+          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">AI Ready</span>
+        </div>
+
+        <div className="mt-5 grid gap-4 md:grid-cols-[0.95fr_1.05fr]">
+          <div className="space-y-4">
+            <div className="rounded-3xl bg-slate-950 p-5 text-white">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-200">AI Summary</p>
+              <p className="mt-3 text-sm leading-6 text-white/78">
+                Your strongest route is cloud support. Build practical troubleshooting evidence and apply to entry-level technical roles.
+              </p>
+            </div>
+            <div className="rounded-3xl border border-slate-200 bg-white p-4">
+              <p className="text-sm font-black">Readiness Score</p>
+              <div className="mt-3 flex items-end gap-2">
+                <span className="font-headline text-4xl font-black text-[#1f0954]">68%</span>
+                <span className="pb-1 text-xs font-bold text-slate-500">ready</span>
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full w-[68%] rounded-full bg-indigo-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-3">
+            {[
+              { icon: Target, label: "Skill gap", value: "Troubleshooting evidence" },
+              { icon: Rocket, label: "Next action", value: "Complete one project task" },
+              { icon: MessageSquare, label: "Mentor signal", value: "Feedback recommended" },
+              { icon: BriefcaseBusiness, label: "Opportunity", value: "Junior Cloud Internship" },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.label} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f4efff] text-[#1f0954]">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{item.label}</p>
+                    <p className="text-sm font-black text-slate-900">{item.value}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SectionHeader({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+}): JSX.Element {
+  return (
+    <div className="mx-auto max-w-3xl space-y-3 text-center">
+      <p className="font-label text-xs font-black uppercase tracking-[0.28em] text-[#1f0954]">{eyebrow}</p>
+      <h2 className="font-headline text-4xl font-black tracking-tight text-slate-950 md:text-5xl">{title}</h2>
+      <p className="text-base leading-7 text-slate-600">{description}</p>
+    </div>
+  );
+}
+
+function buildDemoResponse(goal: string): Array<{ label: string; value: string }> {
+  const normalizedGoal = goal.toLowerCase();
+  const isCybersecurity = normalizedGoal.includes("cyber") || normalizedGoal.includes("security");
+  const isData = normalizedGoal.includes("data") || normalizedGoal.includes("analyst");
+
+  if (isCybersecurity) {
+    return [
+      { label: "Strengths", value: "Curiosity, structured thinking, risk awareness, and problem-solving can transfer well into cybersecurity." },
+      { label: "Missing Skills", value: "Networking basics, Linux, security fundamentals, incident response, and practical lab evidence." },
+      { label: "Projects", value: "Build a home lab, write an incident report, document a vulnerability scan, and explain remediation steps." },
+      { label: "Opportunities", value: "Target SOC trainee roles, cyber internships, cloud security projects, mentors, and beginner CTF communities." },
+    ];
+  }
+
+  if (isData) {
+    return [
+      { label: "Strengths", value: "Analytical thinking, communication, curiosity, and pattern recognition can support a data pathway." },
+      { label: "Missing Skills", value: "Spreadsheet modelling, SQL, Python basics, dashboarding, and portfolio storytelling." },
+      { label: "Projects", value: "Clean a public dataset, build a small dashboard, and write a short insight report with recommendations." },
+      { label: "Opportunities", value: "Target data internships, portfolio challenges, mentor reviews, and entry-level analyst communities." },
+    ];
+  }
+
+  return [
+    { label: "Strengths", value: "VisionTech would identify transferable strengths from your profile, experience, interests, and goals." },
+    { label: "Missing Skills", value: "The platform would highlight the most important skills and evidence gaps for your chosen pathway." },
+    { label: "Projects", value: "You would receive practical project suggestions designed to prove readiness, not just complete learning." },
+    { label: "Opportunities", value: "VisionTech would surface mentors, communities, roles, scholarships, and experiences aligned with your direction." },
+  ];
 }
