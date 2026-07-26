@@ -226,72 +226,120 @@ export function Header() {
 }
 
 export function Footer() {
+  const quickLinks = [
+    { label: "Home", to: "/" },
+    { label: "Platform", to: "/platform" },
+    { label: "Pricing", to: "/pricing" },
+    { label: "About", to: "/about" },
+  ];
+
+  const productLinks = [
+    { label: "AI Intelligence", to: "/intelligence" },
+    { label: "Action Workspace", to: "/workspace" },
+    { label: "Network", to: "/network" },
+    { label: "Organisation Dashboard", to: "/organisation" },
+  ];
+
+  const audienceLinks = [
+    { label: "For Learners", to: "/signup" },
+    { label: "For Organisations", to: "/organization-auth" },
+    { label: "Admin Access", to: "/admin/login" },
+    { label: "Profile Setup", to: "/onboarding" },
+  ];
+
+  const legalLinks = ["Privacy Policy", "Terms of Service", "AI Ethics", "Security"];
+
   return (
     <footer className="w-full border-t border-outline-variant/0 bg-[#1f0954] pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-6 md:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-12 mb-16">
-          <div className="col-span-1 md:col-span-2">
-            <div className="text-2xl font-bold tracking-tighter text-white font-headline mb-6">VisionTech</div>
+        <div className="grid grid-cols-1 gap-10 mb-14 lg:grid-cols-[1.45fr_1fr_1fr_1fr_1.15fr]">
+          <div>
+            <Link to="/" className="inline-flex text-2xl font-bold tracking-tighter text-white font-headline mb-5">
+              VisionTech
+            </Link>
             <p className="text-white/80 max-w-sm font-sans leading-relaxed">
-              Engineering the next era of collaborative intelligence. Our platform bridges the gap between raw data and creative execution.
+              AI-powered career intelligence for learners, mentors, and organisations turning potential into opportunity readiness.
             </p>
+            <div className="flex gap-3 mt-6">
+              <a className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors inline-flex items-center justify-center text-white" href="#" aria-label="VisionTech on LinkedIn">
+                <Linkedin className="w-4 h-4" aria-hidden="true" />
+              </a>
+              <a className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors inline-flex items-center justify-center text-white" href="#" aria-label="VisionTech on Instagram">
+                <Instagram className="w-4 h-4" aria-hidden="true" />
+              </a>
+              <a className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors inline-flex items-center justify-center text-white" href="#" aria-label="VisionTech on YouTube">
+                <Youtube className="w-4 h-4" aria-hidden="true" />
+              </a>
+            </div>
           </div>
           <div>
-            <h4 className="font-label text-xs font-extrabold uppercase tracking-widest text-white mb-6">Platform</h4>
-            <ul className="space-y-3 pl-5 list-disc marker:text-white/50 text-sm font-medium text-white/70">
-              <li><Link className="hover:text-white transition-colors" to="/platform">Platform</Link></li>
-              <li><a className="hover:text-white transition-colors" href="#">Network Access</a></li>
-              <li><a className="hover:text-white transition-colors" href="#">Workspace Tools</a></li>
+            <h4 className="font-label text-xs font-extrabold uppercase tracking-widest text-white mb-6">Quick Links</h4>
+            <ul className="space-y-3 text-sm font-medium text-white/70">
+              {quickLinks.map((link) => (
+                <li key={link.to}>
+                  <Link className="hover:text-white transition-colors" to={link.to}>{link.label}</Link>
+                </li>
+              ))}
             </ul>
           </div>
           <div>
-            <h4 className="font-label text-xs font-extrabold uppercase tracking-widest text-white mb-6">Resources</h4>
-            <ul className="space-y-3 pl-5 list-disc marker:text-white/50 text-sm font-medium text-white/70">
-              <li><a className="hover:text-white transition-colors" href="#">API Documentation</a></li>
-              <li><Link className="hover:text-white transition-colors" to="/pricing">Pricing</Link></li>
-              <li><a className="hover:text-white transition-colors" href="#">AI Ethics Charter</a></li>
-              <li><a className="hover:text-white transition-colors" href="#">Innovation Reports</a></li>
+            <h4 className="font-label text-xs font-extrabold uppercase tracking-widest text-white mb-6">Products</h4>
+            <ul className="space-y-3 text-sm font-medium text-white/70">
+              {productLinks.map((link) => (
+                <li key={link.to}>
+                  <Link className="hover:text-white transition-colors" to={link.to}>{link.label}</Link>
+                </li>
+              ))}
             </ul>
           </div>
           <div>
-            <h4 className="font-label text-xs font-extrabold uppercase tracking-widest text-white mb-6">Contact</h4>
-            <ul className="space-y-3 text-sm font-medium text-white/80">
-              <li>Email: <span className="text-white">hello@visiontech.ai</span></li>
-              <li>Address: <span className="text-white">123 Innovation Way, London, UK</span></li>
-              <li className="text-white/70 text-xs">Partnerships, pilots, and enterprise programs welcome.</li>
+            <h4 className="font-label text-xs font-extrabold uppercase tracking-widest text-white mb-6">For Users</h4>
+            <ul className="space-y-3 text-sm font-medium text-white/70">
+              {audienceLinks.map((link) => (
+                <li key={link.to}>
+                  <Link className="hover:text-white transition-colors" to={link.to}>{link.label}</Link>
+                </li>
+              ))}
             </ul>
           </div>
           <div>
-            <h4 className="font-label text-xs font-extrabold uppercase tracking-widest text-white mb-6">Social</h4>
-            <ul className="flex flex-wrap gap-4 text-sm font-medium text-white/80 items-center">
+            <h4 className="font-label text-xs font-extrabold uppercase tracking-widest text-white mb-6">Contact Us</h4>
+            <ul className="space-y-4 text-sm font-medium text-white/80">
               <li>
-                <a className="hover:text-white transition-colors inline-flex items-center gap-2" href="#">
-                  <Linkedin className="w-5 h-5" aria-hidden="true" />
-                  <span className="sr-only">LinkedIn</span>
-                </a>
+                <span className="block text-white/50 text-xs uppercase tracking-widest mb-1">Email</span>
+                <a className="text-white hover:text-white/80 transition-colors" href="mailto:hello@visiontech.ai">hello@visiontech.ai</a>
               </li>
               <li>
-                <a className="hover:text-white transition-colors inline-flex items-center gap-2" href="#">
-                  <Instagram className="w-5 h-5" aria-hidden="true" />
-                  <span className="sr-only">Instagram</span>
-                </a>
+                <span className="block text-white/50 text-xs uppercase tracking-widest mb-1">Partnerships</span>
+                <Link className="text-white/80 hover:text-white transition-colors" to="/organization-auth">Create an organisation account</Link>
               </li>
               <li>
-                <a className="hover:text-white transition-colors inline-flex items-center gap-2" href="#">
-                  <Youtube className="w-5 h-5" aria-hidden="true" />
-                  <span className="sr-only">YouTube</span>
-                </a>
+                <span className="block text-white/50 text-xs uppercase tracking-widest mb-1">Support</span>
+                <Link className="text-white/80 hover:text-white transition-colors" to="/login">Sign in for account help</Link>
               </li>
             </ul>
           </div>
         </div>
-        <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-outline-variant/10 font-label text-[11px] uppercase tracking-widest">
-          <span className="text-white/60 mb-4 md:mb-0">© 2026 VISIONTECH AI. EMPOWERING THE FUTURE.</span>
-          <div className="flex space-x-8">
-          <a className="text-white/60 hover:text-white transition-opacity" href="#">Privacy Policy</a>
-            <a className="text-white/60 hover:text-white transition-opacity" href="#">Terms of Service</a>
-            <a className="text-white/60 hover:text-white transition-opacity" href="#">AI Ethics</a>
-            <a className="text-white/60 hover:text-white transition-opacity" href="#">API Docs</a>
+        <div className="rounded-3xl border border-white/10 bg-white/[0.08] p-6 mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="font-headline text-xl font-bold tracking-tight text-white">Ready to turn insight into progress?</p>
+            <p className="text-sm text-white/70 mt-1">Start with your AI pathway, then build evidence in the workspace.</p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Link className="rounded-full bg-white px-5 py-3 text-sm font-bold text-[#1f0954] hover:bg-white/90 transition-colors text-center" to="/signup">
+              Get Started
+            </Link>
+            <Link className="rounded-full border border-white/20 px-5 py-3 text-sm font-bold text-white hover:bg-white/10 transition-colors text-center" to="/organization-auth">
+              Organisation Access
+            </Link>
+          </div>
+        </div>
+        <div className="flex flex-col md:flex-row justify-between gap-6 items-start md:items-center pt-8 border-t border-white/10 font-label text-[11px] uppercase tracking-widest">
+          <span className="text-white/60">© 2026 VisionTech AI. Empowering the future.</span>
+          <div className="flex flex-wrap gap-x-8 gap-y-3">
+            {legalLinks.map((link) => (
+              <a key={link} className="text-white/60 hover:text-white transition-opacity" href="#">{link}</a>
+            ))}
           </div>
         </div>
       </div>
