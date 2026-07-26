@@ -67,20 +67,12 @@ const productModules = [
     accent: "bg-indigo-500",
   },
   {
-    title: "Network",
-    subtitle: "People and opportunity fit",
-    body: "Connect with mentors, collaborators, communities, and opportunities aligned with your pathway.",
-    icon: Network,
-    href: "/network",
-    accent: "bg-sky-500",
+    title: "Intelligence Workspace",
+    body: "This is your main working area. It brings your goals, progress, learning steps, projects, and AI guidance together in one place so you can see what to focus on next.",
   },
   {
-    title: "Organisation",
-    subtitle: "Institutional intelligence",
-    body: "Help institutions monitor readiness, cohorts, interventions, opportunity matching, and measurable impact.",
-    icon: Building2,
-    href: "/organisation",
-    accent: "bg-emerald-500",
+    title: "Network Page",
+    body: "This page helps you discover people, mentors, and opportunities that match your interests and direction, so it is easier to know who to connect with and why.",
   },
 ];
 
@@ -105,18 +97,12 @@ const outcomeStats = [
 
 const audienceCards = [
   {
-    title: "For Individuals",
-    body: "Discover direction, build skills, create evidence, meet mentors, and move toward opportunities with confidence.",
-    icon: GraduationCap,
-    points: ["AI pathway guidance", "Skill gap clarity", "Projects and evidence", "Opportunity matching"],
-    href: "/signup",
+    title: "Clear Next Steps",
+    body: "VisionTech AI turns your profile and activity into simple suggestions, helping beginners understand what action to take without needing to figure everything out alone.",
   },
   {
-    title: "For Organisations",
-    body: "Track participation, identify support needs, manage cohorts, improve outcomes, and report measurable impact.",
-    icon: Building2,
-    points: ["Cohort analytics", "Support interventions", "Readiness insights", "Institutional reports"],
-    href: "/organisation",
+    title: "From Insight to Action",
+    body: "The platform does more than show information. It helps you learn, build, collaborate, and move forward step by step in a practical way.",
   },
 ];
 
@@ -281,17 +267,38 @@ export default function Home(): JSX.Element {
         </div>
       </section>
 
-      <section id="journey" className="bg-[#f4efff] px-6 py-20 md:px-12 lg:px-16">
-        <div className="mx-auto max-w-7xl space-y-10">
-          <SectionHeader
-            eyebrow="The Intelligence Journey"
-            title="From profile to opportunity, in one connected flow."
-            description="VisionTech makes the pathway visible: diagnose, plan, act, connect, and progress toward real outcomes."
-          />
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-            {journeySteps.map((step, stepIndex) => {
-              const Icon = step.icon;
-              return (
+      <section id="advanced" className="relative border-t border-[#e0d4ff] bg-[#f6f0ff] px-6 py-20 md:px-12 lg:px-16">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(216,207,252,0.32),transparent_42%),radial-gradient(circle_at_88%_20%,rgba(178,211,255,0.18),transparent_42%)]" />
+        <div className="relative mx-auto max-w-6xl">
+          <div className="space-y-10">
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ duration: 0.45 }}
+              className="space-y-4 text-center"
+            >
+              <p className="font-label text-[11px] font-bold uppercase tracking-[0.3em] text-[#1f0954]">
+                How VisionTech AI Works for You
+              </p>
+              <h2 className="font-headline text-3xl font-bold text-[#1f0954] md:text-5xl">
+                Designed to be clear, actionable, and dynamic.
+              </h2>
+              <p className="mx-auto max-w-4xl leading-relaxed text-slate-700">
+                VisionTech AI is designed to feel simple to use, even if you are new. Each page has a clear purpose,
+                from understanding your progress to finding the right people and opportunities.
+              </p>
+              <div className="mx-auto grid max-w-2xl gap-3 sm:grid-cols-2">
+                {featureCards.slice(0, 2).map((card) => (
+                  <div key={card.title} className="rounded-xl border border-[#e6defc] bg-[#1f0954] p-3">
+                    <p className="text-sm font-semibold text-white/90">{card.title}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {advancedFeatureItems.map((item, idx) => (
                 <motion.article
                   key={step.title}
                   initial={{ opacity: 0, y: 18 }}
@@ -345,18 +352,13 @@ export default function Home(): JSX.Element {
         </div>
       </section>
 
-      <OnboardingWalkthroughSlideshow />
-
-      <section id="opportunities" className="relative overflow-hidden bg-[#12063a] px-6 py-20 text-white md:px-12 lg:px-16">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(216,207,252,0.18),transparent_34%),radial-gradient(circle_at_80%_70%,rgba(14,165,233,0.16),transparent_36%)]" />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[0.85fr_1.15fr]">
-          <div>
-            <p className="font-label text-xs font-black uppercase tracking-[0.28em] text-[#d8cffc]">Opportunity Ecosystem</p>
-            <h2 className="mt-4 font-headline text-4xl font-black tracking-tight md:text-5xl">
-              Opportunities should find people when they are ready.
-            </h2>
-            <p className="mt-5 text-lg leading-8 text-white/78">
-              VisionTech connects readiness signals with the growth routes people usually discover too late or through limited networks.
+      <section id="how-it-works" className="border-t border-[#e7deff] bg-[#fcf9ff] px-6 py-20 md:px-12 lg:px-16">
+        <div className="mx-auto max-w-6xl space-y-10">
+          <div className="space-y-3 text-center">
+            <p className="font-label text-[11px] font-bold uppercase tracking-[0.3em] text-[#1f0954]">Getting Started</p>
+            <h2 className="font-headline text-3xl font-bold text-slate-900 md:text-4xl">Start your journey in four steps</h2>
+            <p className="mx-auto max-w-3xl leading-relaxed text-slate-700">
+              Move from profile setup to execution with a flow that keeps momentum and removes uncertainty.
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
