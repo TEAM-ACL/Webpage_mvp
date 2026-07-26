@@ -1,6 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Settings, Search, Linkedin, Instagram, Youtube, Menu, X } from 'lucide-react';
+import {
+  BarChart3,
+  CreditCard,
+  Home as HomeIcon,
+  Info,
+  Instagram,
+  LayoutDashboard,
+  Linkedin,
+  LogIn,
+  Menu,
+  Network,
+  Search,
+  Settings,
+  UserPlus,
+  X,
+  Youtube,
+  Zap,
+} from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 
@@ -38,17 +55,17 @@ export function Header() {
   };
 
   const navItems = [
-    { name: 'Home', path: '/' },
-    { name: 'Platform', path: '/platform' },
-    { name: 'Pricing', path: '/pricing' },
+    { name: 'Home', path: '/', icon: HomeIcon },
+    { name: 'Platform', path: '/platform', icon: LayoutDashboard },
+    { name: 'Pricing', path: '/pricing', icon: CreditCard },
     ...(user
       ? [
-        { name: 'Intelligence', path: '/intelligence' },
-        { name: 'Workspace', path: '/workspace' },
-        { name: 'Network', path: '/network' },
+        { name: 'Intelligence', path: '/intelligence', icon: BarChart3 },
+        { name: 'Workspace', path: '/workspace', icon: Zap },
+        { name: 'Network', path: '/network', icon: Network },
       ]
       : []),
-    { name: 'About', path: '/about' },
+    { name: 'About', path: '/about', icon: Info },
   ];
 
   // Hide auth CTAs when user is logged in, or on onboarding/profile pages.
@@ -62,21 +79,29 @@ export function Header() {
         </Link>
 
         {/* Desktop Nav */}
-        <div className="hidden md:flex items-center space-x-8">
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={cn(
-                "text-sm font-headline tracking-tight transition-all duration-300",
-                location.pathname === item.path
-                  ? "text-white font-bold border-b-2 border-white"
-                  : "text-white/70 font-medium hover:text-white"
-              )}
-            >
-              {item.name}
-            </Link>
-          ))}
+        <div className="hidden md:flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] p-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                aria-label={item.name}
+                title={item.name}
+                className={cn(
+                  "group relative inline-flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white/60",
+                  isActive
+                    ? "bg-white text-[#1f0954] shadow-lg shadow-black/10"
+                    : "text-white/70 hover:bg-white/[0.12] hover:text-white"
+                )}
+              >
+                <Icon className="h-4 w-4" aria-hidden="true" />
+                <span className="sr-only">{item.name}</span>
+              </Link>
+            );
+          })}
         </div>
 
         <div className="flex items-center space-x-4 md:space-x-6">
@@ -149,15 +174,21 @@ export function Header() {
             <div className="hidden md:flex items-center gap-3">
               <Link
                 to="/login"
-                className="text-white hover:text-white text-sm font-semibold px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-white/30"
+                aria-label="Log in"
+                title="Log in"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-transparent text-white/75 transition-colors hover:border-white/30 hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
               >
-                Log in
+                <LogIn className="h-4 w-4" aria-hidden="true" />
+                <span className="sr-only">Log in</span>
               </Link>
               <Link
                 to="/signup"
-                className="bg-white/15 hover:bg-white/30 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors border border-white/30"
+                aria-label="Sign up"
+                title="Sign up"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/15 text-white transition-colors hover:bg-white/30 focus:outline-none focus:ring-2 focus:ring-white/60"
               >
-                Sign up
+                <UserPlus className="h-4 w-4" aria-hidden="true" />
+                <span className="sr-only">Sign up</span>
               </Link>
             </div>
           )}
@@ -183,11 +214,12 @@ export function Header() {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "text-base font-headline tracking-tight transition-colors",
+                  "inline-flex items-center gap-3 text-base font-headline tracking-tight transition-colors",
                   location.pathname === item.path ? "text-white font-semibold" : "text-white/80 hover:text-white"
                 )}
                 onClick={() => setMobileOpen(false)}
               >
+                <item.icon className="h-4 w-4" aria-hidden="true" />
                 {item.name}
               </Link>
             ))}
@@ -195,16 +227,18 @@ export function Header() {
               <div className="flex gap-3 pt-2">
                 <Link
                   to="/login"
-                  className="flex-1 text-center text-white bg-white/10 hover:bg-white/20 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+                  className="inline-flex flex-1 items-center justify-center gap-2 text-white bg-white/10 hover:bg-white/20 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
                   onClick={() => setMobileOpen(false)}
                 >
+                  <LogIn className="h-4 w-4" aria-hidden="true" />
                   Log in
                 </Link>
                 <Link
                   to="/signup"
-                  className="flex-1 text-center text-[#1f0954] bg-white hover:bg-slate-100 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+                  className="inline-flex flex-1 items-center justify-center gap-2 text-[#1f0954] bg-white hover:bg-slate-100 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
                   onClick={() => setMobileOpen(false)}
                 >
+                  <UserPlus className="h-4 w-4" aria-hidden="true" />
                   Sign up
                 </Link>
               </div>
