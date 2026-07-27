@@ -67,12 +67,20 @@ const productModules = [
     accent: "bg-indigo-500",
   },
   {
-    title: "Intelligence Workspace",
-    body: "This is your main working area. It brings your goals, progress, learning steps, projects, and AI guidance together in one place so you can see what to focus on next.",
+    title: "Network",
+    subtitle: "Mentors, peers, and support",
+    body: "Discover mentors, collaborators, communities, and relationships connected to your goals and next actions.",
+    icon: Network,
+    href: "/network",
+    accent: "bg-sky-500",
   },
   {
-    title: "Network Page",
-    body: "This page helps you discover people, mentors, and opportunities that match your interests and direction, so it is easier to know who to connect with and why.",
+    title: "Organisation",
+    subtitle: "Institutional visibility",
+    body: "Help teams understand cohort readiness, track interventions, review progress, and measure real outcomes.",
+    icon: Building2,
+    href: "/organisation",
+    accent: "bg-slate-900",
   },
 ];
 
@@ -89,10 +97,10 @@ const opportunityTypes = [
 ];
 
 const outcomeStats = [
-  { value: "1", label: "guided intelligence journey" },
-  { value: "6", label: "connected growth modules" },
-  { value: "24/7", label: "AI guidance availability" },
-  { value: "360°", label: "individual + institutional view" },
+  { value: "100%", label: "guided intelligence journey from profile to opportunity" },
+  { value: "6+", label: "connected growth engines working as one pathway" },
+  { value: "24/7", label: "adaptive AI guidance whenever direction is unclear" },
+  { value: "360°", label: "learner progress and institutional visibility in one view" },
 ];
 
 const audienceCards = [

@@ -99,8 +99,8 @@ function AuthHashBridge() {
 export default function App() {
   return (
     <ToastProvider>
-      <ThemeProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <ThemeProvider>
           <Router>
             <AuthHashBridge />
             <div className="min-h-screen flex flex-col">
@@ -269,8 +269,8 @@ export default function App() {
             </Routes>
             </div>
           </Router>
-        </AuthProvider>
-      </ThemeProvider>
+        </ThemeProvider>
+      </AuthProvider>
     </ToastProvider>
   );
 }

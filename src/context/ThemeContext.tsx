@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { useAuth } from "./AuthContext";
 
 type ThemeMode = "light" | "dark";
 
@@ -21,27 +22,39 @@ const getInitialMode = (): ThemeMode => {
 };
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [mode, setModeState] = useState<ThemeMode>(getInitialMode);
+  const canUseTheme = Boolean(user);
+  const activeMode: ThemeMode = canUseTheme ? mode : "light";
 
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.toggle("dark", mode === "dark");
-    root.dataset.theme = mode;
-    root.style.colorScheme = mode;
-    window.localStorage.setItem(THEME_STORAGE_KEY, mode);
-  }, [mode]);
+    root.classList.toggle("dark", activeMode === "dark");
+    root.dataset.theme = activeMode;
+    root.style.colorScheme = activeMode;
+  }, [activeMode]);
+
+  useEffect(() => {
+    if (canUseTheme) {
+      window.localStorage.setItem(THEME_STORAGE_KEY, mode);
+    }
+  }, [canUseTheme, mode]);
 
   const value = useMemo<ThemeContextValue>(() => {
-    const setMode = (nextMode: ThemeMode) => setModeState(nextMode);
-    const toggleMode = () => setModeState((current) => (current === "dark" ? "light" : "dark"));
+    const setMode = (nextMode: ThemeMode) => {
+      if (canUseTheme) setModeState(nextMode);
+    };
+    const toggleMode = () => {
+      if (canUseTheme) setModeState((current) => (current === "dark" ? "light" : "dark"));
+    };
 
     return {
       mode,
-      isDark: mode === "dark",
+      isDark: activeMode === "dark",
       setMode,
       toggleMode,
     };
-  }, [mode]);
+  }, [activeMode, canUseTheme, mode]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
