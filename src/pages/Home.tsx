@@ -84,6 +84,25 @@ const productModules = [
   },
 ];
 
+const fragmentedSolutionCards = [
+  {
+    title: "Learning platforms",
+    body: "Show content, but rarely explain which pathway fits the learner's goal.",
+  },
+  {
+    title: "Job boards",
+    body: "List vacancies, but do not help users build readiness or evidence.",
+  },
+  {
+    title: "Networks",
+    body: "Expose people, but often leave users unsure who to contact or why.",
+  },
+  {
+    title: "VisionTech AI",
+    body: "Connects diagnosis, action, projects, support, and opportunities into one guided journey.",
+  },
+];
+
 const opportunityTypes = [
   "Jobs",
   "Internships",
@@ -281,6 +300,44 @@ export default function Home(): JSX.Element {
         </div>
       </section>
 
+      <section id="fragmented-tools" className="border-t border-[#ece4ff] bg-[#fffdff] px-6 py-20 md:px-12 lg:px-16">
+        <div className="mx-auto max-w-7xl space-y-10">
+          <SectionHeader
+            eyebrow="Why VisionTech Exists"
+            title="Most tools solve one piece. Users need the whole journey."
+            description="VisionTech is designed around progression: understand the user, recommend the next action, help them build evidence, and connect them to the right support."
+          />
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {fragmentedSolutionCards.map((card, cardIndex) => (
+              <motion.article
+                key={card.title}
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.25 }}
+                transition={{ duration: 0.45, delay: cardIndex * 0.05 }}
+                className={`rounded-3xl border p-6 shadow-sm ${
+                  card.title === "VisionTech AI"
+                    ? "border-[#1f0954] bg-[#1f0954] text-white shadow-indigo-100"
+                    : "border-slate-200 bg-white text-slate-950"
+                }`}
+              >
+                <p className={`text-xs font-black uppercase tracking-[0.2em] ${
+                  card.title === "VisionTech AI" ? "text-[#d8cffc]" : "text-slate-400"
+                }`}>
+                  {cardIndex === fragmentedSolutionCards.length - 1 ? "Connected system" : "Fragmented tool"}
+                </p>
+                <h3 className="mt-3 font-headline text-2xl font-black tracking-tight">{card.title}</h3>
+                <p className={`mt-3 text-sm leading-6 ${
+                  card.title === "VisionTech AI" ? "text-white/78" : "text-slate-600"
+                }`}>
+                  {card.body}
+                </p>
+              </motion.article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section id="advanced" className="relative border-t border-[#e0d4ff] bg-[#f6f0ff] px-6 py-20 md:px-12 lg:px-16">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(216,207,252,0.32),transparent_42%),radial-gradient(circle_at_88%_20%,rgba(178,211,255,0.18),transparent_42%)]" />
         <div className="relative mx-auto max-w-6xl">
@@ -372,10 +429,10 @@ export default function Home(): JSX.Element {
       <section id="how-it-works" className="border-t border-[#e7deff] bg-[#fcf9ff] px-6 py-20 md:px-12 lg:px-16">
         <div className="mx-auto max-w-6xl space-y-10">
           <div className="space-y-3 text-center">
-            <p className="font-label text-[11px] font-bold uppercase tracking-[0.3em] text-[#1f0954]">Getting Started</p>
-            <h2 className="font-headline text-3xl font-bold text-slate-900 md:text-4xl">Start your journey in four steps</h2>
+            <p className="font-label text-[11px] font-bold uppercase tracking-[0.3em] text-[#1f0954]">Opportunity Ecosystem</p>
+            <h2 className="font-headline text-3xl font-bold text-slate-900 md:text-4xl">One profile can unlock many routes forward.</h2>
             <p className="mx-auto max-w-3xl leading-relaxed text-slate-700">
-              Move from profile setup to execution with a flow that keeps momentum and removes uncertainty.
+              VisionTech should help users discover more than jobs. It connects career direction with mentors, funding, competitions, internships, research, and growth programmes.
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">

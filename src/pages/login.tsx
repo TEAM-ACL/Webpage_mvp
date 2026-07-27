@@ -1,8 +1,7 @@
 import type { JSX } from "react";
-import { useState, useEffect } from "react";
-import { Mail, Lock, ArrowLeft } from "lucide-react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { motion } from "motion/react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, ArrowRight, Building2, Lock, Mail, Sparkles } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { api, storeSession } from "../lib/api";
 import { setAdminFlag } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
@@ -12,11 +11,12 @@ import { getEmailConfirmationRedirectUrl } from "../lib/authRedirects";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const emailConfirmationRedirectUrl = getEmailConfirmationRedirectUrl();
+
 export default function Login(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
   const { showError, showSuccess } = useToast();
-  const { setUser, refreshProfile, onboardingComplete, logout } = useAuth();
+  const { setUser, refreshProfile, onboardingComplete } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -26,17 +26,15 @@ export default function Login(): JSX.Element {
   const [notice, setNotice] = useState<string | null>(null);
   const [showResendVerification, setShowResendVerification] = useState(false);
 
-  // Prefill credentials when arriving from signup
   useEffect(() => {
-    const state = location.state as { email?: string; password?: string } | null;
+    const state = location.state as { email?: string; password?: string; verificationMessage?: string } | null;
     if (state?.email) setEmail(state.email);
     if (state?.password) setPassword(state.password);
-    if (state && "verificationMessage" in state && typeof (state as { verificationMessage?: unknown }).verificationMessage === "string") {
-      const verificationMessage = (state as { verificationMessage: string }).verificationMessage;
-      setNotice(verificationMessage);
-      showSuccess(verificationMessage);
+    if (state?.verificationMessage) {
+      setNotice(state.verificationMessage);
+      showSuccess(state.verificationMessage);
     }
-  }, [location.state]);
+  }, [location.state, showSuccess]);
 
   const isVerificationError = (message: string) => {
     const lower = message.toLowerCase();
@@ -44,7 +42,6 @@ export default function Login(): JSX.Element {
   };
 
   const friendlyError = (message: string) => {
-    const lower = message.toLowerCase();
     if (isVerificationError(message)) {
       return "Please verify your email before logging in. Check your inbox for the verification link.";
     }
@@ -61,10 +58,12 @@ export default function Login(): JSX.Element {
       showError(message);
       return;
     }
+
     setError(null);
     setNotice(null);
     setShowResendVerification(false);
     setLoading(true);
+
     try {
       const session = await api.login(cleanEmail, password);
       storeSession(session);
@@ -74,9 +73,6 @@ export default function Login(): JSX.Element {
       const prof = await refreshProfile();
       const onboardingStage = (session.user.onboarding_stage ?? "").toLowerCase();
       const doneFromSession = onboardingStage === "assessment_completed";
-      // Only route to onboarding when we have an explicit incomplete signal.
-      // If profile hydration is temporarily unavailable (common on some mobile browsers),
-      // prefer intelligence and let backend-gated screens resolve final state.
       const explicitIncomplete = prof?.isOnboardingComplete === false;
       const done = explicitIncomplete
         ? false
@@ -84,6 +80,7 @@ export default function Login(): JSX.Element {
       const state = location.state as { redirectTo?: string } | null;
       const redirectTo = state?.redirectTo;
       const isSafeInternalRedirect = typeof redirectTo === "string" && redirectTo.startsWith("/");
+
       if (isSafeInternalRedirect) {
         navigate(redirectTo, { replace: true });
       } else {
@@ -96,7 +93,6 @@ export default function Login(): JSX.Element {
       setError(friendly);
       showError(friendly);
     } finally {
-      // Clear sensitive data from memory after submission
       setPassword("");
       setLoading(false);
     }
@@ -114,6 +110,7 @@ export default function Login(): JSX.Element {
     setError(null);
     setNotice(null);
     setResending(true);
+
     try {
       await api.resendVerificationEmail(cleanEmail, emailConfirmationRedirectUrl);
       const message = "Verification email sent. Please check your inbox.";
@@ -128,188 +125,126 @@ export default function Login(): JSX.Element {
     }
   };
 
-  const handleLogout = async () => {
-    await logout();
-    navigate("/login", { replace: true });
-  };
-
   return (
-    <div className="min-h-screen bg-surface flex flex-col relative overflow-hidden">
-      {/* Background Accents */}
-      <div className="absolute top-[20%] right-[-10%] w-[40vw] h-[40vw] bg-primary/5 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-10%] left-[-5%] w-[30vw] h-[30vw] bg-secondary/5 rounded-full blur-[100px]" />
-
-      <header className="fixed top-0 w-full z-50 glass-panel flex justify-between items-center px-8 h-20">
-        <div className="flex items-center gap-4">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors text-sm font-semibold"
-          >
-            <ArrowLeft className="h-4 w-4" /> Home
-          </Link>
-          <Link to="/" className="text-2xl font-bold tracking-tighter text-primary font-headline">VisionTech</Link>
+    <main className="grid min-h-screen bg-white lg:grid-cols-[0.95fr_1.05fr]">
+      <section className="relative hidden overflow-hidden bg-[#12063a] px-12 py-10 text-white lg:flex lg:flex-col lg:justify-between">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(216,207,252,0.24),transparent_34%),radial-gradient(circle_at_82%_12%,rgba(96,165,250,0.14),transparent_32%)]" />
+        <Link to="/" className="relative inline-flex items-center gap-3 font-headline text-2xl font-bold tracking-tighter text-white">
+          <span className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/10">
+            <Sparkles className="h-5 w-5" />
+          </span>
+          VisionTech
+        </Link>
+        <div className="relative max-w-xl">
+          <p className="font-label text-xs font-black uppercase tracking-[0.28em] text-[#d8cffc]">Welcome Back</p>
+          <h1 className="mt-5 font-headline text-5xl font-black leading-tight tracking-tight">
+            Continue your intelligence journey.
+          </h1>
+          <p className="mt-6 text-lg leading-8 text-white/78">
+            Return to your AI insight, workspace actions, network, and opportunity readiness from one focused account.
+          </p>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-on-surface-variant font-medium text-sm hidden sm:inline">New here?</span>
-          <Link
-            to="/signup"
-            className="bg-primary text-white px-6 py-2.5 rounded-xl font-medium text-sm transition-all active:scale-95"
-          >
-            Get Started
-          </Link>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="text-on-surface-variant hover:text-primary text-sm font-semibold px-3 py-2 rounded-lg transition-colors border border-transparent hover:border-primary/30"
-          >
-            Log out
-          </button>
-        </div>
-      </header>
+        <Link to="/organization-auth" className="relative inline-flex w-fit items-center gap-2 text-sm font-bold text-white/80 transition hover:text-white">
+          Organisation access <ArrowRight className="h-4 w-4" />
+        </Link>
+      </section>
 
-      <main className="flex-grow flex items-center justify-center pt-20 px-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-md relative"
-        >
-          <div className="bg-white/70 backdrop-blur-3xl rounded-[2rem] p-8 md:p-12 shadow-2xl relative z-10 border border-white/20">
-            <div className="mb-10 text-left">
-              <h1 className="font-headline text-4xl font-bold tracking-tight text-on-surface mb-3">Welcome back</h1>
-              <p className="text-on-surface-variant font-sans opacity-70 leading-relaxed">
-                Enter your credentials to access your intelligence workspace
-              </p>
-              <Link
-                to="/organization-auth"
-                className="mt-3 inline-flex text-sm font-semibold text-primary hover:underline"
-              >
-                Organization Login
-              </Link>
-            </div>
-
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              <div className="space-y-2">
-                <label className="font-label text-xs font-semibold uppercase tracking-wider text-on-surface-variant ml-1">
-                  Email Address
-                </label>
-                <div className="relative group">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 group-focus-within:text-secondary transition-colors h-5 w-5" />
-                  <input
-                    className="w-full bg-surface-container-high border-none rounded-xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-secondary/20 focus:bg-white transition-all text-on-surface placeholder:text-on-surface-variant/40"
-                    placeholder="name@company.com"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center px-1">
-                  <label className="font-label text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
-                    Password
-                  </label>
-                  <Link to="/forgot-password" className="font-label text-xs font-bold text-secondary hover:underline transition-all">
-                    Forgot Password?
-                  </Link>
-                </div>
-                <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 group-focus-within:text-secondary transition-colors h-5 w-5" />
-                  <input
-                    className="w-full bg-surface-container-high border-none rounded-xl py-4 pl-12 pr-16 focus:ring-2 focus:ring-secondary/20 focus:bg-white transition-all text-on-surface placeholder:text-on-surface-variant/40"
-                    placeholder="••••••••"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={8}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-primary hover:text-secondary transition-colors"
-                  >
-                    {showPassword ? "Hide" : "Show"}
-                  </button>
-                </div>
-              </div>
-              {error && (
-                <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                  {error}
-                </p>
-              )}
-              {notice && (
-                <p className="text-sm text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
-                  {notice}
-                </p>
-              )}
-              {showResendVerification && (
-                <button
-                  type="button"
-                  onClick={handleResendVerification}
-                  disabled={resending}
-                  className="w-full text-sm font-semibold text-primary border border-primary/30 rounded-lg px-4 py-2 hover:bg-primary/5 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-                >
-                  {resending ? "Resending..." : "Resend verification email"}
-                </button>
-              )}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-[#1f0954] hover:bg-black disabled:opacity-60 disabled:cursor-not-allowed text-white py-4 rounded-xl font-headline font-bold text-lg shadow-lg shadow-primary/20 hover:shadow-xl transition-all active:scale-[0.98]"
-              >
-                {loading ? "Signing in..." : "Sign In"}
-              </button>
-            </form>
-
-            <div className="relative my-8">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-surface-container-high" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-4 text-on-surface-variant/40 font-label font-bold tracking-widest">
-                  Or continue with
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <SocialButton label="Google" icon="https://www.google.com/favicon.ico" />
-              <SocialButton label="LinkedIn" icon="https://www.linkedin.com/favicon.ico" />
-            </div>
+      <section className="flex min-h-screen items-center justify-center px-6 py-10 md:px-10 lg:px-16">
+        <div className="w-full max-w-md">
+          <div className="mb-10 flex items-center justify-between gap-4">
+            <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary">
+              <ArrowLeft className="h-4 w-4" /> Home
+            </Link>
+            <Link to="/" className="font-headline text-2xl font-bold tracking-tighter text-primary lg:hidden">VisionTech</Link>
           </div>
-        </motion.div>
-      </main>
 
-      <footer className="w-full border-t border-surface-container-high bg-surface-container-low flex flex-col md:flex-row justify-between items-center px-12 py-8">
-        <div className="mb-4 md:mb-0">
-          <Link to="/" className="font-headline font-bold text-primary">VisionTech</Link>
-          <p className="text-on-surface-variant/60 font-sans text-xs mt-1">© 2026 VisionTech AI. All rights reserved.</p>
-        </div>
-        <div className="flex gap-8">
-          <Link className="text-on-surface-variant/60 hover:text-primary transition-colors font-sans text-sm" to="#">
-            Privacy Policy
-          </Link>
-          <Link className="text-on-surface-variant/60 hover:text-primary transition-colors font-sans text-sm" to="#">
-            Terms of Service
-          </Link>
-          <Link className="text-on-surface-variant/60 hover:text-primary transition-colors font-sans text-sm" to="#">
-            Security
-          </Link>
-          <Link className="text-on-surface-variant/60 hover:text-primary transition-colors font-sans text-sm" to="#">
-            Status
-          </Link>
-        </div>
-      </footer>
-    </div>
-  );
-}
+          <div className="mb-8">
+            <p className="font-label text-xs font-black uppercase tracking-[0.24em] text-primary">Talent Login</p>
+            <h2 className="mt-3 font-headline text-4xl font-black tracking-tight text-on-surface">Sign in to VisionTech</h2>
+            <p className="mt-4 text-base leading-7 text-on-surface-variant">
+              Access your intelligence, workspace, network, and opportunity guidance.
+            </p>
+          </div>
 
-function SocialButton({ label, icon }: { label: string; icon: string }) {
-  return (
-    <button className="flex items-center justify-center gap-3 bg-surface-container-low border border-surface-container-high py-3 rounded-xl hover:bg-white hover:shadow-sm transition-all active:scale-95">
-      <img alt={label} className="w-5 h-5" src={icon} referrerPolicy="no-referrer" />
-      <span className="font-label font-bold text-sm text-on-surface-variant">{label}</span>
-    </button>
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div className="space-y-2">
+              <label className="ml-1 font-label text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-on-surface-variant/40" />
+                <input
+                  className="w-full rounded-xl border-none bg-surface-container-high py-4 pl-12 pr-4 text-on-surface transition-all placeholder:text-on-surface-variant/40 focus:bg-white focus:ring-2 focus:ring-secondary/20"
+                  placeholder="name@example.com"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <label className="font-label text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Password</label>
+                <Link to="/forgot-password" className="font-label text-xs font-bold text-secondary transition-all hover:underline">Forgot Password?</Link>
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-on-surface-variant/40" />
+                <input
+                  className="w-full rounded-xl border-none bg-surface-container-high py-4 pl-12 pr-16 text-on-surface transition-all placeholder:text-on-surface-variant/40 focus:bg-white focus:ring-2 focus:ring-secondary/20"
+                  placeholder="••••••••"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={8}
+                />
+                <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-primary hover:text-secondary">
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+            </div>
+
+            {error && <p className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+            {notice && <p className="rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-sm text-green-700">{notice}</p>}
+            {showResendVerification && (
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={resending}
+                className="w-full rounded-lg border border-primary/30 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {resending ? "Resending..." : "Resend verification email"}
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1f0954] px-6 py-4 font-headline text-lg font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? "Signing in..." : "Sign In"}
+              <ArrowRight className="h-5 w-5" />
+            </button>
+          </form>
+
+          <div className="mt-8 space-y-4 text-center text-sm text-on-surface-variant">
+            <p>
+              New to VisionTech?
+              <Link className="ml-1 font-bold text-secondary transition-colors hover:text-primary" to="/signup">
+                Create account
+              </Link>
+            </p>
+            <Link to="/organization-auth" className="inline-flex items-center justify-center gap-2 font-semibold text-primary hover:underline lg:hidden">
+              <Building2 className="h-4 w-4" /> Organisation access
+            </Link>
+          </div>
+
+          <div className="mt-10 flex justify-between border-t border-surface-container-high pt-6 text-[10px] font-label uppercase tracking-widest text-on-surface-variant/40">
+            <span>© 2026 VisionTech AI</span>
+            <Link className="hover:text-primary" to="#">
+              Security
+            </Link>
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }
