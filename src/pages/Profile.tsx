@@ -266,7 +266,7 @@ export default function Profile(): JSX.Element {
 
   return (
     <div className="min-h-screen bg-[var(--color-surface)]">
-      <header className="border-b border-[var(--color-outline-variant)] bg-white/90 backdrop-blur">
+      <header className="border-b border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)]/90 backdrop-blur">
         <div className="max-w-5xl mx-auto px-6 py-6">
           <p className="text-xs uppercase tracking-[0.25em] text-[var(--color-on-surface-variant)]">Settings</p>
           <h1 className="text-3xl font-headline font-bold text-[var(--color-on-surface)]">Account & Profile</h1>
@@ -281,7 +281,7 @@ export default function Profile(): JSX.Element {
           <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
         ) : null}
 
-        <section className="rounded-3xl bg-white border border-[var(--color-outline-variant)] p-6 shadow-sm">
+        <section className="rounded-3xl bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-bold text-[var(--color-on-surface)]">Account</h2>
             <button
@@ -315,7 +315,7 @@ export default function Profile(): JSX.Element {
           </div>
         </section>
 
-        <section className="rounded-3xl bg-white border border-[var(--color-outline-variant)] p-6 shadow-sm">
+        <section className="rounded-3xl bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-bold text-[var(--color-on-surface)]">Profile</h2>
             <button
@@ -354,7 +354,7 @@ export default function Profile(): JSX.Element {
 
         {showRecommendationImpactPrompt ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4">
-            <div className="w-full max-w-xl rounded-3xl border border-amber-200 bg-white p-6 shadow-xl">
+            <div className="w-full max-w-xl rounded-3xl border border-amber-200 bg-[var(--color-surface-container-lowest)] p-6 shadow-xl">
               <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Recommendation Impact Notice</p>
               <h3 className="mt-2 text-xl font-bold text-[var(--color-on-surface)]">Changes may affect your AI guidance</h3>
               <p className="mt-3 text-sm text-[var(--color-on-surface-variant)]">
@@ -379,7 +379,7 @@ export default function Profile(): JSX.Element {
                     setShowRecommendationImpactPrompt(false);
                     setRecommendationImpactAcknowledged(false);
                   }}
-                  className="h-10 rounded-xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-semibold text-[var(--color-on-surface)]"
+                  className="h-10 rounded-xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 text-sm font-semibold text-[var(--color-on-surface)]"
                 >
                   Cancel
                 </button>
@@ -398,7 +398,7 @@ export default function Profile(): JSX.Element {
           </div>
         ) : null}
 
-        <section className="rounded-3xl bg-white border border-[var(--color-outline-variant)] p-6 shadow-sm">
+        <section className="rounded-3xl bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] p-6 shadow-sm">
           <div className="mb-4">
             <h2 className="text-xl font-bold text-[var(--color-on-surface)]">Password</h2>
             <p className="text-sm text-[var(--color-on-surface-variant)]">Use your current password to set a new one.</p>
@@ -452,7 +452,7 @@ function Field({
       <span className="text-xs font-semibold uppercase tracking-wide text-[var(--color-on-surface-variant)]">{label}</span>
       <input
         type={type}
-        className="h-11 rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm outline-none transition focus:border-[var(--color-primary)]/70"
+        className="h-11 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 text-sm text-[var(--color-on-surface)] outline-none transition placeholder:text-[var(--color-on-surface-variant)] focus:border-[var(--color-primary)]/70"
         value={value}
         placeholder={placeholder}
         readOnly={readOnly}
@@ -478,7 +478,7 @@ function TextArea({
       <span className="text-xs font-semibold uppercase tracking-wide text-[var(--color-on-surface-variant)]">{label}</span>
       {hint ? <span className="text-xs text-[var(--color-on-surface-variant)]">{hint}</span> : null}
       <textarea
-        className="min-h-[90px] rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--color-primary)]/70"
+        className="min-h-[90px] rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm text-[var(--color-on-surface)] outline-none transition placeholder:text-[var(--color-on-surface-variant)] focus:border-[var(--color-primary)]/70"
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />
