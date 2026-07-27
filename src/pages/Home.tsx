@@ -116,10 +116,10 @@ const opportunityTypes = [
 ];
 
 const outcomeStats = [
-  { value: "1", label: "guided intelligence journey" },
-  { value: "6", label: "connected growth modules" },
-  { value: "24/7", label: "AI guidance availability" },
-  { value: "360°", label: "individual + institutional view" },
+  { value: "100%", label: "guided intelligence journey from profile to opportunity" },
+  { value: "6+", label: "connected growth engines working as one pathway" },
+  { value: "24/7", label: "adaptive AI guidance whenever direction is unclear" },
+  { value: "360°", label: "learner progress and institutional visibility in one view" },
 ];
 
 const audienceCards = [
