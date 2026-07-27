@@ -47,6 +47,7 @@
 @layer utilities {
   .dark .bg-white {
     background-color: #17182a;
+    color: #f8f7ff;
   }
 
   .dark .bg-white\/70,
@@ -55,6 +56,22 @@
   .dark .bg-white\/90,
   .dark .bg-white\/95 {
     background-color: rgb(23 24 42 / 0.9);
+    color: #f8f7ff;
+  }
+
+  .dark .bg-\[var\(--color-surface\)\],
+  .dark .bg-\[var\(--color-surface-container-low\)\],
+  .dark .bg-\[var\(--color-surface-container-lowest\)\] {
+    color: var(--color-on-surface);
+  }
+
+  .dark .bg-\[var\(--color-primary\)\],
+  .dark .bg-\[var\(--color-primary-container\)\],
+  .dark .bg-\[\#1f0954\],
+  .dark .bg-\[\#12063a\],
+  .dark .bg-\[\#140a3f\],
+  .dark .bg-slate-950 {
+    color: #ffffff;
   }
 
   .dark .bg-slate-50,
@@ -67,6 +84,7 @@
   .dark .bg-\[\#f4efff\],
   .dark .bg-\[\#f3ecff\] {
     background-color: #0f1020;
+    color: #f8f7ff;
   }
 
   .dark .bg-\[\#efe8ff\],
@@ -79,6 +97,7 @@
   .dark .bg-violet-50,
   .dark .bg-sky-50 {
     background-color: #1f2036;
+    color: #f8f7ff;
   }
 
   .dark .bg-slate-950,
