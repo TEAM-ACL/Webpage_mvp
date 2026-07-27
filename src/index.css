@@ -26,11 +26,11 @@
 
   .dark {
     color-scheme: dark;
-    --color-primary: #d8cffc;
-    --color-primary-container: #27105d;
-    --color-secondary: #72d7e8;
+    --color-primary: #6d4bd8;
+    --color-primary-container: #251052;
+    --color-secondary: #38b8d1;
     --color-secondary-container: #0f6673;
-    --color-tertiary: #b89cff;
+    --color-tertiary: #9f85f0;
     --color-surface: #0f1020;
     --color-surface-container-low: #17182a;
     --color-surface-container-lowest: #111225;
@@ -81,8 +81,30 @@
     background-color: #1f2036;
   }
 
+  .dark .bg-slate-950,
+  .dark .bg-\[\#12063a\],
+  .dark .bg-\[\#140a3f\],
+  .dark .bg-\[\#1f0954\] {
+    color: #f8f7ff;
+  }
+
+  .dark .bg-slate-950 :where(.text-slate-950, .text-slate-900, .text-slate-800, .text-\[\#0b1b2d\], .text-\[\#1f0954\]),
+  .dark .bg-\[\#12063a\] :where(.text-slate-950, .text-slate-900, .text-slate-800, .text-\[\#0b1b2d\], .text-\[\#1f0954\]),
+  .dark .bg-\[\#140a3f\] :where(.text-slate-950, .text-slate-900, .text-slate-800, .text-\[\#0b1b2d\], .text-\[\#1f0954\]),
+  .dark .bg-\[\#1f0954\] :where(.text-slate-950, .text-slate-900, .text-slate-800, .text-\[\#0b1b2d\], .text-\[\#1f0954\]) {
+    color: #ffffff;
+  }
+
+  .dark .bg-slate-950 :where(.text-slate-700, .text-slate-650, .text-slate-600, .text-slate-500),
+  .dark .bg-\[\#12063a\] :where(.text-slate-700, .text-slate-650, .text-slate-600, .text-slate-500),
+  .dark .bg-\[\#140a3f\] :where(.text-slate-700, .text-slate-650, .text-slate-600, .text-slate-500),
+  .dark .bg-\[\#1f0954\] :where(.text-slate-700, .text-slate-650, .text-slate-600, .text-slate-500) {
+    color: rgb(248 247 255 / 0.82);
+  }
+
   .dark .text-slate-950,
   .dark .text-slate-900,
+  .dark .text-slate-800,
   .dark .text-\[\#0b1b2d\] {
     color: #f8f7ff;
   }
@@ -95,12 +117,43 @@
   }
 
   .dark .text-\[\#1f0954\],
+  .dark .text-\[var\(--color-primary\)\],
   .dark .text-indigo-700,
   .dark .text-violet-700,
   .dark .text-sky-700,
   .dark .text-emerald-700,
   .dark .text-rose-800 {
-    color: #d8cffc;
+    color: #cfc5ff;
+  }
+
+  .dark .text-white {
+    color: #ffffff;
+  }
+
+  .dark .text-white\/100 {
+    color: #ffffff;
+  }
+
+  .dark .text-white\/85 {
+    color: rgb(255 255 255 / 0.88);
+  }
+
+  .dark .text-white\/80 {
+    color: rgb(255 255 255 / 0.84);
+  }
+
+  .dark .text-white\/75,
+  .dark .text-white\/70 {
+    color: rgb(255 255 255 / 0.76);
+  }
+
+  .dark .bg-white .text-white,
+  .dark .bg-white\/70 .text-white,
+  .dark .bg-white\/80 .text-white,
+  .dark .bg-white\/85 .text-white,
+  .dark .bg-white\/90 .text-white,
+  .dark .bg-white\/95 .text-white {
+    color: #f8f7ff;
   }
 
   .dark .placeholder\:text-white\/40::placeholder {
@@ -121,8 +174,14 @@
   .dark input,
   .dark textarea,
   .dark select {
+    background-color: #17182a;
     color: #f8f7ff;
     caret-color: #d8cffc;
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: rgb(201 197 216 / 0.7);
   }
 
   .dark .shadow-indigo-100,
