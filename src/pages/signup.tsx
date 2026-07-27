@@ -45,6 +45,7 @@ export default function SignUp(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
+  const [showTalentForm, setShowTalentForm] = useState(false);
   const meetsMinLength = password.length >= 12;
   const meetsMaxLength = password.length <= 128;
   const meetsUppercase = hasUppercase(password);
@@ -230,48 +231,85 @@ export default function SignUp(): JSX.Element {
           <div className="flex md:hidden items-center gap-2 mb-12">
             <Link to="/" className="font-headline font-bold text-3xl tracking-tighter text-primary">VisionTech</Link>
           </div>
-          <div className="mb-8">
+          {!showTalentForm ? (
+          <>
+          <div className="mb-10 text-center">
             <p className="font-label text-xs font-black uppercase tracking-[0.24em] text-primary mb-3">
-              Select how you want to join
+              Choose Your Path
             </p>
-            <h2 className="font-headline text-4xl font-bold text-on-surface tracking-tight mb-3">Start your VisionTech journey</h2>
-            <p className="text-on-surface-variant font-sans leading-relaxed">
-              VisionTech AI helps people turn ambition into direction, direction into action, and action into opportunity.
+            <h2 className="font-headline text-4xl font-bold text-on-surface tracking-tight mb-3">
+              Select how you want to join our community.
+            </h2>
+            <p className="mx-auto max-w-sm text-on-surface-variant font-sans leading-relaxed">
+              Your one-stop platform for AI-guided talent growth, opportunity readiness, and institutional impact.
+            </p>
+            <p className="mt-6 text-sm font-semibold text-on-surface-variant">
+              Select an option to get started
             </p>
             <div className="mt-6 grid gap-3">
-              <div className="rounded-2xl border-2 border-primary bg-primary/5 p-4 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary text-white">
+              <button
+                type="button"
+                onClick={() => setShowTalentForm(true)}
+                className="group rounded-2xl border-2 border-[#cfe0ff] bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-xl hover:shadow-indigo-100"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#f4efff] text-primary transition group-hover:bg-primary group-hover:text-white">
                     <BriefcaseBusiness className="h-5 w-5" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-headline text-lg font-bold text-on-surface">Register as Talent</h3>
-                      <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">Selected</span>
-                    </div>
+                  <div className="flex-1">
+                    <h3 className="font-headline text-lg font-bold text-primary">Register as a Talent</h3>
                     <p className="mt-1 text-sm leading-6 text-on-surface-variant">
                       Unlock your AI insight, identify skill gaps, build project evidence, find mentors, and move toward better opportunities.
                     </p>
                   </div>
+                  <ArrowRight className="h-5 w-5 text-primary transition group-hover:translate-x-1" />
                 </div>
-              </div>
+              </button>
               <Link
                 to="/organization-auth"
-                className="group rounded-2xl border border-surface-container-high bg-white p-4 transition hover:border-primary/40 hover:bg-primary/5"
+                className="group rounded-2xl border-2 border-[#cfe0ff] bg-white p-4 transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-xl hover:shadow-indigo-100"
               >
-                <div className="flex items-start gap-3">
-                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-surface-container-high text-primary transition group-hover:bg-primary group-hover:text-white">
+                <div className="flex items-center gap-3">
+                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#eef6ff] text-primary transition group-hover:bg-primary group-hover:text-white">
                     <Building2 className="h-5 w-5" />
                   </div>
-                  <div>
-                    <h3 className="font-headline text-lg font-bold text-on-surface">Register as an Organisation</h3>
+                  <div className="flex-1">
+                    <h3 className="font-headline text-lg font-bold text-primary">Register as an Organisation</h3>
                     <p className="mt-1 text-sm leading-6 text-on-surface-variant">
                       Create an institutional space to support talent, track readiness, manage interventions, and measure impact.
                     </p>
                   </div>
+                  <ArrowRight className="h-5 w-5 text-primary transition group-hover:translate-x-1" />
                 </div>
               </Link>
             </div>
+          </div>
+          <div className="mt-10 border-t border-surface-container-high pt-6 text-center">
+            <p className="text-sm text-on-surface-variant">
+              Already have an account?
+              <Link className="text-secondary font-bold hover:text-primary transition-colors ml-1" to="/login">
+                Sign in here
+              </Link>
+            </p>
+          </div>
+          </>
+          ) : (
+          <>
+          <div className="mb-8">
+            <button
+              type="button"
+              onClick={() => setShowTalentForm(false)}
+              className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-on-surface-variant hover:text-primary"
+            >
+              <ArrowLeft className="h-4 w-4" /> Change path
+            </button>
+            <p className="font-label text-xs font-black uppercase tracking-[0.24em] text-primary mb-3">
+              Talent Registration
+            </p>
+            <h2 className="font-headline text-4xl font-bold text-on-surface tracking-tight mb-3">Create your talent account</h2>
+            <p className="text-on-surface-variant font-sans leading-relaxed">
+              Start with your profile, generate your AI guidance, and turn your next step into measurable progress.
+            </p>
           </div>
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="grid md:grid-cols-2 gap-4">
@@ -414,7 +452,7 @@ export default function SignUp(): JSX.Element {
               disabled={loading}
               className="w-full py-4 px-6 bg-[#1f0954] hover:bg-black disabled:opacity-60 disabled:cursor-not-allowed text-white font-headline font-bold text-lg rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
-              {loading ? "Creating..." : "Create Account"}
+              {loading ? "Creating..." : "Create Talent Account"}
               <ArrowRight className="h-5 w-5" />
             </button>
           </form>
@@ -426,7 +464,9 @@ export default function SignUp(): JSX.Element {
               </Link>
             </p>
           </div>
-          <div className="mt-16 pt-8 border-t border-surface-container-high flex justify-between items-center text-[10px] font-label uppercase tracking-widest text-on-surface-variant/40">
+          </>
+          )}
+          <div className="mt-12 pt-8 border-t border-surface-container-high flex justify-between items-center text-[10px] font-label uppercase tracking-widest text-on-surface-variant/40">
             <span>© 2026 VISIONTECH AI</span>
             <div className="flex gap-4">
               <Link className="hover:text-primary" to="#">
