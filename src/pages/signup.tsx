@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { useState } from "react";
-import { Lock, ArrowRight, ArrowLeft, User, AtSign, Check, Circle, Building2, BriefcaseBusiness, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, AtSign, BriefcaseBusiness, Building2, Check, Circle, Lock, Sparkles, User } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, storeSession } from "../lib/api";
 import { setOnboardingComplete } from "../lib/auth";
@@ -52,9 +52,7 @@ export default function SignUp(): JSX.Element {
   const meetsLowercase = hasLowercase(password);
   const meetsSpecialCharacter = hasSpecialCharacter(password);
 
-  const friendlyError = (message: string) => {
-    return toUserMessage(message, "Unable to create account. Please try again.");
-  };
+  const friendlyError = (message: string) => toUserMessage(message, "Unable to create account. Please try again.");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,10 +108,12 @@ export default function SignUp(): JSX.Element {
       showError(message);
       return;
     }
+
     setError(null);
     setSuccess(null);
     setVerificationEmail(null);
     setLoading(true);
+
     try {
       const session = await api.register({
         email: cleanEmail,
@@ -123,6 +123,7 @@ export default function SignUp(): JSX.Element {
         last_name: cleanLastName || undefined,
         redirect_to: emailConfirmationRedirectUrl,
       });
+
       if (!session.access_token) {
         const message = "Account created. Please check your email and verify your address before logging in.";
         setSuccess(message);
@@ -146,7 +147,6 @@ export default function SignUp(): JSX.Element {
         setVerificationEmail(cleanEmail);
       }
     } finally {
-      // Clear sensitive data from memory after submission
       setPassword("");
       setConfirmPassword("");
       setLoading(false);
@@ -173,309 +173,170 @@ export default function SignUp(): JSX.Element {
   };
 
   return (
-    <main className="grid grid-cols-1 md:grid-cols-2 min-h-screen w-full">
-      {/* Left Side */}
-      <section className="relative hidden md:flex flex-col justify-between p-16 overflow-hidden bg-[#1f0954] text-white">
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-12">
-            <div className="w-10 h-10 bg-white/15 backdrop-blur-md rounded-lg flex items-center justify-center border border-white/10">
-              <Zap className="text-white h-5 w-5 fill-current" />
-            </div>
-            <Link to="/" className="font-headline font-bold text-2xl tracking-tighter text-white">VisionTech</Link>
-          </div>
-          <div className="max-w-md">
-            <h1 className="font-headline text-5xl font-bold text-white tracking-tight leading-[1.1] mb-6">
-              Join the VisionTech AI community.
-            </h1>
-            <p className="text-white/80 font-sans text-lg leading-relaxed">
-              Where talent, institutions, mentors, and opportunities connect through guided intelligence, practical progress, and measurable readiness.
-            </p>
-            <div className="mt-8 grid gap-3">
-              {["Discover your direction", "Build evidence that proves readiness", "Connect to people and opportunities"].map((item) => (
-                <div key={item} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-semibold text-white/85">
-                  <Sparkles className="h-4 w-4 text-[#d8cffc]" />
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
+    <main className="grid min-h-screen bg-white lg:grid-cols-[0.95fr_1.05fr]">
+      <section className="relative hidden overflow-hidden bg-[#12063a] px-12 py-10 text-white lg:flex lg:flex-col lg:justify-between">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(216,207,252,0.24),transparent_34%),radial-gradient(circle_at_82%_12%,rgba(96,165,250,0.14),transparent_32%)]" />
+        <Link to="/" className="relative inline-flex items-center gap-3 font-headline text-2xl font-bold tracking-tighter text-white">
+          <span className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/10">
+            <Sparkles className="h-5 w-5" />
+          </span>
+          VisionTech
+        </Link>
+        <div className="relative max-w-xl">
+          <p className="font-label text-xs font-black uppercase tracking-[0.28em] text-[#d8cffc]">VisionTech AI Community</p>
+          <h1 className="mt-5 font-headline text-5xl font-black leading-tight tracking-tight">
+            Transform ambition into direction, evidence, and opportunity.
+          </h1>
+          <p className="mt-6 text-lg leading-8 text-white/78">
+            Join a guided intelligence platform built for talent growth and organisational impact — without fragmented tools or unclear next steps.
+          </p>
         </div>
-
-        <div className="relative z-10 max-w-lg">
-          <div className="p-8 rounded-xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/10">
-            <span className="text-white/70 text-4xl mb-4 block font-serif">"</span>
-            <blockquote className="text-white font-sans italic text-xl leading-snug mb-4">
-              The world needs dreamers and the world needs doers. But above all,  what the world needs most are dreamers that do.
-            </blockquote>
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-white text-[#1f0954] flex items-center justify-center font-headline font-bold">SBB</div>
-              <div>
-                <cite className="not-italic block font-headline font-bold text-white">Sarah Ban Breathnach</cite>
-              </div>
+        <div className="relative grid gap-3 text-sm font-semibold text-white/80">
+          {["AI-guided career clarity", "Project evidence and readiness", "Mentors, networks, and opportunities"].map((item) => (
+            <div key={item} className="flex items-center gap-3">
+              <Sparkles className="h-4 w-4 text-[#d8cffc]" />
+              {item}
             </div>
-          </div>
+          ))}
         </div>
       </section>
 
-      {/* Right Side */}
-      <section className="flex flex-col justify-center items-center p-8 md:p-16 bg-white">
-        <div className="w-full max-w-md">
-          <div className="mb-6">
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors text-sm font-semibold"
-            >
-              <ArrowLeft className="h-4 w-4" /> Back home
+      <section className="flex min-h-screen items-center justify-center px-6 py-10 md:px-10 lg:px-16">
+        <div className="w-full max-w-lg">
+          <div className="mb-10 flex items-center justify-between gap-4">
+            <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary">
+              <ArrowLeft className="h-4 w-4" /> Home
             </Link>
+            <Link to="/" className="font-headline text-2xl font-bold tracking-tighter text-primary lg:hidden">VisionTech</Link>
           </div>
-          <div className="flex md:hidden items-center gap-2 mb-12">
-            <Link to="/" className="font-headline font-bold text-3xl tracking-tighter text-primary">VisionTech</Link>
-          </div>
+
           {!showTalentForm ? (
-          <>
-          <div className="mb-10 text-center">
-            <p className="font-label text-xs font-black uppercase tracking-[0.24em] text-primary mb-3">
-              Choose Your Path
-            </p>
-            <h2 className="font-headline text-4xl font-bold text-on-surface tracking-tight mb-3">
-              Select how you want to join our community.
-            </h2>
-            <p className="mx-auto max-w-sm text-on-surface-variant font-sans leading-relaxed">
-              Your one-stop platform for AI-guided talent growth, opportunity readiness, and institutional impact.
-            </p>
-            <p className="mt-6 text-sm font-semibold text-on-surface-variant">
-              Select an option to get started
-            </p>
-            <div className="mt-6 grid gap-3">
-              <button
-                type="button"
-                onClick={() => setShowTalentForm(true)}
-                className="group rounded-2xl border-2 border-[#cfe0ff] bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-xl hover:shadow-indigo-100"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#f4efff] text-primary transition group-hover:bg-primary group-hover:text-white">
-                    <BriefcaseBusiness className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-headline text-lg font-bold text-primary">Register as a Talent</h3>
-                    <p className="mt-1 text-sm leading-6 text-on-surface-variant">
-                      Unlock your AI insight, identify skill gaps, build project evidence, find mentors, and move toward better opportunities.
-                    </p>
-                  </div>
-                  <ArrowRight className="h-5 w-5 text-primary transition group-hover:translate-x-1" />
-                </div>
-              </button>
-              <Link
-                to="/organization-auth"
-                className="group rounded-2xl border-2 border-[#cfe0ff] bg-white p-4 transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-xl hover:shadow-indigo-100"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#eef6ff] text-primary transition group-hover:bg-primary group-hover:text-white">
-                    <Building2 className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-headline text-lg font-bold text-primary">Register as an Organisation</h3>
-                    <p className="mt-1 text-sm leading-6 text-on-surface-variant">
-                      Create an institutional space to support talent, track readiness, manage interventions, and measure impact.
-                    </p>
-                  </div>
-                  <ArrowRight className="h-5 w-5 text-primary transition group-hover:translate-x-1" />
-                </div>
-              </Link>
-            </div>
-          </div>
-          <div className="mt-10 border-t border-surface-container-high pt-6 text-center">
-            <p className="text-sm text-on-surface-variant">
-              Already have an account?
-              <Link className="text-secondary font-bold hover:text-primary transition-colors ml-1" to="/login">
-                Sign in here
-              </Link>
-            </p>
-          </div>
-          </>
-          ) : (
-          <>
-          <div className="mb-8">
-            <button
-              type="button"
-              onClick={() => setShowTalentForm(false)}
-              className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-on-surface-variant hover:text-primary"
-            >
-              <ArrowLeft className="h-4 w-4" /> Change path
-            </button>
-            <p className="font-label text-xs font-black uppercase tracking-[0.24em] text-primary mb-3">
-              Talent Registration
-            </p>
-            <h2 className="font-headline text-4xl font-bold text-on-surface tracking-tight mb-3">Create your talent account</h2>
-            <p className="text-on-surface-variant font-sans leading-relaxed">
-              Start with your profile, generate your AI guidance, and turn your next step into measurable progress.
-            </p>
-          </div>
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="font-label text-sm font-semibold text-on-surface-variant ml-1">First Name</label>
-                <div className="relative">
-                  <input
-                    className="w-full px-5 py-4 bg-surface-container-high rounded-xl border-none focus:ring-2 focus:ring-secondary/20 focus:bg-white text-on-surface placeholder:text-on-surface-variant/40 transition-all"
-                    placeholder="Alex"
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    required
-                  />
-                  <User className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 h-5 w-5" />
-                </div>
+            <>
+              <div className="mb-8">
+                <p className="font-label text-xs font-black uppercase tracking-[0.24em] text-primary">Choose Your Path</p>
+                <h2 className="mt-3 font-headline text-4xl font-black tracking-tight text-on-surface">
+                  Select how you want to join VisionTech.
+                </h2>
+                <p className="mt-4 text-base leading-7 text-on-surface-variant">
+                  One community for talent growth, AI-guided readiness, and institutional progress.
+                </p>
               </div>
-              <div className="space-y-2">
-                <label className="font-label text-sm font-semibold text-on-surface-variant ml-1">Last Name</label>
-                <div className="relative">
-                  <input
-                    className="w-full px-5 py-4 bg-surface-container-high rounded-xl border-none focus:ring-2 focus:ring-secondary/20 focus:bg-white text-on-surface placeholder:text-on-surface-variant/40 transition-all"
-                    placeholder="Sterling"
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                  />
-                  <User className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 h-5 w-5" />
-                </div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="font-label text-sm font-semibold text-on-surface-variant ml-1">Email Address</label>
-              <div className="relative">
-                <input
-                  className="w-full px-5 py-4 bg-surface-container-high rounded-xl border-none focus:ring-2 focus:ring-secondary/20 focus:bg-white text-on-surface placeholder:text-on-surface-variant/40 transition-all"
-                  placeholder="visiontech@example.com"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-                <AtSign className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 h-5 w-5" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="font-label text-sm font-semibold text-on-surface-variant ml-1">Password</label>
-              <div className="relative">
-                <input
-                  className="w-full px-5 py-4 bg-surface-container-high rounded-xl border-none focus:ring-2 focus:ring-secondary/20 focus:bg-white text-on-surface placeholder:text-on-surface-variant/40 transition-all pr-12"
-                  placeholder="••••••••••••"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={12}
-                />
-                <Lock className="absolute right-11 top-1/2 -translate-y-1/2 text-on-surface-variant/40 h-5 w-5" />
+
+              <div className="divide-y divide-surface-container-high overflow-hidden rounded-3xl border border-surface-container-high">
                 <button
                   type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-primary hover:text-secondary transition-colors"
+                  onClick={() => setShowTalentForm(true)}
+                  className="group flex w-full items-center gap-4 bg-white p-5 text-left transition hover:bg-primary/5"
                 >
-                  {showPassword ? "Hide" : "Show"}
+                  <BriefcaseBusiness className="h-6 w-6 shrink-0 text-primary" />
+                  <span className="flex-1">
+                    <span className="block font-headline text-xl font-bold text-primary">Register as a Talent</span>
+                    <span className="mt-1 block text-sm leading-6 text-on-surface-variant">
+                      Build your AI pathway, evidence, mentors, and opportunity readiness.
+                    </span>
+                  </span>
+                  <ArrowRight className="h-5 w-5 text-primary transition group-hover:translate-x-1" />
                 </button>
-              </div>
-              <div className="rounded-lg border border-surface-container-high bg-surface-container-low px-3 py-2 text-xs text-on-surface-variant">
-                <p className="font-semibold mb-1">Use a valid password:</p>
-                <PasswordRule met={meetsMinLength} text="At least 12 characters" />
-                <PasswordRule met={meetsMaxLength} text="No more than 128 characters" />
-                <PasswordRule met={meetsUppercase} text="At least one uppercase letter (A-Z)" />
-                <PasswordRule met={meetsLowercase} text="At least one lowercase letter (a-z)" />
-                <PasswordRule met={meetsSpecialCharacter} text="At least one special character (e.g. ! @ # $ %)" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="font-label text-sm font-semibold text-on-surface-variant ml-1">Confirm Password</label>
-              <div className="relative">
-                <input
-                  className="w-full px-5 py-4 bg-surface-container-high rounded-xl border-none focus:ring-2 focus:ring-secondary/20 focus:bg-white text-on-surface placeholder:text-on-surface-variant/40 transition-all pr-12"
-                  placeholder="Confirm your password"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  minLength={12}
-                />
-                <Lock className="absolute right-11 top-1/2 -translate-y-1/2 text-on-surface-variant/40 h-5 w-5" />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-primary hover:text-secondary transition-colors"
-                >
-                  {showConfirmPassword ? "Hide" : "Show"}
-                </button>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 py-2">
-              <input
-                className="mt-1 rounded border-surface-container-high text-primary focus:ring-primary h-4 w-4"
-                id="terms"
-                type="checkbox"
-                checked={agree}
-                onChange={(e) => setAgree(e.target.checked)}
-              />
-              <label className="text-sm text-on-surface-variant leading-tight" htmlFor="terms">
-                I agree to the{" "}
-                <Link className="text-primary font-semibold hover:underline" to="#">
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link className="text-primary font-semibold hover:underline" to="#">
-                  Privacy Policy
+                <Link to="/organization-auth" className="group flex items-center gap-4 bg-white p-5 transition hover:bg-primary/5">
+                  <Building2 className="h-6 w-6 shrink-0 text-primary" />
+                  <span className="flex-1">
+                    <span className="block font-headline text-xl font-bold text-primary">Register as an Organisation</span>
+                    <span className="mt-1 block text-sm leading-6 text-on-surface-variant">
+                      Support members, monitor readiness, coordinate interventions, and measure impact.
+                    </span>
+                  </span>
+                  <ArrowRight className="h-5 w-5 text-primary transition group-hover:translate-x-1" />
                 </Link>
-                .
-              </label>
-            </div>
-            {error && (
-              <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                {error}
+              </div>
+
+              <p className="mt-8 text-center text-sm text-on-surface-variant">
+                Already have an account?
+                <Link className="ml-1 font-bold text-secondary transition-colors hover:text-primary" to="/login">
+                  Sign in
+                </Link>
               </p>
-            )}
-            {success && (
-              <p className="text-sm text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
-                {success}
+            </>
+          ) : (
+            <>
+              <div className="mb-8">
+                <button
+                  type="button"
+                  onClick={() => setShowTalentForm(false)}
+                  className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-on-surface-variant hover:text-primary"
+                >
+                  <ArrowLeft className="h-4 w-4" /> Change path
+                </button>
+                <p className="font-label text-xs font-black uppercase tracking-[0.24em] text-primary">Talent Registration</p>
+                <h2 className="mt-3 font-headline text-4xl font-black tracking-tight text-on-surface">Create your talent account</h2>
+                <p className="mt-4 text-base leading-7 text-on-surface-variant">
+                  Start with your profile, generate AI guidance, and turn your next step into measurable progress.
+                </p>
+              </div>
+
+              <form className="space-y-6" onSubmit={handleSubmit}>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <TextInput label="First Name" value={firstName} onChange={setFirstName} placeholder="Alex" icon={<User className="h-5 w-5" />} required />
+                  <TextInput label="Last Name" value={lastName} onChange={setLastName} placeholder="Sterling" icon={<User className="h-5 w-5" />} />
+                </div>
+                <TextInput label="Email Address" value={email} onChange={setEmail} placeholder="visiontech@example.com" type="email" icon={<AtSign className="h-5 w-5" />} required />
+                <PasswordInput label="Password" value={password} onChange={setPassword} show={showPassword} onToggle={() => setShowPassword((v) => !v)} />
+                <div className="rounded-xl border border-surface-container-high bg-surface-container-low px-3 py-2 text-xs text-on-surface-variant">
+                  <p className="mb-1 font-semibold">Use a valid password:</p>
+                  <PasswordRule met={meetsMinLength} text="At least 12 characters" />
+                  <PasswordRule met={meetsMaxLength} text="No more than 128 characters" />
+                  <PasswordRule met={meetsUppercase} text="At least one uppercase letter (A-Z)" />
+                  <PasswordRule met={meetsLowercase} text="At least one lowercase letter (a-z)" />
+                  <PasswordRule met={meetsSpecialCharacter} text="At least one special character (e.g. ! @ # $ %)" />
+                </div>
+                <PasswordInput label="Confirm Password" value={confirmPassword} onChange={setConfirmPassword} show={showConfirmPassword} onToggle={() => setShowConfirmPassword((v) => !v)} placeholder="Confirm your password" />
+                <div className="flex items-start gap-3 py-2">
+                  <input
+                    className="mt-1 h-4 w-4 rounded border-surface-container-high text-primary focus:ring-primary"
+                    id="terms"
+                    type="checkbox"
+                    checked={agree}
+                    onChange={(e) => setAgree(e.target.checked)}
+                  />
+                  <label className="text-sm leading-tight text-on-surface-variant" htmlFor="terms">
+                    I agree to the <Link className="font-semibold text-primary hover:underline" to="#">Terms of Service</Link> and <Link className="font-semibold text-primary hover:underline" to="#">Privacy Policy</Link>.
+                  </label>
+                </div>
+                {error && <p className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+                {success && <p className="rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-sm text-green-700">{success}</p>}
+                {verificationEmail && (
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resending}
+                    className="w-full rounded-lg border border-primary/30 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {resending ? "Resending..." : "Resend verification email"}
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1f0954] px-6 py-4 font-headline text-lg font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loading ? "Creating..." : "Create Talent Account"}
+                  <ArrowRight className="h-5 w-5" />
+                </button>
+              </form>
+
+              <p className="mt-8 text-center text-sm text-on-surface-variant">
+                Already have an account?
+                <Link className="ml-1 font-bold text-secondary transition-colors hover:text-primary" to="/login">
+                  Sign in
+                </Link>
               </p>
-            )}
-            {verificationEmail && (
-              <button
-                type="button"
-                onClick={handleResendVerification}
-                disabled={resending}
-                className="w-full text-sm font-semibold text-primary border border-primary/30 rounded-lg px-4 py-2 hover:bg-primary/5 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-              >
-                {resending ? "Resending..." : "Resend verification email"}
-              </button>
-            )}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-4 px-6 bg-[#1f0954] hover:bg-black disabled:opacity-60 disabled:cursor-not-allowed text-white font-headline font-bold text-lg rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              {loading ? "Creating..." : "Create Talent Account"}
-              <ArrowRight className="h-5 w-5" />
-            </button>
-          </form>
-          <div className="mt-12 text-center">
-            <p className="text-on-surface-variant font-sans">
-              Already have an account?
-              <Link className="text-secondary font-bold hover:text-primary transition-colors ml-1" to="/login">
-                Sign in
-              </Link>
-            </p>
-          </div>
-          </>
+            </>
           )}
-          <div className="mt-12 pt-8 border-t border-surface-container-high flex justify-between items-center text-[10px] font-label uppercase tracking-widest text-on-surface-variant/40">
-            <span>© 2026 VISIONTECH AI</span>
-            <div className="flex gap-4">
-              <Link className="hover:text-primary" to="#">
-                Status
-              </Link>
-              <Link className="hover:text-primary" to="#">
-                Security
-              </Link>
-            </div>
+
+          <div className="mt-10 flex justify-between border-t border-surface-container-high pt-6 text-[10px] font-label uppercase tracking-widest text-on-surface-variant/40">
+            <span>© 2026 VisionTech AI</span>
+            <Link className="hover:text-primary" to="#">
+              Security
+            </Link>
           </div>
         </div>
       </section>
@@ -483,19 +344,75 @@ export default function SignUp(): JSX.Element {
   );
 }
 
-function Zap({ className }: { className?: string }) {
+function TextInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  icon,
+  required = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  type?: string;
+  icon: JSX.Element;
+  required?: boolean;
+}) {
   return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-    </svg>
+    <div className="space-y-2">
+      <label className="ml-1 font-label text-sm font-semibold text-on-surface-variant">{label}</label>
+      <div className="relative">
+        <input
+          className="w-full rounded-xl border-none bg-surface-container-high px-5 py-4 pr-12 text-on-surface transition-all placeholder:text-on-surface-variant/40 focus:bg-white focus:ring-2 focus:ring-secondary/20"
+          placeholder={placeholder}
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={required}
+        />
+        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40">{icon}</span>
+      </div>
+    </div>
+  );
+}
+
+function PasswordInput({
+  label,
+  value,
+  onChange,
+  show,
+  onToggle,
+  placeholder = "••••••••••••",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  show: boolean;
+  onToggle: () => void;
+  placeholder?: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <label className="ml-1 font-label text-sm font-semibold text-on-surface-variant">{label}</label>
+      <div className="relative">
+        <input
+          className="w-full rounded-xl border-none bg-surface-container-high px-5 py-4 pr-16 text-on-surface transition-all placeholder:text-on-surface-variant/40 focus:bg-white focus:ring-2 focus:ring-secondary/20"
+          placeholder={placeholder}
+          type={show ? "text" : "password"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required
+          minLength={12}
+        />
+        <Lock className="absolute right-11 top-1/2 h-5 w-5 -translate-y-1/2 text-on-surface-variant/40" />
+        <button type="button" onClick={onToggle} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-primary hover:text-secondary">
+          {show ? "Hide" : "Show"}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -507,4 +424,3 @@ function PasswordRule({ met, text }: { met: boolean; text: string }) {
     </p>
   );
 }
-
