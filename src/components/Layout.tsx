@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   BarChart3,
@@ -20,34 +20,15 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { isDark, toggleMode } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-
-  useEffect(() => {
-    const stored = sessionStorage.getItem("theme");
-    if (stored === "dark") {
-      document.documentElement.classList.add("dark");
-      setDarkMode(true);
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    const next = !darkMode;
-    setDarkMode(next);
-    if (next) {
-      document.documentElement.classList.add("dark");
-      sessionStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      sessionStorage.setItem("theme", "light");
-    }
-  };
 
   const handleLogout = async () => {
     await logout();
@@ -147,11 +128,11 @@ export function Header() {
                     </Link>
                     <button
                       className="flex w-full items-center justify-between px-4 py-2 hover:bg-surface-container-high rounded-xl"
-                      onClick={() => { toggleTheme(); }}
+                      onClick={() => { toggleMode(); }}
                       type="button"
                     >
                       <span>Theme</span>
-                      <span className="text-xs font-semibold">{darkMode ? "Dark" : "Light"}</span>
+                      <span className="text-xs font-semibold">{isDark ? "Dark" : "Light"}</span>
                     </button>
                     <button
                       className="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded-xl"

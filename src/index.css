@@ -20,8 +20,81 @@
 }
 
 @layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --color-primary: #d8cffc;
+    --color-primary-container: #27105d;
+    --color-secondary: #72d7e8;
+    --color-secondary-container: #0f6673;
+    --color-tertiary: #b89cff;
+    --color-surface: #0f1020;
+    --color-surface-container-low: #17182a;
+    --color-surface-container-lowest: #111225;
+    --color-on-surface: #f8f7ff;
+    --color-on-surface-variant: #c9c5d8;
+    --color-outline-variant: #34364f;
+  }
+
   body {
-    @apply bg-surface text-on-surface font-sans antialiased;
+    @apply bg-surface text-on-surface font-sans antialiased transition-colors duration-300;
+  }
+}
+
+@layer utilities {
+  .dark .bg-white {
+    background-color: #17182a;
+  }
+
+  .dark .bg-white\/70,
+  .dark .bg-white\/80,
+  .dark .bg-white\/85,
+  .dark .bg-white\/90,
+  .dark .bg-white\/95 {
+    background-color: rgb(23 24 42 / 0.9);
+  }
+
+  .dark .bg-slate-50,
+  .dark .bg-slate-100,
+  .dark .bg-\[\#fbf9ff\],
+  .dark .bg-\[\#fcf9ff\],
+  .dark .bg-\[\#fffdff\],
+  .dark .bg-\[\#f8f5ff\],
+  .dark .bg-\[\#f6f0ff\],
+  .dark .bg-\[\#f4efff\],
+  .dark .bg-\[\#f3ecff\] {
+    background-color: #0f1020;
+  }
+
+  .dark .text-slate-950,
+  .dark .text-slate-900,
+  .dark .text-\[\#0b1b2d\] {
+    color: #f8f7ff;
+  }
+
+  .dark .text-slate-700,
+  .dark .text-slate-650,
+  .dark .text-slate-600,
+  .dark .text-slate-500 {
+    color: #c9c5d8;
+  }
+
+  .dark .border-slate-200,
+  .dark .border-slate-100,
+  .dark .border-\[\#e2d8ff\],
+  .dark .border-\[\#e7deff\],
+  .dark .border-\[\#ece4ff\],
+  .dark .border-\[\#e0d4ff\] {
+    border-color: #34364f;
+  }
+
+  .dark .shadow-indigo-100,
+  .dark .shadow-indigo-100\/50,
+  .dark .shadow-indigo-100\/60 {
+    --tw-shadow-color: rgb(0 0 0 / 0.35);
   }
 }
 
