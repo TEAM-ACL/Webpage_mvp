@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import { Bell, ChevronDown } from "lucide-react";
+import { Bell, ChevronDown, Moon, Sun } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
 import { hasOrganisationDashboardAccess, isAdmin as checkAdmin } from "../../lib/auth";
 
 type NavItem = { label: string; href: string };
@@ -15,6 +16,7 @@ function isActive(pathname: string, href: string) {
 export default function DashboardTopNav() {
   const { pathname } = useLocation();
   const { user, profile } = useAuth();
+  const { isDark, toggleMode } = useTheme();
   const isOrganisationArea = pathname.startsWith("/organisation") || pathname.startsWith("/organizations");
 
   const navItems: NavItem[] = isOrganisationArea
@@ -46,7 +48,7 @@ export default function DashboardTopNav() {
   const initials = getInitials(displayName);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--color-outline-variant)] bg-[color:rgba(255,255,255,0.9)] backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-[var(--color-outline-variant)] bg-[color:var(--color-surface-container-lowest)]/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-2">
@@ -80,13 +82,23 @@ export default function DashboardTopNav() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]">
+          <button
+            type="button"
+            onClick={toggleMode}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]"
+            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
+
+          <button className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]">
             <Bell className="h-4 w-4" />
           </button>
 
           <Link
             to="/profile"
-            className="inline-flex items-center gap-3 rounded-2xl border border-[var(--color-outline-variant)] bg-white px-3 py-2 transition hover:bg-[var(--color-surface-container-low)]"
+            className="inline-flex items-center gap-3 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-3 py-2 transition hover:bg-[var(--color-surface-container-low)]"
           >
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-primary)] text-xs font-bold text-white">
               {initials}

@@ -1,36 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Settings, Search, Linkedin, Instagram, Youtube, Menu, X } from 'lucide-react';
+import {
+  BarChart3,
+  CreditCard,
+  Home as HomeIcon,
+  Info,
+  Instagram,
+  LayoutDashboard,
+  Linkedin,
+  LogIn,
+  Menu,
+  Network,
+  Search,
+  Settings,
+  UserPlus,
+  X,
+  Youtube,
+  Zap,
+} from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { isDark, toggleMode } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-
-  useEffect(() => {
-    const stored = sessionStorage.getItem("theme");
-    if (stored === "dark") {
-      document.documentElement.classList.add("dark");
-      setDarkMode(true);
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    const next = !darkMode;
-    setDarkMode(next);
-    if (next) {
-      document.documentElement.classList.add("dark");
-      sessionStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      sessionStorage.setItem("theme", "light");
-    }
-  };
 
   const handleLogout = async () => {
     await logout();
@@ -38,17 +36,17 @@ export function Header() {
   };
 
   const navItems = [
-    { name: 'Home', path: '/' },
-    { name: 'Platform', path: '/platform' },
-    { name: 'Pricing', path: '/pricing' },
+    { name: 'Home', path: '/', icon: HomeIcon },
+    { name: 'Platform', path: '/platform', icon: LayoutDashboard },
+    { name: 'Pricing', path: '/pricing', icon: CreditCard },
     ...(user
       ? [
-        { name: 'Intelligence', path: '/intelligence' },
-        { name: 'Workspace', path: '/workspace' },
-        { name: 'Network', path: '/network' },
+        { name: 'Intelligence', path: '/intelligence', icon: BarChart3 },
+        { name: 'Workspace', path: '/workspace', icon: Zap },
+        { name: 'Network', path: '/network', icon: Network },
       ]
       : []),
-    { name: 'About', path: '/about' },
+    { name: 'About', path: '/about', icon: Info },
   ];
 
   // Hide auth CTAs when user is logged in, or on onboarding/profile pages.
@@ -63,20 +61,24 @@ export function Header() {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center space-x-8">
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={cn(
-                "text-sm font-headline tracking-tight transition-all duration-300",
-                location.pathname === item.path
-                  ? "text-white font-bold border-b-2 border-white"
-                  : "text-white/70 font-medium hover:text-white"
-              )}
-            >
-              {item.name}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path;
+
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={cn(
+                  "text-sm font-headline tracking-tight transition-all duration-300",
+                  isActive
+                    ? "text-white font-bold border-b-2 border-white"
+                    : "text-white/70 font-medium hover:text-white"
+                )}
+              >
+                {item.name}
+              </Link>
+            );
+          })}
         </div>
 
         <div className="flex items-center space-x-4 md:space-x-6">
@@ -126,11 +128,11 @@ export function Header() {
                     </Link>
                     <button
                       className="flex w-full items-center justify-between px-4 py-2 hover:bg-surface-container-high rounded-xl"
-                      onClick={() => { toggleTheme(); }}
+                      onClick={() => { toggleMode(); }}
                       type="button"
                     >
                       <span>Theme</span>
-                      <span className="text-xs font-semibold">{darkMode ? "Dark" : "Light"}</span>
+                      <span className="text-xs font-semibold">{isDark ? "Dark" : "Light"}</span>
                     </button>
                     <button
                       className="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded-xl"
@@ -183,11 +185,12 @@ export function Header() {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "text-base font-headline tracking-tight transition-colors",
+                  "inline-flex items-center gap-3 text-base font-headline tracking-tight transition-colors",
                   location.pathname === item.path ? "text-white font-semibold" : "text-white/80 hover:text-white"
                 )}
                 onClick={() => setMobileOpen(false)}
               >
+                <item.icon className="h-4 w-4" aria-hidden="true" />
                 {item.name}
               </Link>
             ))}
@@ -195,16 +198,18 @@ export function Header() {
               <div className="flex gap-3 pt-2">
                 <Link
                   to="/login"
-                  className="flex-1 text-center text-white bg-white/10 hover:bg-white/20 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+                  className="inline-flex flex-1 items-center justify-center gap-2 text-white bg-white/10 hover:bg-white/20 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
                   onClick={() => setMobileOpen(false)}
                 >
+                  <LogIn className="h-4 w-4" aria-hidden="true" />
                   Log in
                 </Link>
                 <Link
                   to="/signup"
-                  className="flex-1 text-center text-[#1f0954] bg-white hover:bg-slate-100 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
+                  className="inline-flex flex-1 items-center justify-center gap-2 text-[#1f0954] bg-white hover:bg-slate-100 text-sm font-semibold px-3 py-2 rounded-lg transition-colors"
                   onClick={() => setMobileOpen(false)}
                 >
+                  <UserPlus className="h-4 w-4" aria-hidden="true" />
                   Sign up
                 </Link>
               </div>

@@ -29,6 +29,7 @@ import Profile from './pages/Profile';
 import ForgotPassword from './pages/ForgotPassword';
 import AuthCallback from './pages/AuthCallback';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
 import ResetPassword from './pages/ResetPassword';
 import { RequireAdmin, RequireAuth, RequireOnboardingComplete, RequireOrganisationAdmin, RedirectIfOnboarded } from './components/ProtectedRoute';
@@ -98,10 +99,11 @@ function AuthHashBridge() {
 export default function App() {
   return (
     <ToastProvider>
-      <AuthProvider>
-        <Router>
-          <AuthHashBridge />
-          <div className="min-h-screen flex flex-col">
+      <ThemeProvider>
+        <AuthProvider>
+          <Router>
+            <AuthHashBridge />
+            <div className="min-h-screen flex flex-col">
             <Routes>
             {/* Standalone layouts (no global header/footer) */}
             <Route path="/login" element={<RedirectIfOnboarded><Login /></RedirectIfOnboarded>} />
@@ -265,9 +267,10 @@ export default function App() {
               }
             />
             </Routes>
-          </div>
-        </Router>
-      </AuthProvider>
+            </div>
+          </Router>
+        </AuthProvider>
+      </ThemeProvider>
     </ToastProvider>
   );
 }
