@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { useState } from "react";
-import { Lock, ArrowRight, ArrowLeft, User, AtSign, Check, Circle } from "lucide-react";
+import { Lock, ArrowRight, ArrowLeft, User, AtSign, Check, Circle, Building2, BriefcaseBusiness, Sparkles } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, storeSession } from "../lib/api";
 import { setOnboardingComplete } from "../lib/auth";
@@ -184,11 +184,19 @@ export default function SignUp(): JSX.Element {
           </div>
           <div className="max-w-md">
             <h1 className="font-headline text-5xl font-bold text-white tracking-tight leading-[1.1] mb-6">
-              Join the next paradigm shift
+              Join the VisionTech AI community.
             </h1>
             <p className="text-white/80 font-sans text-lg leading-relaxed">
-              Where artificial intelligence meets curated human intuition. Step into the future of endless possibilities.
+              Where talent, institutions, mentors, and opportunities connect through guided intelligence, practical progress, and measurable readiness.
             </p>
+            <div className="mt-8 grid gap-3">
+              {["Discover your direction", "Build evidence that proves readiness", "Connect to people and opportunities"].map((item) => (
+                <div key={item} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-semibold text-white/85">
+                  <Sparkles className="h-4 w-4 text-[#d8cffc]" />
+                  {item}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -222,11 +230,48 @@ export default function SignUp(): JSX.Element {
           <div className="flex md:hidden items-center gap-2 mb-12">
             <Link to="/" className="font-headline font-bold text-3xl tracking-tighter text-primary">VisionTech</Link>
           </div>
-          <div className="mb-10">
-            <h2 className="font-headline text-4xl font-bold text-on-surface tracking-tight mb-2">Begin your evolution</h2>
-            <p className="text-on-surface-variant font-sans opacity-70">
-              Create your workstation and start curating with AI precision.
+          <div className="mb-8">
+            <p className="font-label text-xs font-black uppercase tracking-[0.24em] text-primary mb-3">
+              Select how you want to join
             </p>
+            <h2 className="font-headline text-4xl font-bold text-on-surface tracking-tight mb-3">Start your VisionTech journey</h2>
+            <p className="text-on-surface-variant font-sans leading-relaxed">
+              VisionTech AI helps people turn ambition into direction, direction into action, and action into opportunity.
+            </p>
+            <div className="mt-6 grid gap-3">
+              <div className="rounded-2xl border-2 border-primary bg-primary/5 p-4 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary text-white">
+                    <BriefcaseBusiness className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-headline text-lg font-bold text-on-surface">Register as Talent</h3>
+                      <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">Selected</span>
+                    </div>
+                    <p className="mt-1 text-sm leading-6 text-on-surface-variant">
+                      Unlock your AI insight, identify skill gaps, build project evidence, find mentors, and move toward better opportunities.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <Link
+                to="/organization-auth"
+                className="group rounded-2xl border border-surface-container-high bg-white p-4 transition hover:border-primary/40 hover:bg-primary/5"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-surface-container-high text-primary transition group-hover:bg-primary group-hover:text-white">
+                    <Building2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-headline text-lg font-bold text-on-surface">Register as an Organisation</h3>
+                    <p className="mt-1 text-sm leading-6 text-on-surface-variant">
+                      Create an institutional space to support talent, track readiness, manage interventions, and measure impact.
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            </div>
           </div>
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="grid md:grid-cols-2 gap-4">

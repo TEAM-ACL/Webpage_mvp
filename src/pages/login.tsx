@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { useState, useEffect } from "react";
-import { Mail, Lock, ArrowLeft } from "lucide-react";
+import { Mail, Lock, ArrowLeft, Building2, BriefcaseBusiness } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
 import { api, storeSession } from "../lib/api";
@@ -174,17 +174,26 @@ export default function Login(): JSX.Element {
           className="w-full max-w-md relative"
         >
           <div className="bg-white/70 backdrop-blur-3xl rounded-[2rem] p-8 md:p-12 shadow-2xl relative z-10 border border-white/20">
-            <div className="mb-10 text-left">
+            <div className="mb-8 text-left">
               <h1 className="font-headline text-4xl font-bold tracking-tight text-on-surface mb-3">Welcome back</h1>
               <p className="text-on-surface-variant font-sans opacity-70 leading-relaxed">
-                Enter your credentials to access your intelligence workspace
+                Continue your VisionTech journey with the right environment for your role.
               </p>
-              <Link
-                to="/organization-auth"
-                className="mt-3 inline-flex text-sm font-semibold text-primary hover:underline"
-              >
-                Organization Login
-              </Link>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border-2 border-primary bg-primary/5 p-4">
+                  <BriefcaseBusiness className="mb-2 h-5 w-5 text-primary" />
+                  <p className="text-sm font-bold text-on-surface">Talent access</p>
+                  <p className="mt-1 text-xs leading-5 text-on-surface-variant">Open your intelligence, workspace, and opportunities.</p>
+                </div>
+                <Link
+                  to="/organization-auth"
+                  className="rounded-2xl border border-surface-container-high bg-white p-4 transition hover:border-primary/40 hover:bg-primary/5"
+                >
+                  <Building2 className="mb-2 h-5 w-5 text-primary" />
+                  <p className="text-sm font-bold text-on-surface">Organisation access</p>
+                  <p className="mt-1 text-xs leading-5 text-on-surface-variant">Manage members, readiness, insights, and impact.</p>
+                </Link>
+              </div>
             </div>
 
             <form className="space-y-6" onSubmit={handleSubmit}>
