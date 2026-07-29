@@ -6,6 +6,7 @@ import OrganisationAIPanel from "../../components/organisation/OrganisationAIPan
 import OrganisationLayout from "../../components/organisation/OrganisationLayout";
 import OrganisationMetricCard from "../../components/organisation/OrganisationMetricCard";
 import { useAuth } from "../../context/AuthContext";
+import { useOrganisation } from "../../context/OrganisationContext";
 import {
   organisationModules,
   type OrganisationModuleAction,
@@ -28,6 +29,7 @@ const primaryButton =
 export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlaceholderProps): JSX.Element {
   const navigate = useNavigate();
   const { profile, user } = useAuth();
+  const { organisation, getOrganisationPath } = useOrganisation();
   const content = organisationModules[moduleKey];
   const [insight, setInsight] = useState<InstitutionalAIInsight | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(true);
@@ -54,7 +56,7 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
   }, [loadInsight, moduleKey]);
 
   function handleAction(action: OrganisationModuleAction): void {
-    navigate(action.href);
+    navigate(toTenantPath(action.href, getOrganisationPath));
   }
 
   async function handleRefreshInsight(): Promise<void> {
@@ -73,12 +75,12 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
 
   function handleInsightAction(action: InstitutionalRecommendedAction): void {
     const destinations: Record<InstitutionalRecommendedAction["actionType"], string> = {
-      create_cohort: "/organisation/cohorts?create=true",
-      create_intervention: "/organisation/interventions?create=true",
-      assign_project: "/organisation/cohorts?action=assign-project",
-      share_resource: "/organisation/members?action=share-resource",
-      share_opportunity: "/organisation/opportunities?create=true",
-      review_members: "/organisation/members?filter=needs-support",
+      create_cohort: getOrganisationPath("cohorts?create=true"),
+      create_intervention: getOrganisationPath("interventions?create=true"),
+      assign_project: getOrganisationPath("cohorts?action=assign-project"),
+      share_resource: getOrganisationPath("members?action=share-resource"),
+      share_opportunity: getOrganisationPath("opportunities?create=true"),
+      review_members: getOrganisationPath("members?filter=needs-support"),
     };
     navigate(destinations[action.actionType]);
   }
@@ -87,9 +89,9 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
 
   return (
     <OrganisationLayout
-      organisationName={profile?.organisationName || "VisionTech Organisation"}
-      organisationType="Training Provider"
-      administratorRole={formatRole(profile?.role || user?.role || "Platform Administrator")}
+      organisationName={organisation?.name || profile?.organisationName || "VisionTech Organisation"}
+      organisationType={organisation?.organisationType || "Training Provider"}
+      administratorRole={formatRole(organisation?.role || profile?.role || user?.role || "Platform Administrator")}
       title={content.title}
       description={content.description}
       actions={
@@ -123,6 +125,18 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
       </div>
     </OrganisationLayout>
   );
+}
+
+function toTenantPath(
+  href: string,
+  getOrganisationPath: (path?: string) => string,
+): string {
+  if (!href.startsWith("/organisation")) {
+    return href;
+  }
+
+  const path = href.replace(/^\/organisation\/?/, "");
+  return getOrganisationPath(path);
 }
 
 function OrganisationModuleView({

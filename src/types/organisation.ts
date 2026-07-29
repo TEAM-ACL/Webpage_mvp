@@ -202,3 +202,65 @@ export type OrganisationSummaryResponse = {
   common_skill_gaps: string[];
   insight: OrganisationInsightResponse;
 };
+
+export type OrganisationMembershipRole =
+  | "owner"
+  | "organisation_admin"
+  | "department_manager"
+  | "content_editor"
+  | "mentor"
+  | "analyst"
+  | "member";
+
+export type OrganisationBranding = {
+  logoUrl?: string | null;
+  faviconUrl?: string | null;
+  primaryColour: string;
+  secondaryColour: string;
+  accentColour: string;
+  backgroundColour: string;
+  textColour: string;
+  fontFamily: string;
+  borderRadius: "small" | "medium" | "large" | "rounded";
+  themeMode: "light" | "dark" | "system";
+  loginBannerUrl?: string | null;
+  dashboardBannerUrl?: string | null;
+};
+
+export type OrganisationNavigationConfigItem = {
+  key: "overview" | "members" | "cohorts" | "interventions" | "opportunities" | "reports" | "settings";
+  label: string;
+  path: string;
+  enabled: boolean;
+  order: number;
+};
+
+export type OrganisationHomepageSection = {
+  id: string;
+  type: string;
+  enabled: boolean;
+  position: number;
+  config?: Record<string, unknown>;
+};
+
+export type OrganisationSettings = {
+  welcomeHeading?: string | null;
+  welcomeMessage?: string | null;
+  navigationConfig: OrganisationNavigationConfigItem[];
+  homepageConfig: OrganisationHomepageSection[];
+  featureFlags: Record<string, boolean>;
+  terminologyConfig: Record<string, string>;
+};
+
+export type ActiveOrganisation = {
+  id: string;
+  name: string;
+  slug: string;
+  organisationType: string | null;
+  description?: string | null;
+  websiteUrl?: string | null;
+  status: "active" | "paused" | "archived";
+  role: OrganisationMembershipRole;
+  branding: OrganisationBranding;
+  settings: OrganisationSettings;
+};

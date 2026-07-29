@@ -12,6 +12,7 @@ import OrganisationMetricCard from "../components/organisation/OrganisationMetri
 import PriorityActionsPanel from "../components/organisation/PriorityActionsPanel";
 import SupportMembersTable from "../components/organisation/SupportMembersTable";
 import { useAuth } from "../context/AuthContext";
+import { useOrganisation } from "../context/OrganisationContext";
 import {
   mockCohortPerformance,
   mockOpportunityActivity,
@@ -39,6 +40,7 @@ import type {
 export default function Organisation(): JSX.Element {
   const navigate = useNavigate();
   const { profile, user } = useAuth();
+  const { organisation, getOrganisationPath } = useOrganisation();
   const [overview, setOverview] = useState<OrganisationOverviewResponse | null>(null);
   const [supportMembers, setSupportMembers] = useState<OrganisationMember[]>(mockSupportMembers);
   const [insight, setInsight] = useState<InstitutionalAIInsight | null>(null);
@@ -83,9 +85,9 @@ const [insightError, setInsightError] = useState<string | null>(null);
     void loadOverview();
   }, [loadOverview]);
 
-  const organisationName = overview?.summary.organisationName || profile?.organisationName || "VisionTech Demo Organisation";
-  const organisationType = overview?.summary.organisationType || "Training Provider";
-  const administratorRole = profile?.role || user?.role || "Organisation Admin";
+  const organisationName = organisation?.name || overview?.summary.organisationName || profile?.organisationName || "VisionTech Demo Organisation";
+  const organisationType = organisation?.organisationType || overview?.summary.organisationType || "Training Provider";
+  const administratorRole = organisation?.role || profile?.role || user?.role || "Organisation Admin";
   const metrics = useMemo(() => {
     if (!overview) {
       return mockOrganisationMetrics;
@@ -136,22 +138,22 @@ const [insightError, setInsightError] = useState<string | null>(null);
 
   function handleAiAction(action: InstitutionalRecommendedAction): void {
     const destinations: Record<InstitutionalRecommendedAction["actionType"], string> = {
-      create_cohort: "/organisation/cohorts?create=true",
-      create_intervention: "/organisation/interventions?create=true",
-      assign_project: "/organisation/cohorts?action=assign-project",
-      share_resource: "/organisation/members?action=share-resource",
-      share_opportunity: "/organisation/opportunities?create=true",
-      review_members: "/organisation/members?filter=needs-support",
+      create_cohort: getOrganisationPath("cohorts?create=true"),
+      create_intervention: getOrganisationPath("interventions?create=true"),
+      assign_project: getOrganisationPath("cohorts?action=assign-project"),
+      share_resource: getOrganisationPath("members?action=share-resource"),
+      share_opportunity: getOrganisationPath("opportunities?create=true"),
+      review_members: getOrganisationPath("members?filter=needs-support"),
     };
     navigate(destinations[action.actionType]);
   }
 
   function handlePriorityAction(action: OrganisationPriorityAction): void {
     const destinations: Record<OrganisationPriorityAction["actionType"], string> = {
-      review_members: "/organisation/members?filter=needs-support",
-      create_intervention: "/organisation/interventions?create=true",
-      create_cohort: "/organisation/cohorts?create=true",
-      review_opportunities: "/organisation/opportunities",
+      review_members: getOrganisationPath("members?filter=needs-support"),
+      create_intervention: getOrganisationPath("interventions?create=true"),
+      create_cohort: getOrganisationPath("cohorts?create=true"),
+      review_opportunities: getOrganisationPath("opportunities"),
     };
     navigate(destinations[action.actionType]);
   }
@@ -165,9 +167,9 @@ const [insightError, setInsightError] = useState<string | null>(null);
       description="Monitor participation, development progress, opportunity readiness, and the actions that need administrator attention."
       actions={
         <>
-          <ActionButton icon={<UserPlus className="h-4 w-4" />} label="Invite Member" onClick={() => navigate("/organisation/members?invite=true")} />
-          <ActionButton icon={<Users className="h-4 w-4" />} label="Create Cohort" onClick={() => navigate("/organisation/cohorts?create=true")} />
-          <ActionButton icon={<BriefcaseBusiness className="h-4 w-4" />} label="Add Opportunity" onClick={() => navigate("/organisation/opportunities?create=true")} primary />
+          <ActionButton icon={<UserPlus className="h-4 w-4" />} label="Invite Member" onClick={() => navigate(getOrganisationPath("members?invite=true"))} />
+          <ActionButton icon={<Users className="h-4 w-4" />} label="Create Cohort" onClick={() => navigate(getOrganisationPath("cohorts?create=true"))} />
+          <ActionButton icon={<BriefcaseBusiness className="h-4 w-4" />} label="Add Opportunity" onClick={() => navigate(getOrganisationPath("opportunities?create=true"))} primary />
         </>
       }
     >
@@ -187,7 +189,7 @@ const [insightError, setInsightError] = useState<string | null>(null);
             </p>
             <button
               type="button"
-              onClick={() => navigate("/organisation/members?invite=true")}
+              onClick={() => navigate(getOrganisationPath("members?invite=true"))}
               className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-indigo-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-200"
             >
               <Plus className="h-4 w-4" />
@@ -235,12 +237,12 @@ const [insightError, setInsightError] = useState<string | null>(null);
         </div>
 
         <div className="grid gap-6 xl:grid-cols-2">
-          <CohortPerformancePanel cohorts={mockCohortPerformance} onOpenCohorts={() => navigate("/organisation/cohorts")} />
-          <SupportMembersTable members={supportMembers} onReviewPeople={() => navigate("/organisation/members?filter=needs-support")} />
+          <CohortPerformancePanel cohorts={mockCohortPerformance} onOpenCohorts={() => navigate(getOrganisationPath("cohorts"))} />
+          <SupportMembersTable members={supportMembers} onReviewPeople={() => navigate(getOrganisationPath("members?filter=needs-support"))} />
         </div>
 
         <div className="grid gap-6 xl:grid-cols-2">
-          <OpportunityActivityPanel opportunities={mockOpportunityActivity} onOpenOpportunities={() => navigate("/organisation/opportunities")} />
+          <OpportunityActivityPanel opportunities={mockOpportunityActivity} onOpenOpportunities={() => navigate(getOrganisationPath("opportunities"))} />
           <OrganisationActivityFeed activity={recentActivity} />
         </div>
       </div>

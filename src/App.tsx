@@ -29,6 +29,7 @@ import Profile from './pages/Profile';
 import ForgotPassword from './pages/ForgotPassword';
 import AuthCallback from './pages/AuthCallback';
 import { AuthProvider } from './context/AuthContext';
+import { OrganisationProvider, useOrganisation } from './context/OrganisationContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
 import ResetPassword from './pages/ResetPassword';
@@ -96,14 +97,20 @@ function AuthHashBridge() {
   return null;
 }
 
+function OrganisationIndexRedirect() {
+  const { organisationBasePath } = useOrganisation();
+  return <Navigate to={organisationBasePath} replace />;
+}
+
 export default function App() {
   return (
     <ToastProvider>
       <AuthProvider>
         <ThemeProvider>
           <Router>
-            <AuthHashBridge />
-            <div className="min-h-screen flex flex-col">
+            <OrganisationProvider>
+              <AuthHashBridge />
+              <div className="min-h-screen flex flex-col">
             <Routes>
             {/* Standalone layouts (no global header/footer) */}
             <Route path="/login" element={<RedirectIfOnboarded><Login /></RedirectIfOnboarded>} />
@@ -152,12 +159,28 @@ export default function App() {
               path="/organisation"
               element={
                 <RequireOrganisationAdmin>
+                  <OrganisationIndexRedirect />
+                </RequireOrganisationAdmin>
+              }
+            />
+            <Route
+              path="/organisation/:organisationSlug"
+              element={
+                <RequireOrganisationAdmin>
                   <Organisation />
                 </RequireOrganisationAdmin>
               }
             />
             <Route
               path="/organisation/members"
+              element={
+                <RequireOrganisationAdmin>
+                  <OrganisationIndexRedirect />
+                </RequireOrganisationAdmin>
+              }
+            />
+            <Route
+              path="/organisation/:organisationSlug/members"
               element={
                 <RequireOrganisationAdmin>
                   <OrganisationMembers />
@@ -168,9 +191,15 @@ export default function App() {
               path="/organisation/cohorts"
               element={
                 <RequireOrganisationAdmin>
-                  <OrganisationPlaceholder
-                    moduleKey="cohorts"
-                  />
+                  <OrganisationIndexRedirect />
+                </RequireOrganisationAdmin>
+              }
+            />
+            <Route
+              path="/organisation/:organisationSlug/cohorts"
+              element={
+                <RequireOrganisationAdmin>
+                  <OrganisationPlaceholder moduleKey="cohorts" />
                 </RequireOrganisationAdmin>
               }
             />
@@ -178,9 +207,15 @@ export default function App() {
               path="/organisation/interventions"
               element={
                 <RequireOrganisationAdmin>
-                  <OrganisationPlaceholder
-                    moduleKey="interventions"
-                  />
+                  <OrganisationIndexRedirect />
+                </RequireOrganisationAdmin>
+              }
+            />
+            <Route
+              path="/organisation/:organisationSlug/interventions"
+              element={
+                <RequireOrganisationAdmin>
+                  <OrganisationPlaceholder moduleKey="interventions" />
                 </RequireOrganisationAdmin>
               }
             />
@@ -188,9 +223,15 @@ export default function App() {
               path="/organisation/opportunities"
               element={
                 <RequireOrganisationAdmin>
-                  <OrganisationPlaceholder
-                    moduleKey="opportunities"
-                  />
+                  <OrganisationIndexRedirect />
+                </RequireOrganisationAdmin>
+              }
+            />
+            <Route
+              path="/organisation/:organisationSlug/opportunities"
+              element={
+                <RequireOrganisationAdmin>
+                  <OrganisationPlaceholder moduleKey="opportunities" />
                 </RequireOrganisationAdmin>
               }
             />
@@ -198,9 +239,15 @@ export default function App() {
               path="/organisation/reports"
               element={
                 <RequireOrganisationAdmin>
-                  <OrganisationPlaceholder
-                    moduleKey="reports"
-                  />
+                  <OrganisationIndexRedirect />
+                </RequireOrganisationAdmin>
+              }
+            />
+            <Route
+              path="/organisation/:organisationSlug/reports"
+              element={
+                <RequireOrganisationAdmin>
+                  <OrganisationPlaceholder moduleKey="reports" />
                 </RequireOrganisationAdmin>
               }
             />
@@ -208,9 +255,15 @@ export default function App() {
               path="/organisation/settings"
               element={
                 <RequireOrganisationAdmin>
-                  <OrganisationPlaceholder
-                    moduleKey="settings"
-                  />
+                  <OrganisationIndexRedirect />
+                </RequireOrganisationAdmin>
+              }
+            />
+            <Route
+              path="/organisation/:organisationSlug/settings"
+              element={
+                <RequireOrganisationAdmin>
+                  <OrganisationPlaceholder moduleKey="settings" />
                 </RequireOrganisationAdmin>
               }
             />
@@ -267,7 +320,8 @@ export default function App() {
               }
             />
             </Routes>
-            </div>
+              </div>
+            </OrganisationProvider>
           </Router>
         </ThemeProvider>
       </AuthProvider>

@@ -1,25 +1,10 @@
 import type { JSX } from "react";
 import { NavLink } from "react-router-dom";
 import {
-  BarChart3,
-  BriefcaseBusiness,
-  Building2,
-  FileText,
-  LifeBuoy,
-  Settings,
-  Users,
+  Home,
   X,
 } from "lucide-react";
-
-const navItems = [
-  { label: "Overview", href: "/organisation", icon: BarChart3 },
-  { label: "Members", href: "/organisation/members", icon: Users },
-  { label: "Cohorts", href: "/organisation/cohorts", icon: Building2 },
-  { label: "Interventions", href: "/organisation/interventions", icon: LifeBuoy },
-  { label: "Opportunities", href: "/organisation/opportunities", icon: BriefcaseBusiness },
-  { label: "Reports", href: "/organisation/reports", icon: FileText },
-  { label: "Settings", href: "/organisation/settings", icon: Settings },
-];
+import { useOrganisation } from "../../context/OrganisationContext";
 
 type OrganisationSidebarProps = {
   organisationName: string;
@@ -38,6 +23,8 @@ export default function OrganisationSidebar({
   isOpen,
   onClose,
 }: OrganisationSidebarProps): JSX.Element {
+  const { getOrganisationPath, navigationItems } = useOrganisation();
+
   return (
     <>
       {isOpen && (
@@ -54,6 +41,14 @@ export default function OrganisationSidebar({
         }`}
       >
         <div className="flex items-start justify-between gap-3">
+          <NavLink
+            to="/"
+            aria-label="Go to VisionTech homepage"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] text-[var(--color-on-surface)] transition hover:bg-[var(--color-primary)] hover:text-white"
+            onClick={onClose}
+          >
+            <Home className="h-4 w-4" />
+          </NavLink>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-primary)]">
               Organisation
@@ -65,7 +60,7 @@ export default function OrganisationSidebar({
           </div>
           <button
             type="button"
-            className="rounded-xl border border-[var(--color-outline-variant)] p-2 lg:hidden"
+            className="rounded-xl border border-[var(--color-outline-variant)] p-2 text-[var(--color-on-surface)] lg:hidden"
             onClick={onClose}
           >
             <X className="h-4 w-4" />
@@ -79,13 +74,14 @@ export default function OrganisationSidebar({
         </div>
 
         <nav className="mt-6 space-y-2">
-          {navItems.map((item) => {
+          {navigationItems.map((item) => {
             const Icon = item.icon;
+            const href = getOrganisationPath(item.path);
             return (
               <NavLink
-                key={item.href}
-                to={item.href}
-                end={item.href === "/organisation"}
+                key={item.key}
+                to={href}
+                end={item.path === ""}
                 onClick={onClose}
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition ${

@@ -12,6 +12,7 @@ import MembersTable from "../../components/organisation/MembersTable";
 import OrganisationLayout from "../../components/organisation/OrganisationLayout";
 import OrganisationSummaryCard from "../../components/organisation/OrganisationSummaryCard";
 import { useAuth } from "../../context/AuthContext";
+import { useOrganisation } from "../../context/OrganisationContext";
 import {
   assignMemberToCohort,
   createMemberIntervention,
@@ -31,6 +32,7 @@ const outlineButton = "inline-flex h-11 items-center justify-center rounded-2xl 
 
 export default function OrganisationMembers(): JSX.Element {
   const { profile, user } = useAuth();
+  const { organisation } = useOrganisation();
   const [overview, setOverview] = useState<OrganisationOverviewResponse | null>(null);
   const [members, setMembers] = useState<OrganisationMember[]>([]);
   const [filters, setFilters] = useState<MemberFiltersState>(defaultMemberFilters);
@@ -68,9 +70,9 @@ export default function OrganisationMembers(): JSX.Element {
   }, []);
 
   const organisationName =
-    overview?.summary.organisationName || profile?.organisationName || "VisionTech Organisation";
-  const organisationType = overview?.summary.organisationType || "Training Provider";
-  const administratorRole = profile?.role || user?.role || "Platform Administrator";
+    organisation?.name || overview?.summary.organisationName || profile?.organisationName || "VisionTech Organisation";
+  const organisationType = organisation?.organisationType || overview?.summary.organisationType || "Training Provider";
+  const administratorRole = organisation?.role || profile?.role || user?.role || "Platform Administrator";
 
   const cohorts = useMemo(
     () => Array.from(new Set(members.map((member) => member.cohortName).filter(Boolean))) as string[],
