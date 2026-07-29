@@ -41,6 +41,7 @@ export default function Organisation(): JSX.Element {
   const navigate = useNavigate();
   const { profile, user } = useAuth();
   const { organisation, getOrganisationPath } = useOrganisation();
+  const organisationId = organisation?.id;
   const [overview, setOverview] = useState<OrganisationOverviewResponse | null>(null);
   const [supportMembers, setSupportMembers] = useState<OrganisationMember[]>(mockSupportMembers);
   const [insight, setInsight] = useState<InstitutionalAIInsight | null>(null);
@@ -56,9 +57,9 @@ const [insightError, setInsightError] = useState<string | null>(null);
     setInsightError(null);
 
     const [overviewResult, membersResult, insightResult] = await Promise.allSettled([
-      getOrganisationOverview(),
-      getOrganisationMembers(),
-      getInstitutionalAIInsight(),
+      getOrganisationOverview(organisationId),
+      getOrganisationMembers(organisationId),
+      getInstitutionalAIInsight(organisationId),
     ]);
 
     if (overviewResult.status === "fulfilled") {
@@ -79,7 +80,7 @@ const [insightError, setInsightError] = useState<string | null>(null);
     }
 
     setIsLoading(false);
-  }, []);
+  }, [organisationId]);
 
   useEffect(() => {
     void loadOverview();
@@ -127,7 +128,7 @@ const [insightError, setInsightError] = useState<string | null>(null);
     setIsInsightRefreshing(true);
     setInsightError(null);
     try {
-      const response = await refreshInstitutionalAIInsight();
+      const response = await refreshInstitutionalAIInsight(organisationId);
       setInsight(response.insight);
     } catch (error) {
       setInsightError(readError(error, "Unable to refresh institutional AI insight."));

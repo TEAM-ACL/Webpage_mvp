@@ -33,6 +33,7 @@ const outlineButton = "inline-flex h-11 items-center justify-center rounded-2xl 
 export default function OrganisationMembers(): JSX.Element {
   const { profile, user } = useAuth();
   const { organisation } = useOrganisation();
+  const organisationId = organisation?.id;
   const [overview, setOverview] = useState<OrganisationOverviewResponse | null>(null);
   const [members, setMembers] = useState<OrganisationMember[]>([]);
   const [filters, setFilters] = useState<MemberFiltersState>(defaultMemberFilters);
@@ -48,8 +49,8 @@ export default function OrganisationMembers(): JSX.Element {
     async function loadMembers(): Promise<void> {
       setIsLoading(true);
       const [overviewResult, membersResult] = await Promise.allSettled([
-        getOrganisationOverview(),
-        getOrganisationMembers(),
+        getOrganisationOverview(organisationId),
+        getOrganisationMembers(organisationId),
       ]);
 
       if (!isMounted) return;
@@ -67,7 +68,7 @@ export default function OrganisationMembers(): JSX.Element {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [organisationId]);
 
   const organisationName =
     organisation?.name || overview?.summary.organisationName || profile?.organisationName || "VisionTech Organisation";

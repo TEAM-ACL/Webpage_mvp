@@ -42,6 +42,7 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
   const navigate = useNavigate();
   const { profile, user } = useAuth();
   const { organisation, getOrganisationPath, refreshOrganisation } = useOrganisation();
+  const organisationId = organisation?.id;
   const { showError, showSuccess } = useToast();
   const content = organisationModules[moduleKey];
   const [insight, setInsight] = useState<InstitutionalAIInsight | null>(null);
@@ -54,14 +55,14 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
     setIsAiLoading(true);
     setAiError(null);
     try {
-      const response = await getInstitutionalAIInsight();
+      const response = await getInstitutionalAIInsight(organisationId);
       setInsight(response.insight);
     } catch (error) {
       setAiError(readError(error, "Unable to load institutional AI insight."));
     } finally {
       setIsAiLoading(false);
     }
-  }, []);
+  }, [organisationId]);
 
   useEffect(() => {
     setSelectedPrompt(null);
@@ -76,7 +77,7 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
     setIsAiRefreshing(true);
     setAiError(null);
     try {
-      const response = await refreshInstitutionalAIInsight();
+      const response = await refreshInstitutionalAIInsight(organisationId);
       setInsight(response.insight);
     } catch (error) {
       setAiError(readError(error, "Unable to refresh institutional AI insight."));
