@@ -227,6 +227,8 @@ export type OrganisationBranding = {
   dashboardBannerUrl?: string | null;
 };
 
+export type OrganisationBrandingUpdate = Partial<OrganisationBranding>;
+
 export type OrganisationNavigationConfigItem = {
   key: "overview" | "members" | "cohorts" | "interventions" | "opportunities" | "reports" | "settings";
   label: string;
@@ -251,6 +253,8 @@ export type OrganisationSettings = {
   featureFlags: Record<string, boolean>;
   terminologyConfig: Record<string, string>;
 };
+
+export type OrganisationSettingsUpdate = Partial<OrganisationSettings>;
 
 export type ActiveOrganisation = {
   id: string;
