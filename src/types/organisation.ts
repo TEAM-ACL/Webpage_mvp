@@ -268,3 +268,14 @@ export type ActiveOrganisation = {
   branding: OrganisationBranding;
   settings: OrganisationSettings;
 };
+
+export type PublicOrganisationProfile = {
+  id: string;
+  name: string;
+  slug: string;
+  organisationType: string | null;
+  description: string | null;
+  logoUrl: string | null;
+  branding: OrganisationBranding;
+  settings: OrganisationSettings;
+};

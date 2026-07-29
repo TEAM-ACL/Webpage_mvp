@@ -9,6 +9,7 @@ import type {
   OrganisationBrandingUpdate,
   OrganisationMember,
   OrganisationOverviewResponse,
+  PublicOrganisationProfile,
   OrganisationSettings,
   OrganisationSettingsUpdate,
   OrganisationSummaryResponse,
@@ -93,6 +94,17 @@ type ActiveOrganisationBackendResponse = {
 
 type OrganisationBrandingBackendResponse = NonNullable<ActiveOrganisationBackendResponse["branding"]>;
 type OrganisationSettingsBackendResponse = NonNullable<ActiveOrganisationBackendResponse["settings"]>;
+
+type PublicOrganisationBackendResponse = {
+  id: string;
+  name: string;
+  slug: string;
+  organisation_type: string | null;
+  description: string | null;
+  logo_url: string | null;
+  branding?: OrganisationBrandingBackendResponse | null;
+  settings?: OrganisationSettingsBackendResponse | null;
+};
 
 function mapActiveOrganisation(data: ActiveOrganisationBackendResponse): ActiveOrganisation {
   const name = data.name || "VisionTech Demo Organisation";
@@ -189,6 +201,30 @@ export async function getActiveOrganisation(slug?: string | null): Promise<Activ
   }
 
   return mapActiveOrganisation((await response.json()) as ActiveOrganisationBackendResponse);
+}
+
+export async function getPublicOrganisationProfile(slug: string): Promise<PublicOrganisationProfile> {
+  const response = await fetch(`${API_BASE_URL}/organisations/public/${encodeURIComponent(slug)}`, {
+    method: "GET",
+    headers: organisationHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Unable to load organisation profile.");
+  }
+
+  const data = (await response.json()) as PublicOrganisationBackendResponse;
+  return {
+    id: data.id,
+    name: data.name,
+    slug: data.slug,
+    organisationType: data.organisation_type,
+    description: data.description,
+    logoUrl: data.logo_url,
+    branding: mapOrganisationBranding(data.branding),
+    settings: mapOrganisationSettings(data.settings),
+  };
 }
 
 function organisationDataEndpoint(path: string, organisationId?: string | null): string {

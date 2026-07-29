@@ -24,6 +24,7 @@ import SignUp from './pages/signup';
 import OrganizationAuth from './pages/OrganizationAuth';
 import OrganizationLogin from './pages/OrganizationLogin';
 import OrganizationSignup from './pages/OrganizationSignup';
+import PublicOrganisationEntry from './pages/PublicOrganisationEntry';
 import Intelligence from './pages/Intelligence';
 import Profile from './pages/Profile';
 import ForgotPassword from './pages/ForgotPassword';
@@ -119,6 +120,7 @@ export default function App() {
             <Route path="/organization-auth" element={<RedirectIfOnboarded redirectTo="/organisation"><OrganizationAuth /></RedirectIfOnboarded>} />
             <Route path="/organization-login" element={<RedirectIfOnboarded redirectTo="/organisation"><OrganizationLogin /></RedirectIfOnboarded>} />
             <Route path="/organization-signup" element={<RedirectIfOnboarded redirectTo="/organisation"><OrganizationSignup /></RedirectIfOnboarded>} />
+            <Route path="/org/:organisationSlug" element={<PublicOrganisationEntry />} />
             <Route path="/signup" element={<RedirectIfOnboarded><SignUp /></RedirectIfOnboarded>} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
