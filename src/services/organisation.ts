@@ -190,8 +190,16 @@ export async function getActiveOrganisation(slug?: string | null): Promise<Activ
   return mapActiveOrganisation((await response.json()) as ActiveOrganisationBackendResponse);
 }
 
-export async function getOrganisationSummary(): Promise<OrganisationSummaryResponse> {
-  const response = await fetch(`${API_BASE_URL}/organisations/current/summary`, {
+function organisationDataEndpoint(path: string, organisationId?: string | null): string {
+  const cleanPath = path.replace(/^\/+/, "");
+  if (!organisationId) {
+    return `/organisations/current/${cleanPath}`;
+  }
+  return `/organisations/${encodeURIComponent(organisationId)}/${cleanPath}`;
+}
+
+export async function getOrganisationSummary(organisationId?: string | null): Promise<OrganisationSummaryResponse> {
+  const response = await fetch(`${API_BASE_URL}${organisationDataEndpoint("summary", organisationId)}`, {
     method: "GET",
     credentials: "include",
     headers: organisationHeaders(),
@@ -205,8 +213,8 @@ export async function getOrganisationSummary(): Promise<OrganisationSummaryRespo
   return (await response.json()) as OrganisationSummaryResponse;
 }
 
-export async function getOrganisationOverview(): Promise<OrganisationOverviewResponse> {
-  const response = await fetch(`${API_BASE_URL}/organisations/current/overview`, {
+export async function getOrganisationOverview(organisationId?: string | null): Promise<OrganisationOverviewResponse> {
+  const response = await fetch(`${API_BASE_URL}${organisationDataEndpoint("overview", organisationId)}`, {
     method: "GET",
     credentials: "include",
     headers: organisationHeaders(),
@@ -389,8 +397,8 @@ function mapBackendMember(member: {
   };
 }
 
-export async function getOrganisationMembers(): Promise<OrganisationMember[]> {
-  const response = await fetch(`${API_BASE_URL}/organisations/current/members`, {
+export async function getOrganisationMembers(organisationId?: string | null): Promise<OrganisationMember[]> {
+  const response = await fetch(`${API_BASE_URL}${organisationDataEndpoint("members", organisationId)}`, {
     method: "GET",
     credentials: "include",
     headers: organisationHeaders(),
@@ -458,9 +466,9 @@ export async function createMemberIntervention(
   };
 }
 
-export async function getInstitutionalAIInsight(): Promise<InstitutionalAIInsightResponse> {
+export async function getInstitutionalAIInsight(organisationId?: string | null): Promise<InstitutionalAIInsightResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/organisations/current/ai-insight`, {
+    const response = await fetch(`${API_BASE_URL}${organisationDataEndpoint("ai-insight", organisationId)}`, {
       method: "GET",
       credentials: "include",
       headers: organisationHeaders(),
@@ -480,9 +488,9 @@ export async function getInstitutionalAIInsight(): Promise<InstitutionalAIInsigh
   }
 }
 
-export async function refreshInstitutionalAIInsight(): Promise<InstitutionalAIInsightResponse> {
+export async function refreshInstitutionalAIInsight(organisationId?: string | null): Promise<InstitutionalAIInsightResponse> {
   try {
-    const response = await fetch(`${API_BASE_URL}/organisations/current/ai-insight/refresh`, {
+    const response = await fetch(`${API_BASE_URL}${organisationDataEndpoint("ai-insight/refresh", organisationId)}`, {
       method: "POST",
       credentials: "include",
       headers: organisationHeaders(),
