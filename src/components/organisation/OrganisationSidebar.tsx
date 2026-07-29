@@ -1,7 +1,6 @@
 import type { JSX } from "react";
 import { NavLink } from "react-router-dom";
 import {
-  Home,
   BarChart3,
   BriefcaseBusiness,
   Building2,
@@ -49,22 +48,6 @@ export default function OrganisationSidebar({
         }`}
       >
         <div className="flex items-start justify-between gap-3">
-          <NavLink
-            to="/"
-            aria-label="Go to VisionTech homepage"
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] text-[var(--color-on-surface)] transition hover:bg-[var(--color-primary)] hover:text-white"
-            onClick={onClose}
-          >
-            <Home className="h-4 w-4" />
-          </NavLink>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-primary)]">
-              Organisation
-            </p>
-            <h2 className="mt-2 text-lg font-bold text-[var(--color-on-surface)]">
-              {organisationName}
-            </h2>
-            <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">{organisationType}</p>
           <div className="flex min-w-0 items-start gap-3">
             <NavLink
               to="/"
