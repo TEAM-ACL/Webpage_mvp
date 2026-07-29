@@ -26,3 +26,6 @@ Desktop.ini
 # Editor directories
 .vscode/
 .idea/
+
+# Local backend checkout
+YTE-Platform/
