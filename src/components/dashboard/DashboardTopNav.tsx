@@ -4,31 +4,30 @@ import { useMemo } from "react";
 import { Bell, ChevronDown, Moon, Sun } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useOrganisation } from "../../context/OrganisationContext";
 import { useTheme } from "../../context/ThemeContext";
 import { hasOrganisationDashboardAccess, isAdmin as checkAdmin } from "../../lib/auth";
 
 type NavItem = { label: string; href: string };
 
 function isActive(pathname: string, href: string) {
-  return href === "/organisation" ? pathname === href || pathname === "/organizations" : pathname === href;
+  return href === "/organisation" || href.split("/").length === 3
+    ? pathname === href || pathname === "/organizations"
+    : pathname === href;
 }
 
 export default function DashboardTopNav() {
   const { pathname } = useLocation();
   const { user, profile } = useAuth();
+  const { getOrganisationPath, navigationItems } = useOrganisation();
   const { isDark, toggleMode } = useTheme();
   const isOrganisationArea = pathname.startsWith("/organisation") || pathname.startsWith("/organizations");
 
   const navItems: NavItem[] = isOrganisationArea
-    ? [
-        { label: "Overview", href: "/organisation" },
-        { label: "Members", href: "/organisation/members" },
-        { label: "Cohorts", href: "/organisation/cohorts" },
-        { label: "Interventions", href: "/organisation/interventions" },
-        { label: "Opportunities", href: "/organisation/opportunities" },
-        { label: "Reports", href: "/organisation/reports" },
-        { label: "Settings", href: "/organisation/settings" },
-      ]
+    ? navigationItems.map((item) => ({
+        label: item.label,
+        href: getOrganisationPath(item.path),
+      }))
     : [
         { label: "Intelligence", href: "/intelligence" },
         { label: "Workspace", href: "/workspace" },
@@ -37,7 +36,7 @@ export default function DashboardTopNav() {
 
   const role = profile?.role || user?.role;
   if (!isOrganisationArea && user && hasOrganisationDashboardAccess(role)) {
-    navItems.push({ label: "Organisation", href: "/organisation" });
+    navItems.push({ label: "Organisation", href: getOrganisationPath() });
   }
 
   if (!isOrganisationArea && user && checkAdmin()) {

@@ -3,12 +3,14 @@ import type {
   AssignMemberToCohortRequest,
   CreateMemberInterventionRequest,
   InstitutionalAIInsightResponse,
+  ActiveOrganisation,
   InviteOrganisationMemberRequest,
   OrganisationMember,
   OrganisationOverviewResponse,
   OrganisationSummaryResponse,
 } from "../types/organisation";
 import { mockInstitutionalInsight } from "../data/mockInstitutionalInsight";
+import { DEFAULT_ORGANISATION_SLUG, slugifyOrganisationName } from "../config/organisationTenant";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -25,6 +27,132 @@ function organisationHeaders(): Record<string, string> {
     headers.Authorization = `Bearer ${token}`;
   }
   return headers;
+}
+
+const defaultBranding = {
+  primaryColour: "#1f0954",
+  secondaryColour: "#2563eb",
+  accentColour: "#7c3aed",
+  backgroundColour: "#ffffff",
+  textColour: "#111827",
+  fontFamily: "Inter",
+  borderRadius: "medium" as const,
+  themeMode: "light" as const,
+};
+
+const defaultSettings = {
+  navigationConfig: [],
+  homepageConfig: [],
+  featureFlags: {
+    cohorts: true,
+    interventions: true,
+    opportunities: true,
+    reports: true,
+    settings: true,
+  },
+  terminologyConfig: {},
+};
+
+type ActiveOrganisationBackendResponse = {
+  id?: string | null;
+  name?: string | null;
+  slug?: string | null;
+  organisation_type?: string | null;
+  description?: string | null;
+  website_url?: string | null;
+  status?: "active" | "paused" | "archived" | null;
+  role?: ActiveOrganisation["role"] | null;
+  branding?: Partial<{
+    logo_url: string | null;
+    favicon_url: string | null;
+    primary_colour: string;
+    secondary_colour: string;
+    accent_colour: string;
+    background_colour: string;
+    text_colour: string;
+    font_family: string;
+    border_radius: ActiveOrganisation["branding"]["borderRadius"];
+    theme_mode: ActiveOrganisation["branding"]["themeMode"];
+    login_banner_url: string | null;
+    dashboard_banner_url: string | null;
+  }> | null;
+  settings?: Partial<{
+    welcome_heading: string | null;
+    welcome_message: string | null;
+    navigation_config: ActiveOrganisation["settings"]["navigationConfig"];
+    homepage_config: ActiveOrganisation["settings"]["homepageConfig"];
+    feature_flags: Record<string, boolean>;
+    terminology_config: Record<string, string>;
+  }> | null;
+};
+
+function mapActiveOrganisation(data: ActiveOrganisationBackendResponse): ActiveOrganisation {
+  const name = data.name || "VisionTech Demo Organisation";
+  return {
+    id: data.id || "mock-organisation-001",
+    name,
+    slug: data.slug || slugifyOrganisationName(name),
+    organisationType: data.organisation_type || "Training Provider",
+    description: data.description || null,
+    websiteUrl: data.website_url || null,
+    status: data.status || "active",
+    role: data.role || "organisation_admin",
+    branding: {
+      logoUrl: data.branding?.logo_url ?? null,
+      faviconUrl: data.branding?.favicon_url ?? null,
+      primaryColour: data.branding?.primary_colour || defaultBranding.primaryColour,
+      secondaryColour: data.branding?.secondary_colour || defaultBranding.secondaryColour,
+      accentColour: data.branding?.accent_colour || defaultBranding.accentColour,
+      backgroundColour: data.branding?.background_colour || defaultBranding.backgroundColour,
+      textColour: data.branding?.text_colour || defaultBranding.textColour,
+      fontFamily: data.branding?.font_family || defaultBranding.fontFamily,
+      borderRadius: data.branding?.border_radius || defaultBranding.borderRadius,
+      themeMode: data.branding?.theme_mode || defaultBranding.themeMode,
+      loginBannerUrl: data.branding?.login_banner_url ?? null,
+      dashboardBannerUrl: data.branding?.dashboard_banner_url ?? null,
+    },
+    settings: {
+      welcomeHeading: data.settings?.welcome_heading ?? null,
+      welcomeMessage: data.settings?.welcome_message ?? null,
+      navigationConfig: data.settings?.navigation_config || defaultSettings.navigationConfig,
+      homepageConfig: data.settings?.homepage_config || defaultSettings.homepageConfig,
+      featureFlags: data.settings?.feature_flags || defaultSettings.featureFlags,
+      terminologyConfig: data.settings?.terminology_config || defaultSettings.terminologyConfig,
+    },
+  };
+}
+
+export function buildFallbackActiveOrganisation(input?: {
+  id?: string | null;
+  name?: string | null;
+  slug?: string | null;
+  organisationType?: string | null;
+  role?: string | null;
+}): ActiveOrganisation {
+  const name = input?.name || "VisionTech Demo Organisation";
+  return mapActiveOrganisation({
+    id: input?.id || "mock-organisation-001",
+    name,
+    slug: input?.slug || slugifyOrganisationName(name) || DEFAULT_ORGANISATION_SLUG,
+    organisation_type: input?.organisationType || "Training Provider",
+    role: input?.role as ActiveOrganisation["role"],
+  });
+}
+
+export async function getActiveOrganisation(slug?: string | null): Promise<ActiveOrganisation> {
+  const endpoint = slug ? `/organisations/slug/${encodeURIComponent(slug)}` : "/organisations/current";
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: "GET",
+    credentials: "include",
+    headers: organisationHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Unable to resolve active organisation.");
+  }
+
+  return mapActiveOrganisation((await response.json()) as ActiveOrganisationBackendResponse);
 }
 
 export async function getOrganisationSummary(): Promise<OrganisationSummaryResponse> {
