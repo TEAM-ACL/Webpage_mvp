@@ -18,6 +18,8 @@ type OrganisationSidebarProps = {
   organisationType: string;
   administratorRole: string;
   status: string;
+  logoUrl?: string | null;
+  primaryColour?: string;
   isOpen: boolean;
   onClose: () => void;
 };
@@ -27,10 +29,19 @@ export default function OrganisationSidebar({
   organisationType,
   administratorRole,
   status,
+  logoUrl,
+  primaryColour = "#1f0954",
   isOpen,
   onClose,
 }: OrganisationSidebarProps): JSX.Element {
   const { getOrganisationPath, navigationItems } = useOrganisation();
+  const initials = organisationName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 
   return (
     <>
@@ -58,6 +69,12 @@ export default function OrganisationSidebar({
             >
               <Home className="h-4 w-4" />
             </NavLink>
+            <div
+              className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-sm font-black text-white shadow-sm"
+              style={{ backgroundColor: primaryColour }}
+            >
+              {logoUrl ? <img src={logoUrl} alt="" className="h-full w-full object-cover" /> : initials || "VT"}
+            </div>
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-primary)]">
                 Organisation
