@@ -48,6 +48,7 @@ const defaultSettings = {
   navigationConfig: [],
   homepageConfig: [],
   featureFlags: {
+    members: true,
     cohorts: true,
     interventions: true,
     opportunities: true,

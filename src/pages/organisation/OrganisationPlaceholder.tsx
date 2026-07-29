@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, LockKeyhole } from "lucide-react";
 import type { JSX, ReactNode } from "react";
 import OrganisationAIPanel from "../../components/organisation/OrganisationAIPanel";
 import OrganisationLayout from "../../components/organisation/OrganisationLayout";
@@ -41,7 +41,7 @@ const primaryButton =
 export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlaceholderProps): JSX.Element {
   const navigate = useNavigate();
   const { profile, user } = useAuth();
-  const { organisation, getOrganisationPath, refreshOrganisation } = useOrganisation();
+  const { organisation, getOrganisationPath, isModuleEnabled, refreshOrganisation } = useOrganisation();
   const organisationId = organisation?.id;
   const { showError, showSuccess } = useToast();
   const content = organisationModules[moduleKey];
@@ -121,7 +121,9 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
         </>
       }
     >
-      {moduleKey === "settings" && organisation ? (
+      {!isModuleEnabled(moduleKey) ? (
+        <DisabledModuleState moduleName={content.title} onOpenSettings={() => navigate(getOrganisationPath("settings"))} />
+      ) : moduleKey === "settings" && organisation ? (
         <OrganisationPersonalisationSettings
           organisation={organisation}
           onRefresh={refreshOrganisation}
@@ -147,6 +149,34 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
         />
       </div>
     </OrganisationLayout>
+  );
+}
+
+function DisabledModuleState({
+  moduleName,
+  onOpenSettings,
+}: {
+  moduleName: string;
+  onOpenSettings: () => void;
+}): JSX.Element {
+  return (
+    <section className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm shadow-slate-200/50">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-white">
+        <LockKeyhole className="h-6 w-6" />
+      </div>
+      <p className="mt-5 text-xs font-black uppercase tracking-[0.22em] text-slate-500">Module Hidden</p>
+      <h2 className="mt-2 text-2xl font-black text-slate-950">{moduleName} is disabled for this organisation</h2>
+      <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+        This module has been turned off in organisation feature visibility. Administrators can re-enable it from settings when it is needed.
+      </p>
+      <button
+        type="button"
+        onClick={onOpenSettings}
+        className="mt-6 inline-flex items-center justify-center rounded-2xl bg-[var(--color-primary)] px-5 py-3 text-sm font-black text-white transition hover:opacity-90"
+      >
+        Open Settings
+      </button>
+    </section>
   );
 }
 
@@ -334,7 +364,7 @@ function OrganisationPersonalisationSettings({
           <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Feature Visibility</p>
           <h3 className="mt-2 text-xl font-black text-slate-950">Workspace modules</h3>
           <div className="mt-5 space-y-3">
-            {["cohorts", "interventions", "opportunities", "reports", "settings"].map((feature) => (
+            {["members", "cohorts", "interventions", "opportunities", "reports"].map((feature) => (
               <label key={feature} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700">
                 <span className="capitalize">{feature}</span>
                 <input

@@ -57,18 +57,22 @@ export function buildOrganisationPath(slug: string, path = ""): string {
 
 export function normaliseNavigation(
   configuredItems?: Partial<Omit<OrganisationNavigationItem, "icon">>[],
+  featureFlags: Record<string, boolean> = {},
 ): OrganisationNavigationItem[] {
   const configuredByKey = new Map(
     (configuredItems || []).map((item) => [item.key, item]),
   );
+  const alwaysVisibleKeys = new Set<OrganisationNavigationKey>(["overview", "settings"]);
 
   return DEFAULT_ORGANISATION_NAVIGATION.map((defaultItem) => {
     const configuredItem = configuredByKey.get(defaultItem.key);
+    const isEnabledByConfig = configuredItem?.enabled ?? defaultItem.enabled;
+    const isEnabledByFeatureFlag = alwaysVisibleKeys.has(defaultItem.key) || featureFlags[defaultItem.key] !== false;
     return {
       ...defaultItem,
       label: configuredItem?.label || defaultItem.label,
       path: configuredItem?.path ?? defaultItem.path,
-      enabled: configuredItem?.enabled ?? defaultItem.enabled,
+      enabled: isEnabledByConfig && isEnabledByFeatureFlag,
       order: configuredItem?.order ?? defaultItem.order,
     };
   })

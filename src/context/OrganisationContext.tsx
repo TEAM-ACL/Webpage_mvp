@@ -26,6 +26,7 @@ type OrganisationContextValue = {
   organisationBasePath: string;
   activeSlug: string;
   getOrganisationPath: (path?: string) => string;
+  isModuleEnabled: (key: string) => boolean;
   refreshOrganisation: () => Promise<void>;
 };
 
@@ -95,8 +96,16 @@ export function OrganisationProvider({ children }: OrganisationProviderProps): J
     });
 
   const navigationItems = useMemo(
-    () => normaliseNavigation(currentOrganisation.settings.navigationConfig),
-    [currentOrganisation.settings.navigationConfig],
+    () => normaliseNavigation(
+      currentOrganisation.settings.navigationConfig,
+      currentOrganisation.settings.featureFlags,
+    ),
+    [currentOrganisation.settings.featureFlags, currentOrganisation.settings.navigationConfig],
+  );
+
+  const isModuleEnabled = useCallback(
+    (key: string) => key === "overview" || key === "settings" || currentOrganisation.settings.featureFlags[key] !== false,
+    [currentOrganisation.settings.featureFlags],
   );
 
   const themeVariables = useMemo(
@@ -120,9 +129,10 @@ export function OrganisationProvider({ children }: OrganisationProviderProps): J
       organisationBasePath: buildOrganisationPath(currentOrganisation.slug),
       activeSlug: currentOrganisation.slug,
       getOrganisationPath: (path = "") => buildOrganisationPath(currentOrganisation.slug, path),
+      isModuleEnabled,
       refreshOrganisation,
     }),
-    [currentOrganisation, error, isLoading, navigationItems, refreshOrganisation],
+    [currentOrganisation, error, isLoading, isModuleEnabled, navigationItems, refreshOrganisation],
   );
 
   return (

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type JSX } from "react";
+import { useNavigate } from "react-router-dom";
 import { Download, MailPlus, Plus, Users } from "lucide-react";
 import EmptyState from "../../components/organisation/EmptyState";
 import InviteMemberModal from "../../components/organisation/InviteMemberModal";
@@ -31,8 +32,9 @@ const primaryButton = "inline-flex h-11 items-center justify-center rounded-2xl 
 const outlineButton = "inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-semibold text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]";
 
 export default function OrganisationMembers(): JSX.Element {
+  const navigate = useNavigate();
   const { profile, user } = useAuth();
-  const { organisation } = useOrganisation();
+  const { organisation, getOrganisationPath, isModuleEnabled } = useOrganisation();
   const organisationId = organisation?.id;
   const [overview, setOverview] = useState<OrganisationOverviewResponse | null>(null);
   const [members, setMembers] = useState<OrganisationMember[]>([]);
@@ -195,49 +197,68 @@ export default function OrganisationMembers(): JSX.Element {
         </>
       }
     >
-      {notice && (
-        <section className="mb-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">
-          {notice}
+      {!isModuleEnabled("members") ? (
+        <section className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm shadow-slate-200/50">
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">Module Hidden</p>
+          <h2 className="mt-2 text-2xl font-black text-slate-950">Members is disabled for this organisation</h2>
+          <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+            Administrators can re-enable member management from organisation settings when this workspace needs people management tools.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate(getOrganisationPath("settings"))}
+            className="mt-6 inline-flex items-center justify-center rounded-2xl bg-[var(--color-primary)] px-5 py-3 text-sm font-black text-white transition hover:opacity-90"
+          >
+            Open Settings
+          </button>
         </section>
-      )}
-
-      <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {memberMetrics.map((metric) => (
-          <OrganisationSummaryCard key={metric.label} {...metric} />
-        ))}
-      </section>
-
-      <div className="mb-6">
-        <MemberFilters filters={filters} cohorts={cohorts} goals={goals} onChange={setFilters} />
-      </div>
-
-      {isLoading ? (
-        <div className="flex min-h-[300px] items-center justify-center rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)]">
-          <p className="text-sm text-[var(--color-on-surface-variant)]">Loading organisation members...</p>
-        </div>
-      ) : filteredMembers.length > 0 ? (
-        <MembersTable
-          members={filteredMembers}
-          onSelectMember={handleViewMember}
-          onAssignToCohort={handleAssignToCohort}
-          onCreateIntervention={handleCreateIntervention}
-        />
       ) : (
-        <EmptyState
-          title="No members match these filters"
-          description="Try clearing filters or inviting a new member into this organisation."
-        />
-      )}
+        <>
+          {notice && (
+            <section className="mb-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">
+              {notice}
+            </section>
+          )}
 
-      <InviteMemberModal isOpen={isInviteOpen} onClose={() => setIsInviteOpen(false)} onInvite={handleInvite} />
-      <MemberDetailsDrawer
-        member={selectedMember}
-        isOpen={isMemberDrawerOpen}
-        onClose={handleCloseMemberDrawer}
-        onCreateIntervention={handleCreateIntervention}
-        onRecommendOpportunity={handleRecommendOpportunity}
-        onAssignToCohort={handleAssignToCohort}
-      />
+          <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {memberMetrics.map((metric) => (
+              <OrganisationSummaryCard key={metric.label} {...metric} />
+            ))}
+          </section>
+
+          <div className="mb-6">
+            <MemberFilters filters={filters} cohorts={cohorts} goals={goals} onChange={setFilters} />
+          </div>
+
+          {isLoading ? (
+            <div className="flex min-h-[300px] items-center justify-center rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)]">
+              <p className="text-sm text-[var(--color-on-surface-variant)]">Loading organisation members...</p>
+            </div>
+          ) : filteredMembers.length > 0 ? (
+            <MembersTable
+              members={filteredMembers}
+              onSelectMember={handleViewMember}
+              onAssignToCohort={handleAssignToCohort}
+              onCreateIntervention={handleCreateIntervention}
+            />
+          ) : (
+            <EmptyState
+              title="No members match these filters"
+              description="Try clearing filters or inviting a new member into this organisation."
+            />
+          )}
+
+          <InviteMemberModal isOpen={isInviteOpen} onClose={() => setIsInviteOpen(false)} onInvite={handleInvite} />
+          <MemberDetailsDrawer
+            member={selectedMember}
+            isOpen={isMemberDrawerOpen}
+            onClose={handleCloseMemberDrawer}
+            onCreateIntervention={handleCreateIntervention}
+            onRecommendOpportunity={handleRecommendOpportunity}
+            onAssignToCohort={handleAssignToCohort}
+          />
+        </>
+      )}
     </OrganisationLayout>
   );
 }
