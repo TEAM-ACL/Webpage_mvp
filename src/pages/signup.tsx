@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, AtSign, BriefcaseBusiness, Building2, Check, Circle, Lock, Sparkles, User } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { api, storeSession } from "../lib/api";
 import { setOnboardingComplete } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
@@ -15,6 +15,8 @@ const hasLowercase = (value: string) => /[a-z]/.test(value);
 const hasSpecialCharacter = (value: string) => /[^A-Za-z0-9]/.test(value);
 const emailConfirmationRedirectUrl = getEmailConfirmationRedirectUrl();
 const duplicateEmailMessage = "This email is already registered. Try signing in or resending verification.";
+const isSafeRedirect = (value: string | null | undefined): value is string =>
+  typeof value === "string" && value.startsWith("/") && !value.startsWith("//");
 
 const isAlreadyRegisteredError = (message: string): boolean => {
   const lower = message.toLowerCase();
@@ -30,6 +32,7 @@ const isAlreadyRegisteredError = (message: string): boolean => {
 
 export default function SignUp(): JSX.Element {
   const navigate = useNavigate();
+  const location = useLocation();
   const { showError, showSuccess } = useToast();
   const { setUser } = useAuth();
   const [firstName, setFirstName] = useState("");
@@ -135,7 +138,10 @@ export default function SignUp(): JSX.Element {
       storeSession(session);
       setUser(session.user);
       setOnboardingComplete(false);
-      navigate("/onboarding");
+      const state = location.state as { redirectTo?: string } | null;
+      const queryParams = new URLSearchParams(location.search);
+      const redirectTo = state?.redirectTo ?? queryParams.get("redirectTo");
+      navigate("/onboarding", isSafeRedirect(redirectTo) ? { state: { redirectTo } } : undefined);
     } catch (err) {
       const rawMessage = (err as Error).message || "";
       const message = isAlreadyRegisteredError(rawMessage)

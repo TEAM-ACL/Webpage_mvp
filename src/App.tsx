@@ -4,7 +4,7 @@
  */
 
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Header, Footer } from './components/Layout';
 import Home from './pages/Home';
@@ -103,6 +103,19 @@ function OrganisationIndexRedirect() {
   return <Navigate to={organisationBasePath} replace />;
 }
 
+function TenantLoginRedirect() {
+  const { organisationSlug = '' } = useParams();
+  const redirectTo = organisationSlug ? `/organisation/${organisationSlug}` : '/organisation';
+  return <Navigate to={`/login?redirectTo=${encodeURIComponent(redirectTo)}`} replace />;
+}
+
+function TenantSignupRedirect() {
+  const { organisationSlug = '' } = useParams();
+  const redirectTo = organisationSlug ? `/organisation/${organisationSlug}` : '/organisation';
+  const queryParams = new URLSearchParams({ organisationSlug, redirectTo });
+  return <Navigate to={`/signup?${queryParams.toString()}`} replace />;
+}
+
 export default function App() {
   return (
     <ToastProvider>
@@ -121,6 +134,8 @@ export default function App() {
             <Route path="/organization-login" element={<RedirectIfOnboarded redirectTo="/organisation"><OrganizationLogin /></RedirectIfOnboarded>} />
             <Route path="/organization-signup" element={<RedirectIfOnboarded redirectTo="/organisation"><OrganizationSignup /></RedirectIfOnboarded>} />
             <Route path="/org/:organisationSlug" element={<PublicOrganisationEntry />} />
+            <Route path="/org/:organisationSlug/login" element={<TenantLoginRedirect />} />
+            <Route path="/org/:organisationSlug/signup" element={<TenantSignupRedirect />} />
             <Route path="/signup" element={<RedirectIfOnboarded><SignUp /></RedirectIfOnboarded>} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />

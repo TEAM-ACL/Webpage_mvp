@@ -8,6 +8,9 @@ type RedirectIfOnboardedProps = Props & {
   redirectTo?: string;
 };
 
+const isSafeInternalRedirect = (value: string | null | undefined): value is string =>
+  typeof value === "string" && value.startsWith("/") && !value.startsWith("//");
+
 export function RequireAuth({ children }: Props): JSX.Element {
   const location = useLocation();
   const { user, loading } = useAuth();
@@ -89,8 +92,11 @@ export function RedirectIfOnboarded({
   children,
   redirectTo = "/intelligence",
 }: RedirectIfOnboardedProps): JSX.Element {
+  const location = useLocation();
   const { user, loading, profileLoading, onboardingComplete } = useAuth();
   if (loading || profileLoading) return <></>;
-  if (user && onboardingComplete) return <Navigate to={redirectTo} replace />;
+  const queryRedirectTo = new URLSearchParams(location.search).get("redirectTo");
+  const resolvedRedirectTo = isSafeInternalRedirect(queryRedirectTo) ? queryRedirectTo : redirectTo;
+  if (user && onboardingComplete) return <Navigate to={resolvedRedirectTo} replace />;
   return children;
 }

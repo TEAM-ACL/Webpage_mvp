@@ -64,6 +64,8 @@ export default function PublicOrganisationEntry(): JSX.Element {
     .join("")
     .toUpperCase();
   const redirectTo = profile ? `/organisation/${profile.slug}` : "/organisation";
+  const loginPath = profile ? `/org/${profile.slug}/login` : "/login";
+  const signupPath = profile ? `/org/${profile.slug}/signup` : "/signup";
 
   return (
     <main className="min-h-screen bg-[var(--tenant-background)] text-[var(--tenant-text)]" style={pageStyle}>
@@ -78,7 +80,7 @@ export default function PublicOrganisationEntry(): JSX.Element {
             <ArrowLeft className="h-4 w-4" />
             VisionTech Home
           </Link>
-          <Link to="/login" state={{ redirectTo }} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 shadow-sm transition hover:border-[var(--tenant-primary)]">
+          <Link to={loginPath} state={{ redirectTo }} className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 shadow-sm transition hover:border-[var(--tenant-primary)]">
             Sign In
           </Link>
         </div>
@@ -123,10 +125,10 @@ export default function PublicOrganisationEntry(): JSX.Element {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-4">
-                  <Link to="/login" state={{ redirectTo }} className="inline-flex items-center gap-2 rounded-2xl bg-[var(--tenant-primary)] px-6 py-4 text-sm font-black text-white shadow-xl transition hover:opacity-90">
+                  <Link to={loginPath} state={{ redirectTo }} className="inline-flex items-center gap-2 rounded-2xl bg-[var(--tenant-primary)] px-6 py-4 text-sm font-black text-white shadow-xl transition hover:opacity-90">
                     Sign In To Continue <ArrowRight className="h-4 w-4" />
                   </Link>
-                  <Link to="/signup" state={{ organisationSlug: profile.slug }} className="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-6 py-4 text-sm font-black text-slate-950 transition hover:border-[var(--tenant-primary)]">
+                  <Link to={signupPath} state={{ organisationSlug: profile.slug, redirectTo }} className="inline-flex items-center rounded-2xl border border-slate-300 bg-white px-6 py-4 text-sm font-black text-slate-950 transition hover:border-[var(--tenant-primary)]">
                     Create Account
                   </Link>
                 </div>

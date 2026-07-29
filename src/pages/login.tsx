@@ -12,6 +12,9 @@ import { getEmailConfirmationRedirectUrl } from "../lib/authRedirects";
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const emailConfirmationRedirectUrl = getEmailConfirmationRedirectUrl();
 
+const isSafeRedirect = (value: string | null | undefined): value is string =>
+  typeof value === "string" && value.startsWith("/") && !value.startsWith("//");
+
 export default function Login(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
@@ -78,10 +81,10 @@ export default function Login(): JSX.Element {
         ? false
         : (prof?.isOnboardingComplete ?? doneFromSession ?? onboardingComplete ?? true);
       const state = location.state as { redirectTo?: string } | null;
-      const redirectTo = state?.redirectTo;
-      const isSafeInternalRedirect = typeof redirectTo === "string" && redirectTo.startsWith("/");
+      const queryParams = new URLSearchParams(location.search);
+      const redirectTo = state?.redirectTo ?? queryParams.get("redirectTo");
 
-      if (isSafeInternalRedirect) {
+      if (isSafeRedirect(redirectTo)) {
         navigate(redirectTo, { replace: true });
       } else {
         navigate(done ? "/intelligence" : "/onboarding");
