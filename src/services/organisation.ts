@@ -5,8 +5,12 @@ import type {
   InstitutionalAIInsightResponse,
   ActiveOrganisation,
   InviteOrganisationMemberRequest,
+  OrganisationBranding,
+  OrganisationBrandingUpdate,
   OrganisationMember,
   OrganisationOverviewResponse,
+  OrganisationSettings,
+  OrganisationSettingsUpdate,
   OrganisationSummaryResponse,
 } from "../types/organisation";
 import { mockInstitutionalInsight } from "../data/mockInstitutionalInsight";
@@ -86,6 +90,9 @@ type ActiveOrganisationBackendResponse = {
   }> | null;
 };
 
+type OrganisationBrandingBackendResponse = NonNullable<ActiveOrganisationBackendResponse["branding"]>;
+type OrganisationSettingsBackendResponse = NonNullable<ActiveOrganisationBackendResponse["settings"]>;
+
 function mapActiveOrganisation(data: ActiveOrganisationBackendResponse): ActiveOrganisation {
   const name = data.name || "VisionTech Demo Organisation";
   return {
@@ -119,6 +126,34 @@ function mapActiveOrganisation(data: ActiveOrganisationBackendResponse): ActiveO
       featureFlags: data.settings?.feature_flags || defaultSettings.featureFlags,
       terminologyConfig: data.settings?.terminology_config || defaultSettings.terminologyConfig,
     },
+  };
+}
+
+function mapOrganisationBranding(data: OrganisationBrandingBackendResponse | null | undefined): OrganisationBranding {
+  return {
+    logoUrl: data?.logo_url ?? null,
+    faviconUrl: data?.favicon_url ?? null,
+    primaryColour: data?.primary_colour || defaultBranding.primaryColour,
+    secondaryColour: data?.secondary_colour || defaultBranding.secondaryColour,
+    accentColour: data?.accent_colour || defaultBranding.accentColour,
+    backgroundColour: data?.background_colour || defaultBranding.backgroundColour,
+    textColour: data?.text_colour || defaultBranding.textColour,
+    fontFamily: data?.font_family || defaultBranding.fontFamily,
+    borderRadius: data?.border_radius || defaultBranding.borderRadius,
+    themeMode: data?.theme_mode || defaultBranding.themeMode,
+    loginBannerUrl: data?.login_banner_url ?? null,
+    dashboardBannerUrl: data?.dashboard_banner_url ?? null,
+  };
+}
+
+function mapOrganisationSettings(data: OrganisationSettingsBackendResponse | null | undefined): OrganisationSettings {
+  return {
+    welcomeHeading: data?.welcome_heading ?? null,
+    welcomeMessage: data?.welcome_message ?? null,
+    navigationConfig: data?.navigation_config || defaultSettings.navigationConfig,
+    homepageConfig: data?.homepage_config || defaultSettings.homepageConfig,
+    featureFlags: data?.feature_flags || defaultSettings.featureFlags,
+    terminologyConfig: data?.terminology_config || defaultSettings.terminologyConfig,
   };
 }
 
@@ -183,6 +218,64 @@ export async function getOrganisationOverview(): Promise<OrganisationOverviewRes
   }
 
   return (await response.json()) as OrganisationOverviewResponse;
+}
+
+export async function updateOrganisationBranding(
+  organisationId: string,
+  payload: OrganisationBrandingUpdate,
+): Promise<OrganisationBranding> {
+  const response = await fetch(`${API_BASE_URL}/organisations/${encodeURIComponent(organisationId)}/branding`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: organisationHeaders(),
+    body: JSON.stringify({
+      logo_url: payload.logoUrl,
+      favicon_url: payload.faviconUrl,
+      primary_colour: payload.primaryColour,
+      secondary_colour: payload.secondaryColour,
+      accent_colour: payload.accentColour,
+      background_colour: payload.backgroundColour,
+      text_colour: payload.textColour,
+      font_family: payload.fontFamily,
+      border_radius: payload.borderRadius,
+      theme_mode: payload.themeMode,
+      login_banner_url: payload.loginBannerUrl,
+      dashboard_banner_url: payload.dashboardBannerUrl,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Unable to update organisation branding.");
+  }
+
+  return mapOrganisationBranding((await response.json()) as OrganisationBrandingBackendResponse);
+}
+
+export async function updateOrganisationSettings(
+  organisationId: string,
+  payload: OrganisationSettingsUpdate,
+): Promise<OrganisationSettings> {
+  const response = await fetch(`${API_BASE_URL}/organisations/${encodeURIComponent(organisationId)}/settings`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: organisationHeaders(),
+    body: JSON.stringify({
+      welcome_heading: payload.welcomeHeading,
+      welcome_message: payload.welcomeMessage,
+      navigation_config: payload.navigationConfig,
+      homepage_config: payload.homepageConfig,
+      feature_flags: payload.featureFlags,
+      terminology_config: payload.terminologyConfig,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Unable to update organisation settings.");
+  }
+
+  return mapOrganisationSettings((await response.json()) as OrganisationSettingsBackendResponse);
 }
 
 const mockMembers: OrganisationMember[] = [

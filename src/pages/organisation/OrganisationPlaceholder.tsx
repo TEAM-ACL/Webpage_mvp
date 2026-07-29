@@ -7,6 +7,7 @@ import OrganisationLayout from "../../components/organisation/OrganisationLayout
 import OrganisationMetricCard from "../../components/organisation/OrganisationMetricCard";
 import { useAuth } from "../../context/AuthContext";
 import { useOrganisation } from "../../context/OrganisationContext";
+import { useToast } from "../../context/ToastContext";
 import {
   organisationModules,
   type OrganisationModuleAction,
@@ -14,8 +15,19 @@ import {
   type OrganisationModuleKey,
   type OrganisationModuleItem,
 } from "../../data/organisationModules";
-import { getInstitutionalAIInsight, refreshInstitutionalAIInsight } from "../../services/organisation";
-import type { InstitutionalAIInsight, InstitutionalRecommendedAction } from "../../types/organisation";
+import {
+  getInstitutionalAIInsight,
+  refreshInstitutionalAIInsight,
+  updateOrganisationBranding,
+  updateOrganisationSettings,
+} from "../../services/organisation";
+import type {
+  ActiveOrganisation,
+  InstitutionalAIInsight,
+  InstitutionalRecommendedAction,
+  OrganisationBranding,
+  OrganisationSettings,
+} from "../../types/organisation";
 
 type OrganisationPlaceholderProps = {
   moduleKey: OrganisationModuleKey;
@@ -29,7 +41,8 @@ const primaryButton =
 export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlaceholderProps): JSX.Element {
   const navigate = useNavigate();
   const { profile, user } = useAuth();
-  const { organisation, getOrganisationPath } = useOrganisation();
+  const { organisation, getOrganisationPath, refreshOrganisation } = useOrganisation();
+  const { showError, showSuccess } = useToast();
   const content = organisationModules[moduleKey];
   const [insight, setInsight] = useState<InstitutionalAIInsight | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(true);
@@ -107,7 +120,16 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
         </>
       }
     >
-      <OrganisationModuleView content={content} onAction={handleAction} />
+      {moduleKey === "settings" && organisation ? (
+        <OrganisationPersonalisationSettings
+          organisation={organisation}
+          onRefresh={refreshOrganisation}
+          onError={showError}
+          onSuccess={showSuccess}
+        />
+      ) : (
+        <OrganisationModuleView content={content} onAction={handleAction} />
+      )}
       <div className="mt-6">
         <OrganisationAIPanel
           contextLabel={`${content.title} Intelligence`}
@@ -124,6 +146,290 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
         />
       </div>
     </OrganisationLayout>
+  );
+}
+
+function OrganisationPersonalisationSettings({
+  organisation,
+  onRefresh,
+  onError,
+  onSuccess,
+}: {
+  organisation: ActiveOrganisation;
+  onRefresh: () => Promise<void>;
+  onError: (message: string) => void;
+  onSuccess: (message: string) => void;
+}): JSX.Element {
+  const [branding, setBranding] = useState<OrganisationBranding>(organisation.branding);
+  const [settings, setSettings] = useState<OrganisationSettings>(organisation.settings);
+  const [isSaving, setIsSaving] = useState(false);
+  const canManageSettings = ["owner", "organisation_admin", "admin"].includes(organisation.role);
+
+  useEffect(() => {
+    setBranding(organisation.branding);
+    setSettings(organisation.settings);
+  }, [organisation.branding, organisation.settings]);
+
+  async function handleSave(): Promise<void> {
+    if (!canManageSettings) {
+      onError("Organisation administrator access is required.");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await updateOrganisationBranding(organisation.id, branding);
+      await updateOrganisationSettings(organisation.id, settings);
+      await onRefresh();
+      onSuccess("Organisation personalisation saved.");
+    } catch (error) {
+      onError(readError(error, "Unable to save organisation personalisation."));
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function updateFeatureFlag(key: string, enabled: boolean): void {
+    setSettings((current) => ({
+      ...current,
+      featureFlags: {
+        ...current.featureFlags,
+        [key]: enabled,
+      },
+    }));
+  }
+
+  return (
+    <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+      <section className="rounded-3xl border border-[var(--color-outline-variant)] bg-white p-6 shadow-sm shadow-slate-200/50">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-700">Personalisation</p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">Organisation identity</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+              Configure the visual identity and welcome experience members see inside this organisation workspace.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={isSaving || !canManageSettings}
+            onClick={() => void handleSave()}
+            className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-5 text-sm font-black text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isSaving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+
+        {!canManageSettings && (
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+            You can view these settings, but only organisation administrators can update them.
+          </div>
+        )}
+
+        <div className="mt-6 grid gap-5 md:grid-cols-2">
+          <TextInput
+            label="Logo URL"
+            value={branding.logoUrl || ""}
+            placeholder="https://example.com/logo.png"
+            onChange={(value) => setBranding((current) => ({ ...current, logoUrl: value || null }))}
+          />
+          <TextInput
+            label="Dashboard Banner URL"
+            value={branding.dashboardBannerUrl || ""}
+            placeholder="https://example.com/banner.png"
+            onChange={(value) => setBranding((current) => ({ ...current, dashboardBannerUrl: value || null }))}
+          />
+          <ColourInput
+            label="Primary Colour"
+            value={branding.primaryColour}
+            onChange={(value) => setBranding((current) => ({ ...current, primaryColour: value }))}
+          />
+          <ColourInput
+            label="Secondary Colour"
+            value={branding.secondaryColour}
+            onChange={(value) => setBranding((current) => ({ ...current, secondaryColour: value }))}
+          />
+          <ColourInput
+            label="Accent Colour"
+            value={branding.accentColour}
+            onChange={(value) => setBranding((current) => ({ ...current, accentColour: value }))}
+          />
+          <ColourInput
+            label="Text Colour"
+            value={branding.textColour}
+            onChange={(value) => setBranding((current) => ({ ...current, textColour: value }))}
+          />
+          <SelectInput
+            label="Theme Mode"
+            value={branding.themeMode}
+            options={["light", "dark", "system"]}
+            onChange={(value) => setBranding((current) => ({ ...current, themeMode: value as OrganisationBranding["themeMode"] }))}
+          />
+          <SelectInput
+            label="Border Radius"
+            value={branding.borderRadius}
+            options={["small", "medium", "large", "rounded"]}
+            onChange={(value) => setBranding((current) => ({ ...current, borderRadius: value as OrganisationBranding["borderRadius"] }))}
+          />
+        </div>
+
+        <div className="mt-6 grid gap-5">
+          <TextInput
+            label="Welcome Heading"
+            value={settings.welcomeHeading || ""}
+            placeholder={`Welcome to ${organisation.name}`}
+            onChange={(value) => setSettings((current) => ({ ...current, welcomeHeading: value || null }))}
+          />
+          <label className="block">
+            <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Welcome Message</span>
+            <textarea
+              value={settings.welcomeMessage || ""}
+              onChange={(event) => setSettings((current) => ({ ...current, welcomeMessage: event.target.value || null }))}
+              rows={4}
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+              placeholder="Add a short message that explains the purpose of this organisation workspace."
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="space-y-6">
+        <div
+          className="rounded-3xl border p-6 shadow-xl"
+          style={{
+            background: branding.backgroundColour,
+            borderColor: branding.accentColour,
+            color: branding.textColour,
+            borderRadius: branding.borderRadius === "rounded" ? "2rem" : undefined,
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-black text-white"
+              style={{ background: branding.primaryColour }}
+            >
+              {organisation.name.slice(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: branding.accentColour }}>
+                Live Preview
+              </p>
+              <h3 className="text-xl font-black">{settings.welcomeHeading || organisation.name}</h3>
+            </div>
+          </div>
+          <p className="mt-5 text-sm leading-6 opacity-80">
+            {settings.welcomeMessage || "Your organisation workspace can carry your identity while staying inside the VisionTech experience."}
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {["Members", "Cohorts", "Opportunities"].map((item) => (
+              <span key={item} className="rounded-full px-3 py-1 text-xs font-bold text-white" style={{ background: branding.secondaryColour }}>
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/50">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Feature Visibility</p>
+          <h3 className="mt-2 text-xl font-black text-slate-950">Workspace modules</h3>
+          <div className="mt-5 space-y-3">
+            {["cohorts", "interventions", "opportunities", "reports", "settings"].map((feature) => (
+              <label key={feature} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700">
+                <span className="capitalize">{feature}</span>
+                <input
+                  type="checkbox"
+                  checked={settings.featureFlags[feature] ?? true}
+                  onChange={(event) => updateFeatureFlag(feature, event.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-indigo-700 focus:ring-indigo-300"
+                />
+              </label>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function TextInput({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (value: string) => void;
+}): JSX.Element {
+  return (
+    <label className="block">
+      <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">{label}</span>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+      />
+    </label>
+  );
+}
+
+function ColourInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}): JSX.Element {
+  return (
+    <label className="block">
+      <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">{label}</span>
+      <div className="mt-2 flex rounded-2xl border border-slate-200 bg-white p-1 focus-within:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-100">
+        <input
+          type="color"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="h-10 w-12 shrink-0 cursor-pointer rounded-xl border-0 bg-transparent"
+        />
+        <input
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="min-w-0 flex-1 bg-transparent px-3 text-sm font-bold text-slate-950 outline-none"
+        />
+      </div>
+    </label>
+  );
+}
+
+function SelectInput({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}): JSX.Element {
+  return (
+    <label className="block">
+      <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-950 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {formatRole(option)}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
