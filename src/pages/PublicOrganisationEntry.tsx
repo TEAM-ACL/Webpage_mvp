@@ -63,7 +63,7 @@ export default function PublicOrganisationEntry(): JSX.Element {
     .map((part) => part[0])
     .join("")
     .toUpperCase();
-  const redirectTo = profile ? `/organisation/${profile.slug}` : "/organisation";
+  const redirectTo = profile ? `/org/${profile.slug}/continue` : "/intelligence";
   const loginPath = profile ? `/org/${profile.slug}/login` : "/login";
   const signupPath = profile ? `/org/${profile.slug}/signup` : "/signup";
 
