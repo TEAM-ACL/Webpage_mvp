@@ -21,6 +21,7 @@ import {
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { getTenantSlugFromSearch, withTenantQuery } from '../lib/tenantNavigation';
 
 export function Header() {
   const location = useLocation();
@@ -29,6 +30,7 @@ export function Header() {
   const { isDark, toggleMode } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const activeTenantSlug = getTenantSlugFromSearch(location.search);
 
   const handleLogout = async () => {
     await logout();
@@ -41,9 +43,9 @@ export function Header() {
     { name: 'Pricing', path: '/pricing', icon: CreditCard },
     ...(user
       ? [
-        { name: 'Intelligence', path: '/intelligence', icon: BarChart3 },
-        { name: 'Workspace', path: '/workspace', icon: Zap },
-        { name: 'Network', path: '/network', icon: Network },
+        { name: 'Intelligence', path: withTenantQuery('/intelligence', activeTenantSlug), icon: BarChart3 },
+        { name: 'Workspace', path: withTenantQuery('/workspace', activeTenantSlug), icon: Zap },
+        { name: 'Network', path: withTenantQuery('/network', activeTenantSlug), icon: Network },
       ]
       : []),
     { name: 'About', path: '/about', icon: Info },
@@ -62,7 +64,7 @@ export function Header() {
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center space-x-8">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive = location.pathname === item.path.split("?")[0];
 
             return (
               <Link
@@ -120,10 +122,10 @@ export function Header() {
                     <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to="/onboarding" onClick={() => setProfileOpen(false)}>
                       My Pathway
                     </Link>
-                    <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to="/workspace" onClick={() => setProfileOpen(false)}>
+                    <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to={withTenantQuery("/workspace", activeTenantSlug)} onClick={() => setProfileOpen(false)}>
                       Workspace
                     </Link>
-                    <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to="/network" onClick={() => setProfileOpen(false)}>
+                    <Link className="block px-4 py-2 hover:bg-surface-container-high rounded-xl" to={withTenantQuery("/network", activeTenantSlug)} onClick={() => setProfileOpen(false)}>
                       Network
                     </Link>
                     <button
@@ -186,7 +188,7 @@ export function Header() {
                 to={item.path}
                 className={cn(
                   "inline-flex items-center gap-3 text-base font-headline tracking-tight transition-colors",
-                  location.pathname === item.path ? "text-white font-semibold" : "text-white/80 hover:text-white"
+                  location.pathname === item.path.split("?")[0] ? "text-white font-semibold" : "text-white/80 hover:text-white"
                 )}
                 onClick={() => setMobileOpen(false)}
               >
