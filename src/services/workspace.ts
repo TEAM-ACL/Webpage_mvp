@@ -6,6 +6,7 @@ import type {
   WorkspaceTaskActionRequest,
 } from "../types/workspace";
 import { getAccessToken } from "../lib/api";
+import { tenantAwareHeaders } from "../lib/tenantRequest";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -14,9 +15,9 @@ if (!API_BASE_URL) {
 }
 
 function workspaceHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
+  const headers = tenantAwareHeaders({
     "Content-Type": "application/json",
-  };
+  });
   const token = getAccessToken();
   if (token) {
     headers.Authorization = `Bearer ${token}`;

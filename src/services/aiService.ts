@@ -13,6 +13,7 @@ import type {
   CustomPathwaysListResponse,
   UpdateCustomPathwayPayload,
 } from "../types/ai";
+import { tenantAwareHeaders } from "../lib/tenantRequest";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -20,13 +21,17 @@ if (!API_BASE_URL) {
   throw new Error("VITE_API_BASE_URL is not defined");
 }
 
+function aiHeaders(): Record<string, string> {
+  return tenantAwareHeaders({
+    "Content-Type": "application/json",
+  });
+}
+
 export async function generateAIInsight(): Promise<AIInsightResponse> {
   const response = await fetch(`${API_BASE_URL}/ai/profile`, {
     method: "POST",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: aiHeaders(),
     body: JSON.stringify({ force_refresh: true }),
   });
 
@@ -43,9 +48,7 @@ export async function getAIState(): Promise<AIStateResponse> {
   const response = await fetch(`${API_BASE_URL}/ai/state`, {
     method: "GET",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: aiHeaders(),
   });
 
   if (!response.ok) {
@@ -61,9 +64,7 @@ export async function getAIGenerationReadiness(): Promise<AIGenerationReadinessR
   const response = await fetch(`${API_BASE_URL}/ai/readiness`, {
     method: "GET",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: aiHeaders(),
   });
 
   if (!response.ok) {
@@ -80,9 +81,7 @@ export async function getLatestAIInsight(): Promise<AIInsightResponse | null> {
   const response = await fetch(`${API_BASE_URL}/ai/profile`, {
     method: "GET",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: aiHeaders(),
   });
 
   if (response.status === 404) {
@@ -103,9 +102,7 @@ export async function getAIRecommendations(): Promise<AIRecommendationsResponse>
   const response = await fetch(`${API_BASE_URL}/ai/recommendations`, {
     method: "GET",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: aiHeaders(),
   });
 
   if (!response.ok) {
@@ -121,9 +118,7 @@ export async function generateAIRecommendations(): Promise<AIRecommendationsResp
   const response = await fetch(`${API_BASE_URL}/ai/recommendations`, {
     method: "POST",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: aiHeaders(),
     body: JSON.stringify({ force_refresh: true }),
   });
 
@@ -141,9 +136,7 @@ export async function getAIMatches(): Promise<AIMatchesResponse> {
   const response = await fetch(`${API_BASE_URL}/ai/matches`, {
     method: "GET",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: aiHeaders(),
   });
 
   if (!response.ok) {
@@ -161,9 +154,7 @@ export async function getAIRecommendationEvents(
   const response = await fetch(`${API_BASE_URL}/ai/recommendations/${recommendationId}/events`, {
     method: "GET",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: aiHeaders(),
   });
 
   if (!response.ok) {
@@ -184,9 +175,7 @@ export async function recordAIRecommendationEvent(payload: {
   const response = await fetch(`${API_BASE_URL}/ai/recommendations/events`, {
     method: "POST",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: aiHeaders(),
     body: JSON.stringify({
       ...payload,
       metadata: payload.metadata ?? { surface: "dashboard" },
@@ -204,9 +193,7 @@ export async function testAIBackendCall(_prompt: string): Promise<Record<string,
   const response = await fetch(`${API_BASE_URL}/ai/readiness`, {
     method: "GET",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: aiHeaders(),
   });
 
   if (!response.ok) {
@@ -231,9 +218,7 @@ export async function getCustomPathways(params?: {
     {
       method: "GET",
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: aiHeaders(),
     },
   );
 
@@ -252,9 +237,7 @@ export async function createCustomPathway(
   const response = await fetch(`${API_BASE_URL}/ai/custom-pathways/`, {
     method: "POST",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: aiHeaders(),
     body: JSON.stringify(payload),
   });
 
@@ -274,9 +257,7 @@ export async function updateCustomPathway(
   const response = await fetch(`${API_BASE_URL}/ai/custom-pathways/${customPathwayId}`, {
     method: "PATCH",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: aiHeaders(),
     body: JSON.stringify(payload),
   });
 
@@ -293,9 +274,7 @@ export async function archiveCustomPathway(customPathwayId: string): Promise<voi
   const response = await fetch(`${API_BASE_URL}/ai/custom-pathways/${customPathwayId}`, {
     method: "DELETE",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: aiHeaders(),
   });
 
   if (!response.ok) {

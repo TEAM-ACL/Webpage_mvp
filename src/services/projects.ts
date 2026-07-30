@@ -5,6 +5,7 @@ import type {
   UserProject,
   UserProjectsResponse,
 } from "../types/projects";
+import { tenantAwareHeaders } from "../lib/tenantRequest";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -12,13 +13,13 @@ if (!API_BASE_URL) {
   throw new Error("VITE_API_BASE_URL is not defined");
 }
 
+const projectHeaders = () => tenantAwareHeaders({ "Content-Type": "application/json" });
+
 export async function getUserProjects(): Promise<UserProjectsResponse> {
   const response = await fetch(`${API_BASE_URL}/projects`, {
     method: "GET",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: projectHeaders(),
   });
 
   if (!response.ok) {
@@ -44,9 +45,7 @@ export async function createUserProject(payload: {
   const response = await fetch(`${API_BASE_URL}/projects`, {
     method: "POST",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: projectHeaders(),
     body: JSON.stringify({
       ...payload,
       status: "idea",
@@ -78,9 +77,7 @@ export async function updateUserProject(
   const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
     method: "PATCH",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: projectHeaders(),
     body: JSON.stringify(payload),
   });
 
@@ -97,9 +94,7 @@ export async function deleteUserProject(id: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
     method: "DELETE",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: projectHeaders(),
   });
 
   if (!response.ok) {
