@@ -591,6 +591,13 @@ function uniquePush(list: string[], value: string) {
   return [...list, v];
 }
 
+function getSafeOnboardingRedirect(value: string | null | undefined): string | null {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return null;
+  }
+  return value;
+}
+
 function SelectionBlock({
   title,
   subtitle,
@@ -726,7 +733,13 @@ export default function OnboardingPage(): JSX.Element {
   const location = useLocation();
   const { showError } = useToast();
   const { user, refreshProfile, refreshAIInsight, markIntelligenceNeedsRefresh } = useAuth();
-  const reminder = (location.state as { reminder?: string } | null)?.reminder;
+  const locationState = location.state as { redirectTo?: string; reminder?: string } | null;
+  const queryParams = new URLSearchParams(location.search);
+  const reminder = locationState?.reminder;
+  const postOnboardingRedirectTo =
+    getSafeOnboardingRedirect(locationState?.redirectTo) ||
+    getSafeOnboardingRedirect(queryParams.get("redirectTo")) ||
+    "/intelligence";
   const [form, setForm] = useState<FormState>({
     preferredNickname: "",
     fullName: "",
@@ -958,7 +971,7 @@ export default function OnboardingPage(): JSX.Element {
       // Refresh backend-backed profile state
       await refreshProfile();
 
-      navigate("/intelligence");
+      navigate(postOnboardingRedirectTo, { replace: true });
     } catch (error) {
       console.error("Failed to complete onboarding", error);
       const message = toUserMessage(error, "We couldn't complete onboarding right now. Please try again.");
