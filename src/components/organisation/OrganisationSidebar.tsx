@@ -65,13 +65,13 @@ export default function OrganisationSidebar({
               onClick={onClose}
               aria-label="Go to VisionTech homepage"
               title="Go to homepage"
-              className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]"
+              className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--organisation-card-radius,1rem)] border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-high)]"
             >
               <Home className="h-4 w-4" />
             </NavLink>
             <div
               className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-sm font-black text-white shadow-sm"
-              style={{ backgroundColor: primaryColour }}
+              style={{ backgroundColor: primaryColour, color: "var(--organisation-on-primary)" }}
             >
               {logoUrl ? <img src={logoUrl} alt="" className="h-full w-full object-cover" /> : initials || "VT"}
             </div>
@@ -94,10 +94,10 @@ export default function OrganisationSidebar({
           </button>
         </div>
 
-        <div className="mt-5 rounded-2xl bg-[var(--color-surface-container-low)] p-4">
+        <div className="mt-5 rounded-[var(--organisation-card-radius,1rem)] border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4">
           <p className="text-xs font-semibold text-[var(--color-on-surface-variant)]">Access</p>
           <p className="mt-1 text-sm font-semibold text-[var(--color-on-surface)]">{administratorRole}</p>
-          <p className="mt-2 text-xs font-semibold text-emerald-700">{status}</p>
+          <p className="mt-2 text-xs font-semibold text-emerald-500">{status}</p>
         </div>
 
         <nav className="mt-6 space-y-2">
@@ -113,7 +113,7 @@ export default function OrganisationSidebar({
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                     isActive
-                      ? "bg-[var(--color-primary)] text-white"
+                      ? "bg-[var(--color-primary)] text-[var(--organisation-on-primary)]"
                       : "text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-low)]"
                   }`
                 }
