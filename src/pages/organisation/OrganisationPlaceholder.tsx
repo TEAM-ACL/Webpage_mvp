@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, LockKeyhole } from "lucide-react";
 import type { JSX, ReactNode } from "react";
 import OrganisationAIPanel from "../../components/organisation/OrganisationAIPanel";
@@ -40,6 +40,7 @@ const primaryButton =
 
 export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlaceholderProps): JSX.Element {
   const navigate = useNavigate();
+  const location = useLocation();
   const { profile, user } = useAuth();
   const { organisation, getOrganisationPath, isModuleEnabled, refreshOrganisation } = useOrganisation();
   const organisationId = organisation?.id;
@@ -50,6 +51,7 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
   const [isAiRefreshing, setIsAiRefreshing] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
+  const queryAction = buildModuleQueryAction(moduleKey, location.search);
 
   const loadInsight = useCallback(async () => {
     setIsAiLoading(true);
@@ -124,14 +126,20 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
       {!isModuleEnabled(moduleKey) ? (
         <DisabledModuleState moduleName={content.title} onOpenSettings={() => navigate(getOrganisationPath("settings"))} />
       ) : moduleKey === "settings" && organisation ? (
-        <OrganisationPersonalisationSettings
-          organisation={organisation}
-          onRefresh={refreshOrganisation}
-          onError={showError}
-          onSuccess={showSuccess}
-        />
+        <>
+          {queryAction ? <ModuleQueryActionBanner action={queryAction} /> : null}
+          <OrganisationPersonalisationSettings
+            organisation={organisation}
+            onRefresh={refreshOrganisation}
+            onError={showError}
+            onSuccess={showSuccess}
+          />
+        </>
       ) : (
-        <OrganisationModuleView content={content} onAction={handleAction} />
+        <>
+          {queryAction ? <ModuleQueryActionBanner action={queryAction} /> : null}
+          <OrganisationModuleView content={content} onAction={handleAction} />
+        </>
       )}
       <div className="mt-6">
         <OrganisationAIPanel
@@ -150,6 +158,117 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
       </div>
     </OrganisationLayout>
   );
+}
+
+type ModuleQueryAction = {
+  eyebrow: string;
+  title: string;
+  description: string;
+};
+
+function ModuleQueryActionBanner({ action }: { action: ModuleQueryAction }): JSX.Element {
+  return (
+    <section className="mb-6 rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-5 shadow-sm shadow-slate-200/50">
+      <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">{action.eyebrow}</p>
+      <h2 className="mt-2 text-xl font-black tracking-tight text-[var(--color-on-surface)]">{action.title}</h2>
+      <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--color-on-surface-variant)]">{action.description}</p>
+    </section>
+  );
+}
+
+function buildModuleQueryAction(moduleKey: OrganisationModuleKey, search: string): ModuleQueryAction | null {
+  const queryParams = new URLSearchParams(search);
+  const isCreate = queryParams.get("create") === "true";
+  const action = queryParams.get("action");
+  const filter = queryParams.get("filter");
+  const template = queryParams.get("template");
+  const section = queryParams.get("section");
+  const exportType = queryParams.get("export");
+
+  if (moduleKey === "cohorts") {
+    if (isCreate) {
+      return {
+        eyebrow: "Cohort Setup",
+        title: "Start a new tenant cohort",
+        description: "Define the programme goal, assign members, and use cohort readiness signals to track progress in this organisation.",
+      };
+    }
+    if (action === "assign-project") {
+      return {
+        eyebrow: "Project Assignment",
+        title: "Prepare a cohort project sprint",
+        description: "Use this area to group members into a practical project sprint before assigning evidence tasks.",
+      };
+    }
+  }
+
+  if (moduleKey === "interventions" && isCreate) {
+    return {
+      eyebrow: "Support Intervention",
+      title: "Create a targeted support action",
+      description: "Capture the risk signal, recommended action, owner, and follow-up expectation for members needing support.",
+    };
+  }
+
+  if (moduleKey === "opportunities") {
+    if (isCreate) {
+      return {
+        eyebrow: "Opportunity Publishing",
+        title: "Add an organisation opportunity",
+        description: "Create the opportunity details, requirements, deadline, and matching criteria for members in this tenant.",
+      };
+    }
+    if (filter === "closing-soon") {
+      return {
+        eyebrow: "Opportunity Review",
+        title: "Review opportunities closing soon",
+        description: "Prioritise opportunities with near deadlines and confirm matched members have enough evidence to act.",
+      };
+    }
+    if (action === "assign-members") {
+      return {
+        eyebrow: "Opportunity Matching",
+        title: "Assign matched members",
+        description: "Use readiness, skills, and project evidence to identify members who should receive this opportunity.",
+      };
+    }
+  }
+
+  if (moduleKey === "reports") {
+    if (isCreate || template) {
+      return {
+        eyebrow: "Report Builder",
+        title: template ? "Preview the selected report template" : "Generate a tenant report",
+        description: "Build an organisation-level report using member progress, cohort activity, support cases, and opportunity readiness.",
+      };
+    }
+    if (exportType === "csv") {
+      return {
+        eyebrow: "Report Export",
+        title: "Prepare CSV export",
+        description: "Export tenant reporting data for offline review, leadership packs, or institutional monitoring workflows.",
+      };
+    }
+  }
+
+  if (moduleKey === "settings") {
+    if (section) {
+      return {
+        eyebrow: "Settings Section",
+        title: `Review ${formatRole(section)} settings`,
+        description: "Update the relevant organisation profile, access, branding, or notification controls for this tenant.",
+      };
+    }
+    if (queryParams.get("invite-admin") === "true") {
+      return {
+        eyebrow: "Admin Access",
+        title: "Invite or review organisation administrators",
+        description: "Use this settings area to plan administrator access. Role-specific admin invitations can be connected in a later backend slice.",
+      };
+    }
+  }
+
+  return null;
 }
 
 function DisabledModuleState({
