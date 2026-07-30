@@ -2,6 +2,7 @@ import type { ElementType } from "react";
 import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
 import SummaryGrid, { type SummaryItem } from "../components/dashboard/SummaryGrid";
+import TenantContextBanner from "../components/dashboard/TenantContextBanner";
 import {
   Users,
   UserPlus,
@@ -84,6 +85,8 @@ export default function Network() {
           </>
         }
       />
+
+      <TenantContextBanner />
 
       <SummaryGrid items={summaryCards} />
 

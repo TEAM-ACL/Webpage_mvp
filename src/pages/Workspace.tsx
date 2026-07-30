@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
 import SummaryGrid, { type SummaryItem } from "../components/dashboard/SummaryGrid";
+import TenantContextBanner from "../components/dashboard/TenantContextBanner";
 import { useAuth } from "../context/AuthContext";
 import {
   getWorkspaceState,
@@ -408,6 +409,8 @@ export default function Workspace() {
           </>
         }
       />
+
+      <TenantContextBanner />
 
       {workspaceLoading ? (
         <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">

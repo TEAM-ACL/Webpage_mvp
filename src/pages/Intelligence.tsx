@@ -1,11 +1,10 @@
 import type { JSX } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   BookOpen,
   Briefcase,
-  Building2,
   CheckCircle2,
   Clock3,
   FolderKanban,
@@ -19,6 +18,7 @@ import {
 } from "lucide-react";
 import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
+import TenantContextBanner from "../components/dashboard/TenantContextBanner";
 import { useAuth } from "../context/AuthContext";
 import type { CreateCustomPathwayPayload } from "../types/ai";
 import {
@@ -45,8 +45,6 @@ import { getRecommendedOpportunities } from "../services/opportunities";
 import type { Opportunity, OpportunityType } from "../types/opportunities";
 import { getVerifiedSkills, refreshVerifiedSkills } from "../services/verifiedSkills";
 import type { SkillVerificationLevel, VerifiedSkill } from "../types/verifiedSkills";
-import { getPublicOrganisationProfile } from "../services/organisation";
-import type { PublicOrganisationProfile } from "../types/organisation";
 
 type PathwayStep = {
   id: string;
@@ -457,7 +455,6 @@ function renderMetricRows(
 
 export default function Intelligence(): JSX.Element {
   const navigate = useNavigate();
-  const location = useLocation();
   const {
     user,
     profile,
@@ -529,16 +526,10 @@ export default function Intelligence(): JSX.Element {
   const [outgoingRequests, setOutgoingRequests] = useState<CollaborationRequestItem[]>([]);
   const [recommendedOpportunities, setRecommendedOpportunities] = useState<Opportunity[]>([]);
   const [verifiedSkills, setVerifiedSkills] = useState<VerifiedSkill[]>([]);
-  const [tenantProfile, setTenantProfile] = useState<PublicOrganisationProfile | null>(null);
-  const [tenantProfileError, setTenantProfileError] = useState<string | null>(null);
   const [opportunitiesNeedRefresh, setOpportunitiesNeedRefresh] = useState(false);
   const [skillsNeedRefresh, setSkillsNeedRefresh] = useState(false);
   const [verifiedSkillsLoading, setVerifiedSkillsLoading] = useState(false);
   const [verifiedSkillsError, setVerifiedSkillsError] = useState<string | null>(null);
-  const tenantOrganisationSlug = useMemo(
-    () => new URLSearchParams(location.search).get("organisationSlug"),
-    [location.search],
-  );
   const [collaborationLoading, setCollaborationLoading] = useState(false);
   const [activeCollabMatchId, setActiveCollabMatchId] = useState<string | null>(null);
   const [selectedCollabProjectId, setSelectedCollabProjectId] = useState<string>("");
@@ -2481,37 +2472,6 @@ export default function Intelligence(): JSX.Element {
   }, [intelligenceNeedsRefresh]);
 
   useEffect(() => {
-    let isMounted = true;
-
-    async function loadTenantProfile(): Promise<void> {
-      if (!tenantOrganisationSlug) {
-        setTenantProfile(null);
-        setTenantProfileError(null);
-        return;
-      }
-
-      setTenantProfileError(null);
-      try {
-        const result = await getPublicOrganisationProfile(tenantOrganisationSlug);
-        if (isMounted) {
-          setTenantProfile(result);
-        }
-      } catch (error) {
-        if (isMounted) {
-          setTenantProfile(null);
-          setTenantProfileError(error instanceof Error ? error.message : "Unable to load organisation context.");
-        }
-      }
-    }
-
-    void loadTenantProfile();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [tenantOrganisationSlug]);
-
-  useEffect(() => {
     if (!actionFeedback) {
       return;
     }
@@ -2584,45 +2544,7 @@ export default function Intelligence(): JSX.Element {
         </div>
       </section>
 
-      {tenantOrganisationSlug ? (
-        <section className="mb-6 rounded-3xl border border-[var(--color-outline-variant)] bg-white p-5 shadow-sm shadow-slate-200/50">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[var(--color-primary)] text-sm font-black text-white">
-                {tenantProfile?.logoUrl || tenantProfile?.branding.logoUrl ? (
-                  <img src={tenantProfile.logoUrl || tenantProfile.branding.logoUrl || ""} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <Building2 className="h-5 w-5" />
-                )}
-              </div>
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">
-                  Organisation Context
-                </p>
-                <h2 className="mt-1 text-xl font-black tracking-tight text-[var(--color-on-surface)]">
-                  {tenantProfile?.name || "Organisation pathway"}
-                </h2>
-                <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--color-on-surface-variant)]">
-                  {tenantProfile?.settings.welcomeMessage ||
-                    tenantProfile?.description ||
-                    "You entered VisionTech through an organisation pathway. Your personal intelligence remains private while your journey stays connected to this context."}
-                </p>
-                {tenantProfileError ? (
-                  <p className="mt-2 text-xs font-semibold text-amber-700">{tenantProfileError}</p>
-                ) : null}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate(`/org/${tenantOrganisationSlug}`)}
-              className="inline-flex h-11 w-fit items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 text-sm font-bold text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]"
-            >
-              View organisation page
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </button>
-          </div>
-        </section>
-      ) : null}
+      <TenantContextBanner />
 
       <section className="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_1.9fr]">
         <div className="rounded-2xl border border-indigo-200 bg-white p-5 shadow-sm">
