@@ -7,10 +7,12 @@ import OrganisationAIPanel from "../components/organisation/OrganisationAIPanel"
 import OpportunityActivityPanel from "../components/organisation/OpportunityActivityPanel";
 import OrganisationActivityFeed from "../components/organisation/OrganisationActivityFeed";
 import OrganisationHealthCard from "../components/organisation/OrganisationHealthCard";
+import OrganisationHomepageWidgetRegistry from "../components/organisation/OrganisationHomepageWidgetRegistry";
 import OrganisationLayout from "../components/organisation/OrganisationLayout";
 import OrganisationMetricCard from "../components/organisation/OrganisationMetricCard";
 import PriorityActionsPanel from "../components/organisation/PriorityActionsPanel";
 import SupportMembersTable from "../components/organisation/SupportMembersTable";
+import type { OrganisationHomepageWidgetType } from "../config/organisationHomepageWidgets";
 import { useAuth } from "../context/AuthContext";
 import { useOrganisation } from "../context/OrganisationContext";
 import {
@@ -123,6 +125,62 @@ const [insightError, setInsightError] = useState<string | null>(null);
   }, [overview]);
   const recentActivity: OrganisationActivity[] = overview?.recentActivity?.length ? overview.recentActivity : mockRecentActivity;
   const hasNoMembers = !isLoading && metrics.totalMembers === 0;
+  const homepageWidgets: Record<OrganisationHomepageWidgetType, JSX.Element> = {
+    metrics: (
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+        <OrganisationMetricCard label="Total People" value={isLoading ? "…" : metrics.totalMembers} note="Registered members in this organisation" tone="slate" />
+        <OrganisationMetricCard label="Active People" value={isLoading ? "…" : metrics.activeMembers} note={`${activeMemberPercent(metrics)}% of registered people`} tone="indigo" />
+        <OrganisationMetricCard label="Active Cohorts" value={isLoading ? "…" : metrics.activeCohorts} note="Programmes currently being delivered" tone="sky" />
+        <OrganisationMetricCard label="Average Readiness" value={isLoading ? "…" : `${metrics.averageReadiness}%`} note="Opportunity readiness across members" tone="emerald" />
+        <OrganisationMetricCard label="Open Interventions" value={isLoading ? "…" : metrics.openInterventions} note="People or cohorts needing support" tone="amber" />
+        <OrganisationMetricCard label="Active Opportunities" value={isLoading ? "…" : metrics.activeOpportunities} note="Published opportunities being tracked" tone="rose" />
+      </section>
+    ),
+    ai_insight: (
+      <InstitutionalAIInsightCard
+        insight={insight}
+        isLoading={isLoading}
+        isRefreshing={isInsightRefreshing}
+        error={insightError}
+        onRefresh={() => void handleRefreshInsight()}
+        onActionSelect={handleAiAction}
+      />
+    ),
+    ai_assistant: (
+      <OrganisationAIPanel
+        contextLabel="Overview Intelligence"
+        title="AI Command Assistant"
+        insight={insight}
+        isLoading={isLoading}
+        isRefreshing={isInsightRefreshing}
+        error={insightError}
+        prompts={overviewAiPrompts}
+        selectedPrompt={selectedAiPrompt}
+        response={selectedAiPrompt ? buildOverviewAiResponse(selectedAiPrompt, metrics, insight) : null}
+        onPromptSelect={setSelectedAiPrompt}
+        onRefresh={() => void handleRefreshInsight()}
+        onActionSelect={handleAiAction}
+      />
+    ),
+    health_priority: (
+      <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
+        <OrganisationHealthCard metrics={healthMetrics} />
+        <PriorityActionsPanel actions={mockPriorityActions} onAction={handlePriorityAction} />
+      </div>
+    ),
+    cohorts_support: (
+      <div className="grid gap-6 xl:grid-cols-2">
+        <CohortPerformancePanel cohorts={mockCohortPerformance} onOpenCohorts={() => navigate(getOrganisationPath("cohorts"))} />
+        <SupportMembersTable members={supportMembers} onReviewPeople={() => navigate(getOrganisationPath("members?filter=needs-support"))} />
+      </div>
+    ),
+    opportunities_activity: (
+      <div className="grid gap-6 xl:grid-cols-2">
+        <OpportunityActivityPanel opportunities={mockOpportunityActivity} onOpenOpportunities={() => navigate(getOrganisationPath("opportunities"))} />
+        <OrganisationActivityFeed activity={recentActivity} />
+      </div>
+    ),
+  };
 
   async function handleRefreshInsight(): Promise<void> {
     setIsInsightRefreshing(true);
@@ -199,53 +257,11 @@ const [insightError, setInsightError] = useState<string | null>(null);
           </section>
         )}
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-          <OrganisationMetricCard label="Total People" value={isLoading ? "…" : metrics.totalMembers} note="Registered members in this organisation" tone="slate" />
-          <OrganisationMetricCard label="Active People" value={isLoading ? "…" : metrics.activeMembers} note={`${activeMemberPercent(metrics)}% of registered people`} tone="indigo" />
-          <OrganisationMetricCard label="Active Cohorts" value={isLoading ? "…" : metrics.activeCohorts} note="Programmes currently being delivered" tone="sky" />
-          <OrganisationMetricCard label="Average Readiness" value={isLoading ? "…" : `${metrics.averageReadiness}%`} note="Opportunity readiness across members" tone="emerald" />
-          <OrganisationMetricCard label="Open Interventions" value={isLoading ? "…" : metrics.openInterventions} note="People or cohorts needing support" tone="amber" />
-          <OrganisationMetricCard label="Active Opportunities" value={isLoading ? "…" : metrics.activeOpportunities} note="Published opportunities being tracked" tone="rose" />
-        </section>
 
-        <InstitutionalAIInsightCard
-          insight={insight}
-          isLoading={isLoading}
-          isRefreshing={isInsightRefreshing}
-          error={insightError}
-          onRefresh={() => void handleRefreshInsight()}
-          onActionSelect={handleAiAction}
+        <OrganisationHomepageWidgetRegistry
+          sections={organisation?.settings.homepageConfig || []}
+          widgets={homepageWidgets}
         />
-
-        <OrganisationAIPanel
-          contextLabel="Overview Intelligence"
-          title="AI Command Assistant"
-          insight={insight}
-          isLoading={isLoading}
-          isRefreshing={isInsightRefreshing}
-          error={insightError}
-          prompts={overviewAiPrompts}
-          selectedPrompt={selectedAiPrompt}
-          response={selectedAiPrompt ? buildOverviewAiResponse(selectedAiPrompt, metrics, insight) : null}
-          onPromptSelect={setSelectedAiPrompt}
-          onRefresh={() => void handleRefreshInsight()}
-          onActionSelect={handleAiAction}
-        />
-
-        <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
-          <OrganisationHealthCard metrics={healthMetrics} />
-          <PriorityActionsPanel actions={mockPriorityActions} onAction={handlePriorityAction} />
-        </div>
-
-        <div className="grid gap-6 xl:grid-cols-2">
-          <CohortPerformancePanel cohorts={mockCohortPerformance} onOpenCohorts={() => navigate(getOrganisationPath("cohorts"))} />
-          <SupportMembersTable members={supportMembers} onReviewPeople={() => navigate(getOrganisationPath("members?filter=needs-support"))} />
-        </div>
-
-        <div className="grid gap-6 xl:grid-cols-2">
-          <OpportunityActivityPanel opportunities={mockOpportunityActivity} onOpenOpportunities={() => navigate(getOrganisationPath("opportunities"))} />
-          <OrganisationActivityFeed activity={recentActivity} />
-        </div>
       </div>
     </OrganisationLayout>
   );
