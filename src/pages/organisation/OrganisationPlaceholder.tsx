@@ -5,6 +5,11 @@ import type { JSX, ReactNode } from "react";
 import OrganisationAIPanel from "../../components/organisation/OrganisationAIPanel";
 import OrganisationLayout from "../../components/organisation/OrganisationLayout";
 import OrganisationMetricCard from "../../components/organisation/OrganisationMetricCard";
+import {
+  DEFAULT_ORGANISATION_NAVIGATION,
+  normaliseNavigation,
+  type OrganisationNavigationKey,
+} from "../../config/organisationTenant";
 import { useAuth } from "../../context/AuthContext";
 import { useOrganisation } from "../../context/OrganisationContext";
 import { useToast } from "../../context/ToastContext";
@@ -26,6 +31,7 @@ import type {
   InstitutionalAIInsight,
   InstitutionalRecommendedAction,
   OrganisationBranding,
+  OrganisationNavigationConfigItem,
   OrganisationSettings,
 } from "../../types/organisation";
 
@@ -37,6 +43,13 @@ const outlineButton =
   "inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-bold text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]";
 const primaryButton =
   "inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-bold text-white shadow-lg shadow-indigo-200 transition hover:opacity-90";
+const requiredNavigationKeys = new Set<OrganisationNavigationKey>(["overview", "settings"]);
+const terminologyFields: Array<{ key: string; label: string; placeholder: string }> = [
+  { key: "members", label: "Members", placeholder: "Students, Employees, Participants" },
+  { key: "cohorts", label: "Cohorts", placeholder: "Programmes, Classes, Teams" },
+  { key: "opportunities", label: "Opportunities", placeholder: "Placements, Vacancies, Pathways" },
+  { key: "interventions", label: "Interventions", placeholder: "Student Support, Workforce Support" },
+];
 
 export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlaceholderProps): JSX.Element {
   const navigate = useNavigate();
@@ -349,6 +362,75 @@ function OrganisationPersonalisationSettings({
     }));
   }
 
+  function updateNavigationItem(
+    key: OrganisationNavigationKey,
+    updates: Partial<OrganisationNavigationConfigItem>,
+  ): void {
+    const defaultItem = DEFAULT_ORGANISATION_NAVIGATION.find((item) => item.key === key);
+    if (!defaultItem) {
+      return;
+    }
+
+    setSettings((current) => {
+      const existingItem = current.navigationConfig.find((item) => item.key === key);
+      const nextItem: OrganisationNavigationConfigItem = {
+        key,
+        label: defaultItem.label,
+        path: defaultItem.path,
+        enabled: defaultItem.enabled,
+        order: defaultItem.order,
+        ...existingItem,
+        ...updates,
+      };
+      const nextConfig = [
+        ...current.navigationConfig.filter((item) => item.key !== key),
+        nextItem,
+      ].sort((left, right) => left.order - right.order);
+
+      return {
+        ...current,
+        navigationConfig: nextConfig,
+        featureFlags: typeof updates.enabled === "boolean" && !requiredNavigationKeys.has(key)
+          ? { ...current.featureFlags, [key]: updates.enabled }
+          : current.featureFlags,
+      };
+    });
+  }
+
+  function updateTerminology(key: string, value: string): void {
+    setSettings((current) => {
+      const nextTerminology = { ...current.terminologyConfig };
+      if (value.trim()) {
+        nextTerminology[key] = value.trim();
+      } else {
+        delete nextTerminology[key];
+      }
+
+      return {
+        ...current,
+        terminologyConfig: nextTerminology,
+      };
+    });
+  }
+
+  function resetNavigationDefaults(): void {
+    setSettings((current) => ({
+      ...current,
+      navigationConfig: [],
+      terminologyConfig: {},
+      featureFlags: {
+        ...current.featureFlags,
+        members: true,
+        cohorts: true,
+        interventions: true,
+        opportunities: true,
+        reports: true,
+      },
+    }));
+  }
+
+  const navigationPreview = normaliseNavigation(settings.navigationConfig, settings.featureFlags);
+
   return (
     <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
       <section className="rounded-[var(--organisation-card-radius,1.5rem)] border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
@@ -423,6 +505,75 @@ function OrganisationPersonalisationSettings({
           />
         </div>
 
+        <div className="mt-8 rounded-[var(--organisation-card-radius,1.5rem)] border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">Navigation & Terminology</p>
+              <h3 className="mt-2 text-xl font-black text-[var(--color-on-surface)]">Adapt approved platform language</h3>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--color-on-surface-variant)]">
+                Rename approved sections, adjust order, and hide optional modules without changing protected routes.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={resetNavigationDefaults}
+              className="inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 text-xs font-black text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-high)]"
+            >
+              Restore Defaults
+            </button>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {DEFAULT_ORGANISATION_NAVIGATION.map((defaultItem) => {
+              const configuredItem = settings.navigationConfig.find((item) => item.key === defaultItem.key);
+              const isRequired = requiredNavigationKeys.has(defaultItem.key);
+              const label = configuredItem?.label ?? defaultItem.label;
+              const order = configuredItem?.order ?? defaultItem.order;
+              const enabled = isRequired || (settings.featureFlags[defaultItem.key] ?? configuredItem?.enabled ?? defaultItem.enabled);
+
+              return (
+                <div key={defaultItem.key} className="grid gap-3 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-4 md:grid-cols-[1.5fr_0.6fr_0.7fr] md:items-end">
+                  <TextInput
+                    label={`${defaultItem.label} label`}
+                    value={label}
+                    placeholder={defaultItem.label}
+                    onChange={(value) => updateNavigationItem(defaultItem.key, { label: value || defaultItem.label })}
+                  />
+                  <NumberInput
+                    label="Order"
+                    value={order}
+                    min={1}
+                    max={DEFAULT_ORGANISATION_NAVIGATION.length}
+                    onChange={(value) => updateNavigationItem(defaultItem.key, { order: value })}
+                  />
+                  <label className="flex h-12 items-center justify-between rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 text-sm font-bold text-[var(--color-on-surface)]">
+                    <span>{isRequired ? "Required" : "Visible"}</span>
+                    <input
+                      type="checkbox"
+                      disabled={isRequired}
+                      checked={enabled}
+                      onChange={(event) => updateNavigationItem(defaultItem.key, { enabled: event.target.checked })}
+                      className="h-4 w-4 rounded border-slate-300 text-indigo-700 focus:ring-indigo-300 disabled:opacity-50"
+                    />
+                  </label>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {terminologyFields.map((field) => (
+              <TextInput
+                key={field.key}
+                label={field.label}
+                value={settings.terminologyConfig[field.key] || ""}
+                placeholder={field.placeholder}
+                onChange={(value) => updateTerminology(field.key, value)}
+              />
+            ))}
+          </div>
+        </div>
+
         <div className="mt-6 grid gap-5">
           <TextInput
             label="Welcome Heading"
@@ -471,9 +622,9 @@ function OrganisationPersonalisationSettings({
             {settings.welcomeMessage || "Your organisation workspace can carry your identity while staying inside the VisionTech experience."}
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
-            {["Members", "Cohorts", "Opportunities"].map((item) => (
-              <span key={item} className="rounded-full px-3 py-1 text-xs font-bold text-white" style={{ background: branding.secondaryColour }}>
-                {item}
+            {navigationPreview.slice(0, 5).map((item) => (
+              <span key={item.key} className="rounded-full px-3 py-1 text-xs font-bold text-white" style={{ background: branding.secondaryColour }}>
+                {item.label}
               </span>
             ))}
           </div>
@@ -498,6 +649,34 @@ function OrganisationPersonalisationSettings({
         </div>
       </section>
     </div>
+  );
+}
+
+function NumberInput({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (value: number) => void;
+}): JSX.Element {
+  return (
+    <label className="block">
+      <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]">{label}</span>
+      <input
+        type="number"
+        value={value}
+        min={min}
+        max={max}
+        onChange={(event) => onChange(Number(event.target.value) || min)}
+        className="mt-2 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm font-bold text-[var(--color-on-surface)] outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+      />
+    </label>
   );
 }
 
