@@ -43,6 +43,7 @@ export default function AuthCallback(): JSX.Element {
   const [message, setMessage] = useState("Verifying your account...");
   const [error, setError] = useState<string | null>(null);
   const [showLoginAction, setShowLoginAction] = useState(false);
+  const [callbackRedirectTo, setCallbackRedirectTo] = useState<string | null>(null);
 
   useEffect(() => {
     const finishAuth = async () => {
@@ -75,6 +76,9 @@ export default function AuthCallback(): JSX.Element {
 
         clearCallbackUrlArtifacts();
 
+        const safeRedirectTo = getSafeCallbackRedirect(callbackPayload.redirectTo);
+        setCallbackRedirectTo(safeRedirectTo);
+
         if (!callbackPayload.accessToken && !callbackPayload.refreshToken) {
           const successMessage =
             callbackPayload.verificationType === "signup"
@@ -97,10 +101,13 @@ export default function AuthCallback(): JSX.Element {
 
         const profileState = await refreshProfile();
         const isComplete = profileState?.isOnboardingComplete ?? false;
-        const safeRedirectTo = getSafeCallbackRedirect(callbackPayload.redirectTo);
 
         setMessage("You have been verified. Redirecting to your workspace...");
-        navigate(safeRedirectTo || (isComplete ? "/intelligence" : "/onboarding"), { replace: true });
+        if (!isComplete) {
+          navigate("/onboarding", safeRedirectTo ? { replace: true, state: { redirectTo: safeRedirectTo } } : { replace: true });
+          return;
+        }
+        navigate(safeRedirectTo || "/intelligence", { replace: true });
       } catch (err) {
         setError(
           toUserMessage(
@@ -125,7 +132,10 @@ export default function AuthCallback(): JSX.Element {
           <div className="mt-5">
             <Link
               to="/login"
-              state={{ verificationMessage: "Your email has been verified. You can now log in." }}
+              state={{
+                verificationMessage: "Your email has been verified. You can now log in.",
+                redirectTo: callbackRedirectTo || undefined,
+              }}
               className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
               Login now

@@ -13,7 +13,6 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const hasUppercase = (value: string) => /[A-Z]/.test(value);
 const hasLowercase = (value: string) => /[a-z]/.test(value);
 const hasSpecialCharacter = (value: string) => /[^A-Za-z0-9]/.test(value);
-const emailConfirmationRedirectUrl = getEmailConfirmationRedirectUrl();
 const duplicateEmailMessage = "This email is already registered. Try signing in or resending verification.";
 const isSafeRedirect = (value: string | null | undefined): value is string =>
   typeof value === "string" && value.startsWith("/") && !value.startsWith("//");
@@ -54,6 +53,11 @@ export default function SignUp(): JSX.Element {
   const meetsUppercase = hasUppercase(password);
   const meetsLowercase = hasLowercase(password);
   const meetsSpecialCharacter = hasSpecialCharacter(password);
+  const locationState = location.state as { redirectTo?: string } | null;
+  const queryParams = new URLSearchParams(location.search);
+  const redirectTo = locationState?.redirectTo ?? queryParams.get("redirectTo");
+  const safeRedirectTo = isSafeRedirect(redirectTo) ? redirectTo : null;
+  const emailConfirmationRedirectUrl = getEmailConfirmationRedirectUrl(safeRedirectTo);
 
   const friendlyError = (message: string) => toUserMessage(message, "Unable to create account. Please try again.");
 
@@ -138,10 +142,7 @@ export default function SignUp(): JSX.Element {
       storeSession(session);
       setUser(session.user);
       setOnboardingComplete(false);
-      const state = location.state as { redirectTo?: string } | null;
-      const queryParams = new URLSearchParams(location.search);
-      const redirectTo = state?.redirectTo ?? queryParams.get("redirectTo");
-      navigate("/onboarding", isSafeRedirect(redirectTo) ? { state: { redirectTo } } : undefined);
+      navigate("/onboarding", safeRedirectTo ? { state: { redirectTo: safeRedirectTo } } : undefined);
     } catch (err) {
       const rawMessage = (err as Error).message || "";
       const message = isAlreadyRegisteredError(rawMessage)

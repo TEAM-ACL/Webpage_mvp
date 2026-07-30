@@ -21,8 +21,12 @@ function getRedirectBaseUrl(): string {
   return trimTrailingSlashes(origin);
 }
 
-export function getEmailConfirmationRedirectUrl(): string {
-  return `${getRedirectBaseUrl()}/auth/callback`;
+export function getEmailConfirmationRedirectUrl(redirectTo?: string | null): string {
+  const callbackUrl = new URL(`${getRedirectBaseUrl()}/auth/callback`);
+  if (redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")) {
+    callbackUrl.searchParams.set("redirect", redirectTo);
+  }
+  return callbackUrl.toString();
 }
 
 export function getPasswordResetRedirectUrl(): string {
