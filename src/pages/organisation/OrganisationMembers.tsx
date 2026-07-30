@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type JSX } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Download, MailPlus, Plus, Users } from "lucide-react";
 import EmptyState from "../../components/organisation/EmptyState";
 import InviteMemberModal from "../../components/organisation/InviteMemberModal";
@@ -33,6 +33,7 @@ const outlineButton = "inline-flex h-11 items-center justify-center rounded-2xl 
 
 export default function OrganisationMembers(): JSX.Element {
   const navigate = useNavigate();
+  const location = useLocation();
   const { profile, user } = useAuth();
   const { activeSlug, organisation, getOrganisationPath, isModuleEnabled } = useOrganisation();
   const organisationId = organisation?.id;
@@ -72,6 +73,26 @@ export default function OrganisationMembers(): JSX.Element {
     };
   }, [organisationId]);
 
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const shouldOpenInvite = queryParams.get("invite") === "true";
+    const requestedFilter = queryParams.get("filter");
+    const requestedAction = queryParams.get("action");
+
+    if (shouldOpenInvite) {
+      setIsInviteOpen(true);
+    }
+    if (requestedFilter === "needs-support") {
+      setFilters((currentFilters) => ({
+        ...currentFilters,
+        support: "needs-support",
+      }));
+    }
+    if (requestedAction === "share-resource") {
+      setNotice("Choose one or more members to prepare a resource-sharing action.");
+    }
+  }, [location.search]);
+
   const organisationName =
     organisation?.name || overview?.summary.organisationName || profile?.organisationName || "VisionTech Organisation";
   const organisationType = organisation?.organisationType || overview?.summary.organisationType || "Training Provider";
@@ -93,6 +114,14 @@ export default function OrganisationMembers(): JSX.Element {
     const invitedMember = await inviteOrganisationMember(payload);
     setMembers((currentMembers) => [invitedMember, ...currentMembers]);
     setNotice(`${invitedMember.fullName} has been invited. Share the tenant signup link if email delivery is not connected yet.`);
+  }
+
+  function handleClearSupportFilter(): void {
+    setFilters((currentFilters) => ({
+      ...currentFilters,
+      support: "all",
+    }));
+    navigate(getOrganisationPath("members"), { replace: true });
   }
 
   function handleViewMember(member: OrganisationMember): void {
@@ -220,6 +249,19 @@ export default function OrganisationMembers(): JSX.Element {
               {notice}
             </section>
           )}
+
+          {filters.support === "needs-support" ? (
+            <section className="mb-6 flex flex-col gap-3 rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 sm:flex-row sm:items-center sm:justify-between">
+              <span className="font-semibold">Showing members who need support or intervention.</span>
+              <button
+                type="button"
+                onClick={handleClearSupportFilter}
+                className="inline-flex w-fit items-center justify-center rounded-2xl border border-amber-300 bg-white px-4 py-2 text-sm font-bold text-amber-800 transition hover:bg-amber-100"
+              >
+                Clear support filter
+              </button>
+            </section>
+          ) : null}
 
           <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {memberMetrics.map((metric) => (
