@@ -34,7 +34,7 @@ const outlineButton = "inline-flex h-11 items-center justify-center rounded-2xl 
 export default function OrganisationMembers(): JSX.Element {
   const navigate = useNavigate();
   const { profile, user } = useAuth();
-  const { organisation, getOrganisationPath, isModuleEnabled } = useOrganisation();
+  const { activeSlug, organisation, getOrganisationPath, isModuleEnabled } = useOrganisation();
   const organisationId = organisation?.id;
   const [overview, setOverview] = useState<OrganisationOverviewResponse | null>(null);
   const [members, setMembers] = useState<OrganisationMember[]>([]);
@@ -76,6 +76,7 @@ export default function OrganisationMembers(): JSX.Element {
     organisation?.name || overview?.summary.organisationName || profile?.organisationName || "VisionTech Organisation";
   const organisationType = organisation?.organisationType || overview?.summary.organisationType || "Training Provider";
   const administratorRole = organisation?.role || profile?.role || user?.role || "Platform Administrator";
+  const tenantInviteUrl = `${window.location.origin}/org/${activeSlug}/signup`;
 
   const cohorts = useMemo(
     () => Array.from(new Set(members.map((member) => member.cohortName).filter(Boolean))) as string[],
@@ -91,7 +92,7 @@ export default function OrganisationMembers(): JSX.Element {
   async function handleInvite(payload: InviteOrganisationMemberRequest): Promise<void> {
     const invitedMember = await inviteOrganisationMember(payload);
     setMembers((currentMembers) => [invitedMember, ...currentMembers]);
-    setNotice(`${invitedMember.fullName} has been invited.`);
+    setNotice(`${invitedMember.fullName} has been invited. Share the tenant signup link if email delivery is not connected yet.`);
   }
 
   function handleViewMember(member: OrganisationMember): void {
@@ -248,7 +249,13 @@ export default function OrganisationMembers(): JSX.Element {
             />
           )}
 
-          <InviteMemberModal isOpen={isInviteOpen} onClose={() => setIsInviteOpen(false)} onInvite={handleInvite} />
+          <InviteMemberModal
+            isOpen={isInviteOpen}
+            onClose={() => setIsInviteOpen(false)}
+            onInvite={handleInvite}
+            inviteUrl={tenantInviteUrl}
+            organisationName={organisationName}
+          />
           <MemberDetailsDrawer
             member={selectedMember}
             isOpen={isMemberDrawerOpen}
