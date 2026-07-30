@@ -1,27 +1,29 @@
 "use client";
 
-import { useMemo } from "react";
 import { Bell, ChevronDown, Moon, Sun } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useOrganisation } from "../../context/OrganisationContext";
 import { useTheme } from "../../context/ThemeContext";
 import { hasOrganisationDashboardAccess, isAdmin as checkAdmin } from "../../lib/auth";
+import { getTenantSlugFromSearch, withTenantQuery } from "../../lib/tenantNavigation";
 
 type NavItem = { label: string; href: string };
 
 function isActive(pathname: string, href: string) {
-  return href === "/organisation" || href.split("/").length === 3
-    ? pathname === href || pathname === "/organizations"
-    : pathname === href;
+  const hrefPathname = href.split("?")[0];
+  return hrefPathname === "/organisation" || hrefPathname.split("/").length === 3
+    ? pathname === hrefPathname || pathname === "/organizations"
+    : pathname === hrefPathname;
 }
 
 export default function DashboardTopNav() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { user, profile } = useAuth();
   const { getOrganisationPath, navigationItems } = useOrganisation();
   const { isDark, toggleMode } = useTheme();
   const isOrganisationArea = pathname.startsWith("/organisation") || pathname.startsWith("/organizations");
+  const activeTenantSlug = getTenantSlugFromSearch(search);
 
   const navItems: NavItem[] = isOrganisationArea
     ? navigationItems.map((item) => ({
@@ -29,9 +31,9 @@ export default function DashboardTopNav() {
         href: getOrganisationPath(item.path),
       }))
     : [
-        { label: "Intelligence", href: "/intelligence" },
-        { label: "Workspace", href: "/workspace" },
-        { label: "Network", href: "/network" },
+        { label: "Intelligence", href: withTenantQuery("/intelligence", activeTenantSlug) },
+        { label: "Workspace", href: withTenantQuery("/workspace", activeTenantSlug) },
+        { label: "Network", href: withTenantQuery("/network", activeTenantSlug) },
       ];
 
   const role = profile?.role || user?.role;
