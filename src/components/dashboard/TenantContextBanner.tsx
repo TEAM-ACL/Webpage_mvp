@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Building2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { buildOrganisationThemeVariables } from "../../lib/organisationTheme";
 import { getPublicOrganisationProfile } from "../../services/organisation";
 import type { PublicOrganisationProfile } from "../../types/organisation";
 
@@ -53,11 +54,13 @@ export default function TenantContextBanner({ className = "mb-6" }: TenantContex
     return null;
   }
 
+  const bannerStyle = buildOrganisationThemeVariables(tenantProfile?.branding);
+
   return (
-    <section className={`${className} rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-5 shadow-sm`}>
+    <section className={`${className} rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-5 shadow-sm`} style={bannerStyle}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[var(--color-primary)] text-sm font-black text-white">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[var(--color-primary)] text-sm font-black text-[var(--organisation-on-primary)]">
             {tenantProfile?.logoUrl || tenantProfile?.branding.logoUrl ? (
               <img src={tenantProfile.logoUrl || tenantProfile.branding.logoUrl || ""} alt="" className="h-full w-full object-cover" />
             ) : (
