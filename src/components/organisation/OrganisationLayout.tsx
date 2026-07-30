@@ -30,12 +30,15 @@ export default function OrganisationLayout({
   const settings = organisation?.settings;
   const shellStyle = {
     background: branding
-      ? `linear-gradient(135deg, ${branding.backgroundColour} 0%, #f8fafc 58%, #ffffff 100%)`
+      ? `linear-gradient(135deg, ${branding.backgroundColour} 0%, color-mix(in srgb, ${branding.backgroundColour} 72%, #ffffff) 58%, var(--color-surface-container-lowest) 100%)`
       : undefined,
+    color: branding?.textColour,
+    fontFamily: branding?.fontFamily,
   } as CSSProperties;
+  const radiusClass = resolveRadiusClass(branding?.borderRadius);
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] text-slate-900" style={shellStyle}>
+    <main className={`min-h-screen bg-[var(--color-surface)] text-[var(--color-on-surface)] ${radiusClass}`} style={shellStyle}>
       <div className="lg:flex">
         <OrganisationSidebar
           organisationName={organisationName}
@@ -67,4 +70,17 @@ export default function OrganisationLayout({
       </div>
     </main>
   );
+}
+
+function resolveRadiusClass(borderRadius?: string): string {
+  if (borderRadius === "small") {
+    return "[--organisation-card-radius:0.75rem]";
+  }
+  if (borderRadius === "large") {
+    return "[--organisation-card-radius:1.5rem]";
+  }
+  if (borderRadius === "rounded") {
+    return "[--organisation-card-radius:2rem]";
+  }
+  return "[--organisation-card-radius:1rem]";
 }

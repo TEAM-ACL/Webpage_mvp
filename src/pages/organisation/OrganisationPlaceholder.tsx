@@ -351,12 +351,12 @@ function OrganisationPersonalisationSettings({
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-      <section className="rounded-3xl border border-[var(--color-outline-variant)] bg-white p-6 shadow-sm shadow-slate-200/50">
+      <section className="rounded-[var(--organisation-card-radius,1.5rem)] border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-700">Personalisation</p>
-            <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">Organisation identity</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">Personalisation</p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--color-on-surface)]">Organisation identity</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-on-surface-variant)]">
               Configure the visual identity and welcome experience members see inside this organisation workspace.
             </p>
           </div>
@@ -364,14 +364,14 @@ function OrganisationPersonalisationSettings({
             type="button"
             disabled={isSaving || !canManageSettings}
             onClick={() => void handleSave()}
-            className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-5 text-sm font-black text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-5 text-sm font-black text-[var(--organisation-on-primary)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSaving ? "Saving..." : "Save Changes"}
           </button>
         </div>
 
         {!canManageSettings && (
-          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+          <div className="mt-5 rounded-2xl border border-amber-300/60 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
             You can view these settings, but only organisation administrators can update them.
           </div>
         )}
@@ -431,12 +431,12 @@ function OrganisationPersonalisationSettings({
             onChange={(value) => setSettings((current) => ({ ...current, welcomeHeading: value || null }))}
           />
           <label className="block">
-            <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Welcome Message</span>
+            <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]">Welcome Message</span>
             <textarea
               value={settings.welcomeMessage || ""}
               onChange={(event) => setSettings((current) => ({ ...current, welcomeMessage: event.target.value || null }))}
               rows={4}
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+              className="mt-2 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm text-[var(--color-on-surface)] outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
               placeholder="Add a short message that explains the purpose of this organisation workspace."
             />
           </label>
@@ -479,12 +479,12 @@ function OrganisationPersonalisationSettings({
           </div>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/50">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Feature Visibility</p>
-          <h3 className="mt-2 text-xl font-black text-slate-950">Workspace modules</h3>
+        <div className="rounded-[var(--organisation-card-radius,1.5rem)] border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-on-surface-variant)]">Feature Visibility</p>
+          <h3 className="mt-2 text-xl font-black text-[var(--color-on-surface)]">Workspace modules</h3>
           <div className="mt-5 space-y-3">
             {["members", "cohorts", "interventions", "opportunities", "reports"].map((feature) => (
-              <label key={feature} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700">
+              <label key={feature} className="flex items-center justify-between rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm font-bold text-[var(--color-on-surface)]">
                 <span className="capitalize">{feature}</span>
                 <input
                   type="checkbox"
@@ -514,12 +514,12 @@ function TextInput({
 }): JSX.Element {
   return (
     <label className="block">
-      <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">{label}</span>
+      <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]">{label}</span>
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+        className="mt-2 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm text-[var(--color-on-surface)] outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
       />
     </label>
   );
@@ -536,8 +536,8 @@ function ColourInput({
 }): JSX.Element {
   return (
     <label className="block">
-      <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">{label}</span>
-      <div className="mt-2 flex rounded-2xl border border-slate-200 bg-white p-1 focus-within:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-100">
+      <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]">{label}</span>
+      <div className="mt-2 flex rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-1 focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/20">
         <input
           type="color"
           value={value}
@@ -547,7 +547,7 @@ function ColourInput({
         <input
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="min-w-0 flex-1 bg-transparent px-3 text-sm font-bold text-slate-950 outline-none"
+          className="min-w-0 flex-1 bg-transparent px-3 text-sm font-bold text-[var(--color-on-surface)] outline-none"
         />
       </div>
     </label>
@@ -567,11 +567,11 @@ function SelectInput({
 }): JSX.Element {
   return (
     <label className="block">
-      <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">{label}</span>
+      <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]">{label}</span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-950 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+        className="mt-2 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm font-bold text-[var(--color-on-surface)] outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
       >
         {options.map((option) => (
           <option key={option} value={option}>
