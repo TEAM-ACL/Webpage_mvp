@@ -7,6 +7,7 @@ export type MemberFiltersState = {
   goal: string;
   status: "all" | MemberStatus;
   readiness: "all" | "low" | "medium" | "high";
+  support: "all" | "needs-support";
 };
 
 type MemberFiltersProps = {
@@ -22,6 +23,7 @@ export const defaultMemberFilters: MemberFiltersState = {
   goal: "all",
   status: "all",
   readiness: "all",
+  support: "all",
 };
 
 export function filterMembers(
@@ -34,13 +36,14 @@ export function filterMembers(
     const matchesCohort = filters.cohort === "all" || member.cohortName === filters.cohort;
     const matchesGoal = filters.goal === "all" || member.goal === filters.goal;
     const matchesStatus = filters.status === "all" || member.status === filters.status;
+    const matchesSupport = filters.support === "all" || member.needsSupport;
     const matchesReadiness =
       filters.readiness === "all" ||
       (filters.readiness === "low" && member.readinessScore < 50) ||
       (filters.readiness === "medium" && member.readinessScore >= 50 && member.readinessScore < 75) ||
       (filters.readiness === "high" && member.readinessScore >= 75);
 
-    return matchesSearch && matchesCohort && matchesGoal && matchesStatus && matchesReadiness;
+    return matchesSearch && matchesCohort && matchesGoal && matchesStatus && matchesSupport && matchesReadiness;
   });
 }
 
