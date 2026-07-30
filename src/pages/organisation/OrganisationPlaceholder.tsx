@@ -10,6 +10,7 @@ import {
   normaliseNavigation,
   type OrganisationNavigationKey,
 } from "../../config/organisationTenant";
+import { APPROVED_ORGANISATION_HOMEPAGE_WIDGETS } from "../../config/organisationHomepageWidgets";
 import { useAuth } from "../../context/AuthContext";
 import { useOrganisation } from "../../context/OrganisationContext";
 import { useToast } from "../../context/ToastContext";
@@ -31,6 +32,7 @@ import type {
   InstitutionalAIInsight,
   InstitutionalRecommendedAction,
   OrganisationBranding,
+  OrganisationHomepageSection,
   OrganisationNavigationConfigItem,
   OrganisationSettings,
 } from "../../types/organisation";
@@ -429,6 +431,44 @@ function OrganisationPersonalisationSettings({
     }));
   }
 
+  function updateHomepageWidget(
+    id: string,
+    updates: Partial<OrganisationHomepageSection>,
+  ): void {
+    const defaultWidget = APPROVED_ORGANISATION_HOMEPAGE_WIDGETS.find((widget) => widget.id === id);
+    if (!defaultWidget) {
+      return;
+    }
+
+    setSettings((current) => {
+      const existingSection = current.homepageConfig.find((section) => section.id === id);
+      const nextSection: OrganisationHomepageSection = {
+        id,
+        type: defaultWidget.type,
+        enabled: defaultWidget.enabled,
+        position: defaultWidget.position,
+        config: {},
+        ...existingSection,
+        ...updates,
+      };
+
+      return {
+        ...current,
+        homepageConfig: [
+          ...current.homepageConfig.filter((section) => section.id !== id),
+          nextSection,
+        ].sort((left, right) => left.position - right.position),
+      };
+    });
+  }
+
+  function resetHomepageDefaults(): void {
+    setSettings((current) => ({
+      ...current,
+      homepageConfig: [],
+    }));
+  }
+
   const navigationPreview = normaliseNavigation(settings.navigationConfig, settings.featureFlags);
 
   return (
@@ -571,6 +611,58 @@ function OrganisationPersonalisationSettings({
                 onChange={(value) => updateTerminology(field.key, value)}
               />
             ))}
+          </div>
+        </div>
+
+        <div className="mt-8 rounded-[var(--organisation-card-radius,1.5rem)] border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">Homepage Widgets</p>
+              <h3 className="mt-2 text-xl font-black text-[var(--color-on-surface)]">Configure approved homepage sections</h3>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--color-on-surface-variant)]">
+                Show, hide, and reorder controlled VisionTech widgets. Unknown widget types are ignored safely.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={resetHomepageDefaults}
+              className="inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 text-xs font-black text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-high)]"
+            >
+              Restore Widgets
+            </button>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {APPROVED_ORGANISATION_HOMEPAGE_WIDGETS.map((widget) => {
+              const configuredSection = settings.homepageConfig.find((section) => section.id === widget.id);
+              const enabled = configuredSection?.enabled ?? widget.enabled;
+              const position = configuredSection?.position ?? widget.position;
+
+              return (
+                <div key={widget.id} className="grid gap-3 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-4 md:grid-cols-[1.4fr_0.5fr_0.6fr] md:items-end">
+                  <div>
+                    <p className="text-sm font-black text-[var(--color-on-surface)]">{widget.label}</p>
+                    <p className="mt-1 text-xs leading-5 text-[var(--color-on-surface-variant)]">{widget.description}</p>
+                  </div>
+                  <NumberInput
+                    label="Position"
+                    value={position}
+                    min={1}
+                    max={APPROVED_ORGANISATION_HOMEPAGE_WIDGETS.length}
+                    onChange={(value) => updateHomepageWidget(widget.id, { position: value })}
+                  />
+                  <label className="flex h-12 items-center justify-between rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 text-sm font-bold text-[var(--color-on-surface)]">
+                    <span>Visible</span>
+                    <input
+                      type="checkbox"
+                      checked={enabled}
+                      onChange={(event) => updateHomepageWidget(widget.id, { enabled: event.target.checked })}
+                      className="h-4 w-4 rounded border-slate-300 text-indigo-700 focus:ring-indigo-300"
+                    />
+                  </label>
+                </div>
+              );
+            })}
           </div>
         </div>
 
