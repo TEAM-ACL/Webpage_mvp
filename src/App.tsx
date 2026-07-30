@@ -30,11 +30,13 @@ import Profile from './pages/Profile';
 import ForgotPassword from './pages/ForgotPassword';
 import AuthCallback from './pages/AuthCallback';
 import { AuthProvider } from './context/AuthContext';
+import { useAuth } from './context/AuthContext';
 import { OrganisationProvider, useOrganisation } from './context/OrganisationContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
 import ResetPassword from './pages/ResetPassword';
 import { RequireAdmin, RequireAuth, RequireOnboardingComplete, RequireOrganisationAdmin, RedirectIfOnboarded } from './components/ProtectedRoute';
+import { hasOrganisationDashboardAccessForUser } from './lib/auth';
 
 function AuthHashBridge() {
   const navigate = useNavigate();
@@ -105,15 +107,37 @@ function OrganisationIndexRedirect() {
 
 function TenantLoginRedirect() {
   const { organisationSlug = '' } = useParams();
-  const redirectTo = organisationSlug ? `/organisation/${organisationSlug}` : '/organisation';
+  const redirectTo = organisationSlug ? `/org/${organisationSlug}/continue` : '/intelligence';
   return <Navigate to={`/login?redirectTo=${encodeURIComponent(redirectTo)}`} replace />;
 }
 
 function TenantSignupRedirect() {
   const { organisationSlug = '' } = useParams();
-  const redirectTo = organisationSlug ? `/organisation/${organisationSlug}` : '/organisation';
+  const redirectTo = organisationSlug ? `/org/${organisationSlug}/continue` : '/intelligence';
   const queryParams = new URLSearchParams({ organisationSlug, redirectTo });
   return <Navigate to={`/signup?${queryParams.toString()}`} replace />;
+}
+
+function TenantAccessContinuation() {
+  const { organisationSlug = '' } = useParams();
+  const { user, profile, loading, profileLoading, onboardingComplete } = useAuth();
+
+  if (loading || profileLoading) return <></>;
+  if (!user) {
+    return <Navigate to={organisationSlug ? `/org/${organisationSlug}/login` : '/login'} replace />;
+  }
+
+  const role = profile?.role || user.role;
+  if (hasOrganisationDashboardAccessForUser(role, user.email)) {
+    return <Navigate to={organisationSlug ? `/organisation/${organisationSlug}` : '/organisation'} replace />;
+  }
+
+  if (onboardingComplete === false) {
+    const redirectTo = organisationSlug ? `/org/${organisationSlug}/continue` : '/intelligence';
+    return <Navigate to="/onboarding" replace state={{ redirectTo }} />;
+  }
+
+  return <Navigate to={organisationSlug ? `/intelligence?organisationSlug=${encodeURIComponent(organisationSlug)}` : '/intelligence'} replace />;
 }
 
 export default function App() {
@@ -136,6 +160,7 @@ export default function App() {
             <Route path="/org/:organisationSlug" element={<PublicOrganisationEntry />} />
             <Route path="/org/:organisationSlug/login" element={<TenantLoginRedirect />} />
             <Route path="/org/:organisationSlug/signup" element={<TenantSignupRedirect />} />
+            <Route path="/org/:organisationSlug/continue" element={<TenantAccessContinuation />} />
             <Route path="/signup" element={<RedirectIfOnboarded><SignUp /></RedirectIfOnboarded>} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
