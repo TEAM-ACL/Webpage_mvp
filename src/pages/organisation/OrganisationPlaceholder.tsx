@@ -346,9 +346,10 @@ function OrganisationPersonalisationSettings({
     setIsSaving(true);
     try {
       await updateOrganisationBranding(organisation.id, branding);
-      await updateOrganisationSettings(organisation.id, settings);
+      const savedSettings = await updateOrganisationSettings(organisation.id, settings);
+      setSettings(savedSettings);
       await onRefresh();
-      onSuccess("Organisation personalisation saved.");
+      onSuccess("Organisation personalisation saved as a draft.");
     } catch (error) {
       onError(readError(error, "Unable to save organisation personalisation."));
     } finally {
@@ -364,10 +365,12 @@ function OrganisationPersonalisationSettings({
 
     setIsPublishing(true);
     try {
+      await updateOrganisationBranding(organisation.id, branding);
+      await updateOrganisationSettings(organisation.id, settings);
       const publishedSettings = await publishOrganisationSettings(organisation.id);
       setSettings(publishedSettings);
       await onRefresh();
-      onSuccess("Organisation personalisation published.");
+      onSuccess("Current organisation personalisation saved and published.");
     } catch (error) {
       onError(readError(error, "Unable to publish organisation personalisation."));
     } finally {
@@ -505,7 +508,7 @@ function OrganisationPersonalisationSettings({
           </div>
           <button
             type="button"
-            disabled={isSaving || !canManageSettings}
+            disabled={isSaving || isPublishing || !canManageSettings}
             onClick={() => void handleSave()}
             className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-5 text-sm font-black text-[var(--organisation-on-primary)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -528,16 +531,16 @@ function OrganisationPersonalisationSettings({
             <p className="mt-1 text-sm leading-6 text-[var(--color-on-surface-variant)]">
               {settings.publishedAt
                 ? `Last published ${formatDateTime(settings.publishedAt)}.`
-                : "Publish after review so admins have a clear release checkpoint."}
+                : "Publish saves current edits first, then releases the latest reviewed settings."}
             </p>
           </div>
           <button
             type="button"
-            disabled={isPublishing || !canManageSettings}
+            disabled={isSaving || isPublishing || !canManageSettings}
             onClick={() => void handlePublish()}
             className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-primary)] bg-[var(--color-surface-container-lowest)] px-5 text-sm font-black text-[var(--color-primary)] transition hover:bg-[var(--color-surface-container-high)] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isPublishing ? "Publishing..." : "Publish Settings"}
+            {isPublishing ? "Saving & Publishing..." : "Publish Settings"}
           </button>
         </div>
 
