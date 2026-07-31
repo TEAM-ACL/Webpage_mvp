@@ -57,6 +57,11 @@ const defaultSettings = {
     settings: true,
   },
   terminologyConfig: {},
+  configurationStatus: "published" as const,
+  publishedAt: null,
+  publishedBy: null,
+  updatedAt: null,
+  updatedBy: null,
 };
 
 type ActiveOrganisationBackendResponse = {
@@ -89,6 +94,11 @@ type ActiveOrganisationBackendResponse = {
     homepage_config: ActiveOrganisation["settings"]["homepageConfig"];
     feature_flags: Record<string, boolean>;
     terminology_config: Record<string, string>;
+    configuration_status: ActiveOrganisation["settings"]["configurationStatus"];
+    published_at: string | null;
+    published_by: string | null;
+    updated_at: string | null;
+    updated_by: string | null;
   }> | null;
 };
 
@@ -131,14 +141,7 @@ function mapActiveOrganisation(data: ActiveOrganisationBackendResponse): ActiveO
       loginBannerUrl: data.branding?.login_banner_url ?? null,
       dashboardBannerUrl: data.branding?.dashboard_banner_url ?? null,
     },
-    settings: {
-      welcomeHeading: data.settings?.welcome_heading ?? null,
-      welcomeMessage: data.settings?.welcome_message ?? null,
-      navigationConfig: data.settings?.navigation_config || defaultSettings.navigationConfig,
-      homepageConfig: data.settings?.homepage_config || defaultSettings.homepageConfig,
-      featureFlags: data.settings?.feature_flags || defaultSettings.featureFlags,
-      terminologyConfig: data.settings?.terminology_config || defaultSettings.terminologyConfig,
-    },
+    settings: mapOrganisationSettings(data.settings),
   };
 }
 
@@ -167,6 +170,11 @@ function mapOrganisationSettings(data: OrganisationSettingsBackendResponse | nul
     homepageConfig: data?.homepage_config || defaultSettings.homepageConfig,
     featureFlags: data?.feature_flags || defaultSettings.featureFlags,
     terminologyConfig: data?.terminology_config || defaultSettings.terminologyConfig,
+    configurationStatus: data?.configuration_status || defaultSettings.configurationStatus,
+    publishedAt: data?.published_at ?? null,
+    publishedBy: data?.published_by ?? null,
+    updatedAt: data?.updated_at ?? null,
+    updatedBy: data?.updated_by ?? null,
   };
 }
 
@@ -318,6 +326,21 @@ export async function updateOrganisationSettings(
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(errorText || "Unable to update organisation settings.");
+  }
+
+  return mapOrganisationSettings((await response.json()) as OrganisationSettingsBackendResponse);
+}
+
+export async function publishOrganisationSettings(organisationId: string): Promise<OrganisationSettings> {
+  const response = await fetch(`${API_BASE_URL}/organisations/${encodeURIComponent(organisationId)}/settings/publish`, {
+    method: "POST",
+    credentials: "include",
+    headers: organisationHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Unable to publish organisation settings.");
   }
 
   return mapOrganisationSettings((await response.json()) as OrganisationSettingsBackendResponse);
