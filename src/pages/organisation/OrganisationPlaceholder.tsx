@@ -639,27 +639,52 @@ function OrganisationPersonalisationSettings({
               const position = configuredSection?.position ?? widget.position;
 
               return (
-                <div key={widget.id} className="grid gap-3 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-4 md:grid-cols-[1.4fr_0.5fr_0.6fr] md:items-end">
-                  <div>
-                    <p className="text-sm font-black text-[var(--color-on-surface)]">{widget.label}</p>
-                    <p className="mt-1 text-xs leading-5 text-[var(--color-on-surface-variant)]">{widget.description}</p>
-                  </div>
-                  <NumberInput
-                    label="Position"
-                    value={position}
-                    min={1}
-                    max={APPROVED_ORGANISATION_HOMEPAGE_WIDGETS.length}
-                    onChange={(value) => updateHomepageWidget(widget.id, { position: value })}
-                  />
-                  <label className="flex h-12 items-center justify-between rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 text-sm font-bold text-[var(--color-on-surface)]">
-                    <span>Visible</span>
-                    <input
-                      type="checkbox"
-                      checked={enabled}
-                      onChange={(event) => updateHomepageWidget(widget.id, { enabled: event.target.checked })}
-                      className="h-4 w-4 rounded border-slate-300 text-indigo-700 focus:ring-indigo-300"
+                <div key={widget.id} className="grid gap-3 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-4">
+                  <div className="grid gap-3 md:grid-cols-[1.4fr_0.5fr_0.6fr] md:items-end">
+                    <div>
+                      <p className="text-sm font-black text-[var(--color-on-surface)]">{widget.label}</p>
+                      <p className="mt-1 text-xs leading-5 text-[var(--color-on-surface-variant)]">{widget.description}</p>
+                    </div>
+                    <NumberInput
+                      label="Position"
+                      value={position}
+                      min={1}
+                      max={APPROVED_ORGANISATION_HOMEPAGE_WIDGETS.length}
+                      onChange={(value) => updateHomepageWidget(widget.id, { position: value })}
                     />
-                  </label>
+                    <label className="flex h-12 items-center justify-between rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 text-sm font-bold text-[var(--color-on-surface)]">
+                      <span>Visible</span>
+                      <input
+                        type="checkbox"
+                        checked={enabled}
+                        onChange={(event) => updateHomepageWidget(widget.id, { enabled: event.target.checked })}
+                        className="h-4 w-4 rounded border-slate-300 text-indigo-700 focus:ring-indigo-300"
+                      />
+                    </label>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <TextInput
+                      label="Custom Heading"
+                      value={configuredSection?.heading || ""}
+                      placeholder={widget.label}
+                      onChange={(value) => updateHomepageWidget(widget.id, { heading: value || null })}
+                    />
+                    <TextInput
+                      label="Custom Description"
+                      value={configuredSection?.description || ""}
+                      placeholder={widget.description}
+                      onChange={(value) => updateHomepageWidget(widget.id, { description: value || null })}
+                    />
+                  </div>
+                  <div className="rounded-2xl border border-dashed border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-primary)]">Preview Label</p>
+                    <p className="text-sm font-black text-[var(--color-on-surface)]">{widget.label}</p>
+                    <p className="mt-1 text-xs leading-5 text-[var(--color-on-surface-variant)]">
+                      {configuredSection?.heading || configuredSection?.description
+                        ? `${configuredSection?.heading || widget.label} — ${configuredSection?.description || widget.description}`
+                        : "Default widget title only. Add a heading or description to display a custom section intro."}
+                    </p>
+                  </div>
                 </div>
               );
             })}

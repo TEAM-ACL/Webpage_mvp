@@ -20,9 +20,19 @@ export default function OrganisationHomepageWidgetRegistry({
   return (
     <div className="space-y-6">
       {resolvedSections.map((section) => (
-        <div key={section.id}>
+        <section key={section.id} className="space-y-4">
+          {(section.heading || section.description) && (
+            <div className="rounded-[var(--organisation-card-radius,1.5rem)] border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-5 shadow-sm">
+              {section.heading ? (
+                <h2 className="text-xl font-black tracking-tight text-[var(--color-on-surface)]">{section.heading}</h2>
+              ) : null}
+              {section.description ? (
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--color-on-surface-variant)]">{section.description}</p>
+              ) : null}
+            </div>
+          )}
           {widgets[section.type]}
-        </div>
+        </section>
       ))}
     </div>
   );
@@ -32,6 +42,8 @@ function resolveHomepageSections(sections: OrganisationHomepageSection[]): Array
   id: string;
   type: OrganisationHomepageWidgetType;
   position: number;
+  heading?: string | null;
+  description?: string | null;
 }> {
   const configuredSections = sections.length > 0
     ? sections
@@ -40,6 +52,8 @@ function resolveHomepageSections(sections: OrganisationHomepageSection[]): Array
         type: widget.type,
         enabled: widget.enabled,
         position: widget.position,
+        heading: null,
+        description: null,
       }));
 
   return configuredSections
@@ -51,6 +65,8 @@ function resolveHomepageSections(sections: OrganisationHomepageSection[]): Array
       id: section.id,
       type: section.type,
       position: section.position,
+      heading: section.heading || null,
+      description: section.description || null,
     }))
     .sort((left, right) => left.position - right.position);
 }
