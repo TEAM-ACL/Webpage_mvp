@@ -242,6 +242,8 @@ export type OrganisationHomepageSection = {
   type: string;
   enabled: boolean;
   position: number;
+  heading?: string | null;
+  description?: string | null;
   config?: Record<string, unknown>;
 };
 
