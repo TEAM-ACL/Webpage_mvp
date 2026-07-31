@@ -254,9 +254,19 @@ export type OrganisationSettings = {
   homepageConfig: OrganisationHomepageSection[];
   featureFlags: Record<string, boolean>;
   terminologyConfig: Record<string, string>;
+  configurationStatus: "draft" | "published";
+  publishedAt?: string | null;
+  publishedBy?: string | null;
+  updatedAt?: string | null;
+  updatedBy?: string | null;
 };
 
-export type OrganisationSettingsUpdate = Partial<OrganisationSettings>;
+export type OrganisationSettingsUpdate = Partial<
+  Pick<
+    OrganisationSettings,
+    "welcomeHeading" | "welcomeMessage" | "navigationConfig" | "homepageConfig" | "featureFlags" | "terminologyConfig"
+  >
+>;
 
 export type ActiveOrganisation = {
   id: string;

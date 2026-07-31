@@ -23,6 +23,7 @@ import {
 } from "../../data/organisationModules";
 import {
   getInstitutionalAIInsight,
+  publishOrganisationSettings,
   refreshInstitutionalAIInsight,
   updateOrganisationBranding,
   updateOrganisationSettings,
@@ -328,6 +329,7 @@ function OrganisationPersonalisationSettings({
   const [branding, setBranding] = useState<OrganisationBranding>(organisation.branding);
   const [settings, setSettings] = useState<OrganisationSettings>(organisation.settings);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const canManageSettings = ["owner", "organisation_admin", "admin"].includes(organisation.role);
 
   useEffect(() => {
@@ -351,6 +353,25 @@ function OrganisationPersonalisationSettings({
       onError(readError(error, "Unable to save organisation personalisation."));
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handlePublish(): Promise<void> {
+    if (!canManageSettings) {
+      onError("Organisation administrator access is required.");
+      return;
+    }
+
+    setIsPublishing(true);
+    try {
+      const publishedSettings = await publishOrganisationSettings(organisation.id);
+      setSettings(publishedSettings);
+      await onRefresh();
+      onSuccess("Organisation personalisation published.");
+    } catch (error) {
+      onError(readError(error, "Unable to publish organisation personalisation."));
+    } finally {
+      setIsPublishing(false);
     }
   }
 
@@ -497,6 +518,28 @@ function OrganisationPersonalisationSettings({
             You can view these settings, but only organisation administrators can update them.
           </div>
         )}
+
+        <div className="mt-5 grid gap-3 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 md:grid-cols-[1fr_auto] md:items-center">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-primary)]">Publishing Status</p>
+            <h3 className="mt-1 text-lg font-black text-[var(--color-on-surface)]">
+              {settings.configurationStatus === "draft" ? "Draft changes need publishing" : "Published personalisation"}
+            </h3>
+            <p className="mt-1 text-sm leading-6 text-[var(--color-on-surface-variant)]">
+              {settings.publishedAt
+                ? `Last published ${formatDateTime(settings.publishedAt)}.`
+                : "Publish after review so admins have a clear release checkpoint."}
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={isPublishing || !canManageSettings}
+            onClick={() => void handlePublish()}
+            className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-primary)] bg-[var(--color-surface-container-lowest)] px-5 text-sm font-black text-[var(--color-primary)] transition hover:bg-[var(--color-surface-container-high)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isPublishing ? "Publishing..." : "Publish Settings"}
+          </button>
+        </div>
 
         <div className="mt-6 grid gap-5 md:grid-cols-2">
           <TextInput
@@ -1040,6 +1083,13 @@ function renderTag(tag: string): ReactNode {
 
 function formatRole(role: string): string {
   return role.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function formatDateTime(value: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }
 
 function buildPromptResponse(
