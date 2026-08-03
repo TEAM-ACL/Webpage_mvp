@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, LockKeyhole } from "lucide-react";
 import type { JSX, ReactNode } from "react";
@@ -23,16 +23,23 @@ import {
 } from "../../data/organisationModules";
 import {
   getInstitutionalAIInsight,
-  publishOrganisationSettings,
+  publishOrganisationConfiguration,
   refreshInstitutionalAIInsight,
-  updateOrganisationBranding,
-  updateOrganisationSettings,
+  restorePublishedOrganisationConfiguration,
+  saveOrganisationConfiguration,
 } from "../../services/organisation";
+import {
+  editableConfigurationFingerprint,
+  normaliseOrganisationBrandingForSave,
+  normaliseOrganisationSettingsForSave,
+  validateOrganisationConfiguration,
+} from "../../lib/organisationConfiguration";
 import type {
   ActiveOrganisation,
   InstitutionalAIInsight,
   InstitutionalRecommendedAction,
   OrganisationBranding,
+  OrganisationConfiguration,
   OrganisationHomepageSection,
   OrganisationNavigationConfigItem,
   OrganisationSettings,
@@ -58,7 +65,14 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
   const navigate = useNavigate();
   const location = useLocation();
   const { profile, user } = useAuth();
-  const { organisation, getOrganisationPath, isModuleEnabled, refreshOrganisation } = useOrganisation();
+  const {
+    organisation,
+    error: organisationError,
+    getOrganisationPath,
+    isLoading: isOrganisationLoading,
+    isModuleEnabled,
+    refreshOrganisation,
+  } = useOrganisation();
   const organisationId = organisation?.id;
   const { showError, showSuccess } = useToast();
   const content = organisationModules[moduleKey];
@@ -70,6 +84,12 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
   const queryAction = buildModuleQueryAction(moduleKey, location.search);
 
   const loadInsight = useCallback(async () => {
+    if (!organisationId) {
+      setInsight(null);
+      setAiError(null);
+      setIsAiLoading(false);
+      return;
+    }
     setIsAiLoading(true);
     setAiError(null);
     try {
@@ -139,7 +159,16 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
         </>
       }
     >
-      {!isModuleEnabled(moduleKey) ? (
+      {!organisation ? (
+        <section className="rounded-3xl border border-amber-300/60 bg-amber-50 p-6 text-amber-950 shadow-sm">
+          <h2 className="text-lg font-black">
+            {isOrganisationLoading ? "Loading organisation..." : "Organisation unavailable"}
+          </h2>
+          <p className="mt-2 text-sm leading-6">
+            {organisationError || "This organisation could not be resolved for your account."}
+          </p>
+        </section>
+      ) : !isModuleEnabled(moduleKey) ? (
         <DisabledModuleState moduleName={content.title} onOpenSettings={() => navigate(getOrganisationPath("settings"))} />
       ) : moduleKey === "settings" && organisation ? (
         <>
@@ -157,7 +186,7 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
           <OrganisationModuleView content={content} onAction={handleAction} />
         </>
       )}
-      <div className="mt-6">
+      {organisation ? <div className="mt-6">
         <OrganisationAIPanel
           contextLabel={`${content.title} Intelligence`}
           insight={insight}
@@ -171,7 +200,7 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
           onRefresh={() => void handleRefreshInsight()}
           onActionSelect={handleInsightAction}
         />
-      </div>
+      </div> : null}
     </OrganisationLayout>
   );
 }
@@ -328,14 +357,61 @@ function OrganisationPersonalisationSettings({
 }): JSX.Element {
   const [branding, setBranding] = useState<OrganisationBranding>(organisation.branding);
   const [settings, setSettings] = useState<OrganisationSettings>(organisation.settings);
+  const [savedConfiguration, setSavedConfiguration] = useState<OrganisationConfiguration>({
+    branding: organisation.branding,
+    settings: organisation.settings,
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
   const canManageSettings = ["owner", "organisation_admin", "admin"].includes(organisation.role);
+  const currentConfiguration = useMemo(
+    () => ({ branding, settings }),
+    [branding, settings],
+  );
+  const isDirty = useMemo(
+    () => editableConfigurationFingerprint(currentConfiguration)
+      !== editableConfigurationFingerprint(savedConfiguration),
+    [currentConfiguration, savedConfiguration],
+  );
+  const isWorking = isSaving || isPublishing || isRestoring;
 
   useEffect(() => {
     setBranding(organisation.branding);
     setSettings(organisation.settings);
+    setSavedConfiguration({
+      branding: organisation.branding,
+      settings: organisation.settings,
+    });
   }, [organisation.branding, organisation.settings]);
+
+  useEffect(() => {
+    function warnBeforeUnload(event: BeforeUnloadEvent): void {
+      if (!isDirty) return;
+      event.preventDefault();
+    }
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [isDirty]);
+
+  function configurationForSave(): OrganisationConfiguration | null {
+    const configuration = {
+      branding: normaliseOrganisationBrandingForSave(branding),
+      settings: normaliseOrganisationSettingsForSave(settings),
+    };
+    const validationError = validateOrganisationConfiguration(configuration);
+    if (validationError) {
+      onError(validationError);
+      return null;
+    }
+    return configuration;
+  }
+
+  function applySavedConfiguration(configuration: OrganisationConfiguration): void {
+    setBranding(configuration.branding);
+    setSettings(configuration.settings);
+    setSavedConfiguration(configuration);
+  }
 
   async function handleSave(): Promise<void> {
     if (!canManageSettings) {
@@ -343,11 +419,13 @@ function OrganisationPersonalisationSettings({
       return;
     }
 
+    const configuration = configurationForSave();
+    if (!configuration) return;
+
     setIsSaving(true);
     try {
-      await updateOrganisationBranding(organisation.id, branding);
-      const savedSettings = await updateOrganisationSettings(organisation.id, settings);
-      setSettings(savedSettings);
+      const saved = await saveOrganisationConfiguration(organisation.id, configuration);
+      applySavedConfiguration(saved);
       await onRefresh();
       onSuccess("Organisation personalisation saved as a draft.");
     } catch (error) {
@@ -363,19 +441,55 @@ function OrganisationPersonalisationSettings({
       return;
     }
 
+    const configuration = configurationForSave();
+    if (!configuration) return;
+    const confirmed = window.confirm(
+      "Publish this configuration now? Members and public organisation pages will begin using it.",
+    );
+    if (!confirmed) return;
+
     setIsPublishing(true);
     try {
-      await updateOrganisationBranding(organisation.id, branding);
-      await updateOrganisationSettings(organisation.id, settings);
-      const publishedSettings = await publishOrganisationSettings(organisation.id);
-      setSettings(publishedSettings);
+      const published = await publishOrganisationConfiguration(organisation.id, configuration);
+      applySavedConfiguration(published);
       await onRefresh();
-      onSuccess("Current organisation personalisation saved and published.");
+      onSuccess("Organisation personalisation published successfully.");
     } catch (error) {
       onError(readError(error, "Unable to publish organisation personalisation."));
     } finally {
       setIsPublishing(false);
     }
+  }
+
+  async function handleRestorePublished(): Promise<void> {
+    if (!canManageSettings) {
+      onError("Organisation administrator access is required.");
+      return;
+    }
+    const confirmed = window.confirm(
+      "Restore the last published configuration into the editor? Current unpublished edits will be replaced.",
+    );
+    if (!confirmed) return;
+
+    setIsRestoring(true);
+    try {
+      const restored = await restorePublishedOrganisationConfiguration(
+        organisation.id,
+        settings.draftVersion,
+      );
+      applySavedConfiguration(restored);
+      await onRefresh();
+      onSuccess("Last published configuration restored as a draft.");
+    } catch (error) {
+      onError(readError(error, "Unable to restore the published configuration."));
+    } finally {
+      setIsRestoring(false);
+    }
+  }
+
+  function handleDiscardLocalEdits(): void {
+    setBranding(savedConfiguration.branding);
+    setSettings(savedConfiguration.settings);
   }
 
   function updateFeatureFlag(key: string, enabled: boolean): void {
@@ -398,20 +512,28 @@ function OrganisationPersonalisationSettings({
     }
 
     setSettings((current) => {
-      const existingItem = current.navigationConfig.find((item) => item.key === key);
-      const nextItem: OrganisationNavigationConfigItem = {
-        key,
-        label: defaultItem.label,
-        path: defaultItem.path,
-        enabled: defaultItem.enabled,
-        order: defaultItem.order,
-        ...existingItem,
-        ...updates,
-      };
-      const nextConfig = [
-        ...current.navigationConfig.filter((item) => item.key !== key),
-        nextItem,
-      ].sort((left, right) => left.order - right.order);
+      const nextConfig = DEFAULT_ORGANISATION_NAVIGATION.map((item) => ({
+        key: item.key,
+        label: item.label,
+        path: item.path,
+        enabled: item.enabled,
+        order: item.order,
+        ...current.navigationConfig.find((configured) => configured.key === item.key),
+        ...(item.key === key ? updates : {}),
+      }));
+      if (typeof updates.order === "number") {
+        const target = nextConfig.find((item) => item.key === key)!;
+        const reordered = nextConfig
+          .filter((item) => item.key !== key)
+          .sort((left, right) => left.order - right.order);
+        reordered.splice(Math.max(0, Math.min(updates.order - 1, reordered.length)), 0, target);
+        nextConfig.splice(0, nextConfig.length, ...reordered);
+      } else {
+        nextConfig.sort((left, right) => left.order - right.order);
+      }
+      nextConfig.forEach((item, index) => {
+        item.order = index + 1;
+      });
 
       return {
         ...current,
@@ -465,23 +587,32 @@ function OrganisationPersonalisationSettings({
     }
 
     setSettings((current) => {
-      const existingSection = current.homepageConfig.find((section) => section.id === id);
-      const nextSection: OrganisationHomepageSection = {
-        id,
-        type: defaultWidget.type,
-        enabled: defaultWidget.enabled,
-        position: defaultWidget.position,
+      const nextConfig = APPROVED_ORGANISATION_HOMEPAGE_WIDGETS.map((widget) => ({
+        id: widget.id,
+        type: widget.type,
+        enabled: widget.enabled,
+        position: widget.position,
         config: {},
-        ...existingSection,
-        ...updates,
-      };
+        ...current.homepageConfig.find((configured) => configured.id === widget.id),
+        ...(widget.id === id ? updates : {}),
+      } satisfies OrganisationHomepageSection));
+      if (typeof updates.position === "number") {
+        const target = nextConfig.find((section) => section.id === id)!;
+        const reordered = nextConfig
+          .filter((section) => section.id !== id)
+          .sort((left, right) => left.position - right.position);
+        reordered.splice(Math.max(0, Math.min(updates.position - 1, reordered.length)), 0, target);
+        nextConfig.splice(0, nextConfig.length, ...reordered);
+      } else {
+        nextConfig.sort((left, right) => left.position - right.position);
+      }
+      nextConfig.forEach((section, index) => {
+        section.position = index + 1;
+      });
 
       return {
         ...current,
-        homepageConfig: [
-          ...current.homepageConfig.filter((section) => section.id !== id),
-          nextSection,
-        ].sort((left, right) => left.position - right.position),
+        homepageConfig: nextConfig,
       };
     });
   }
@@ -506,14 +637,24 @@ function OrganisationPersonalisationSettings({
               Configure the visual identity and welcome experience members see inside this organisation workspace.
             </p>
           </div>
-          <button
-            type="button"
-            disabled={isSaving || isPublishing || !canManageSettings}
-            onClick={() => void handleSave()}
-            className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-5 text-sm font-black text-[var(--organisation-on-primary)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isSaving ? "Saving..." : "Save Changes"}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={isWorking || !isDirty || !canManageSettings}
+              onClick={handleDiscardLocalEdits}
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 text-sm font-black text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-high)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Discard Edits
+            </button>
+            <button
+              type="button"
+              disabled={isWorking || !isDirty || !canManageSettings}
+              onClick={() => void handleSave()}
+              className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-5 text-sm font-black text-[var(--organisation-on-primary)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSaving ? "Saving..." : "Save Draft"}
+            </button>
+          </div>
         </div>
 
         {!canManageSettings && (
@@ -526,35 +667,54 @@ function OrganisationPersonalisationSettings({
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-primary)]">Publishing Status</p>
             <h3 className="mt-1 text-lg font-black text-[var(--color-on-surface)]">
-              {settings.configurationStatus === "draft" ? "Draft changes need publishing" : "Published personalisation"}
+              {isDirty
+                ? "Unsaved edits in this browser"
+                : settings.configurationStatus === "draft"
+                  ? "Draft changes need publishing"
+                  : "Published personalisation"}
             </h3>
             <p className="mt-1 text-sm leading-6 text-[var(--color-on-surface-variant)]">
               {settings.publishedAt
-                ? `Last published ${formatDateTime(settings.publishedAt)}.`
-                : "Publish saves current edits first, then releases the latest reviewed settings."}
+                ? `Version ${settings.publishedVersion ?? "-"} published ${formatDateTime(settings.publishedAt)}. Draft revision ${settings.draftVersion}.`
+                : `Not published yet. Draft revision ${settings.draftVersion}.`}
             </p>
           </div>
-          <button
-            type="button"
-            disabled={isSaving || isPublishing || !canManageSettings}
-            onClick={() => void handlePublish()}
-            className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-primary)] bg-[var(--color-surface-container-lowest)] px-5 text-sm font-black text-[var(--color-primary)] transition hover:bg-[var(--color-surface-container-high)] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isPublishing ? "Saving & Publishing..." : "Publish Settings"}
-          </button>
+          <div className="flex flex-wrap gap-2 md:justify-end">
+            <button
+              type="button"
+              disabled={isWorking || !settings.publishedVersion || !canManageSettings}
+              onClick={() => void handleRestorePublished()}
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 text-sm font-black text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-high)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isRestoring ? "Restoring..." : "Restore Published"}
+            </button>
+            <button
+              type="button"
+              disabled={isWorking || (!isDirty && settings.configurationStatus !== "draft") || !canManageSettings}
+              onClick={() => void handlePublish()}
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-primary)] bg-[var(--color-surface-container-lowest)] px-5 text-sm font-black text-[var(--color-primary)] transition hover:bg-[var(--color-surface-container-high)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isPublishing ? "Publishing..." : "Review & Publish"}
+            </button>
+          </div>
         </div>
 
+        <fieldset disabled={!canManageSettings}>
         <div className="mt-6 grid gap-5 md:grid-cols-2">
           <TextInput
             label="Logo URL"
             value={branding.logoUrl || ""}
             placeholder="https://example.com/logo.png"
+            type="url"
+            maxLength={2000}
             onChange={(value) => setBranding((current) => ({ ...current, logoUrl: value || null }))}
           />
           <TextInput
             label="Dashboard Banner URL"
             value={branding.dashboardBannerUrl || ""}
             placeholder="https://example.com/banner.png"
+            type="url"
+            maxLength={2000}
             onChange={(value) => setBranding((current) => ({ ...current, dashboardBannerUrl: value || null }))}
           />
           <ColourInput
@@ -576,6 +736,11 @@ function OrganisationPersonalisationSettings({
             label="Text Colour"
             value={branding.textColour}
             onChange={(value) => setBranding((current) => ({ ...current, textColour: value }))}
+          />
+          <ColourInput
+            label="Background Colour"
+            value={branding.backgroundColour}
+            onChange={(value) => setBranding((current) => ({ ...current, backgroundColour: value }))}
           />
           <SelectInput
             label="Theme Mode"
@@ -623,6 +788,7 @@ function OrganisationPersonalisationSettings({
                     label={`${defaultItem.label} label`}
                     value={label}
                     placeholder={defaultItem.label}
+                    maxLength={80}
                     onChange={(value) => updateNavigationItem(defaultItem.key, { label: value || defaultItem.label })}
                   />
                   <NumberInput
@@ -654,6 +820,7 @@ function OrganisationPersonalisationSettings({
                 label={field.label}
                 value={settings.terminologyConfig[field.key] || ""}
                 placeholder={field.placeholder}
+                maxLength={60}
                 onChange={(value) => updateTerminology(field.key, value)}
               />
             ))}
@@ -713,12 +880,14 @@ function OrganisationPersonalisationSettings({
                       label="Custom Heading"
                       value={configuredSection?.heading || ""}
                       placeholder={widget.label}
+                      maxLength={100}
                       onChange={(value) => updateHomepageWidget(widget.id, { heading: value || null })}
                     />
                     <TextInput
                       label="Custom Description"
                       value={configuredSection?.description || ""}
                       placeholder={widget.description}
+                      maxLength={240}
                       onChange={(value) => updateHomepageWidget(widget.id, { description: value || null })}
                     />
                   </div>
@@ -742,6 +911,7 @@ function OrganisationPersonalisationSettings({
             label="Welcome Heading"
             value={settings.welcomeHeading || ""}
             placeholder={`Welcome to ${organisation.name}`}
+            maxLength={255}
             onChange={(value) => setSettings((current) => ({ ...current, welcomeHeading: value || null }))}
           />
           <label className="block">
@@ -750,11 +920,13 @@ function OrganisationPersonalisationSettings({
               value={settings.welcomeMessage || ""}
               onChange={(event) => setSettings((current) => ({ ...current, welcomeMessage: event.target.value || null }))}
               rows={4}
+              maxLength={1000}
               className="mt-2 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm text-[var(--color-on-surface)] outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
               placeholder="Add a short message that explains the purpose of this organisation workspace."
             />
           </label>
         </div>
+        </fieldset>
       </section>
 
       <section className="space-y-6">
@@ -776,7 +948,7 @@ function OrganisationPersonalisationSettings({
             </div>
             <div>
               <p className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: branding.accentColour }}>
-                Live Preview
+                Draft Preview
               </p>
               <h3 className="text-xl font-black">{settings.welcomeHeading || organisation.name}</h3>
             </div>
@@ -802,6 +974,7 @@ function OrganisationPersonalisationSettings({
                 <span className="capitalize">{feature}</span>
                 <input
                   type="checkbox"
+                  disabled={!canManageSettings}
                   checked={settings.featureFlags[feature] ?? true}
                   onChange={(event) => updateFeatureFlag(feature, event.target.checked)}
                   className="h-4 w-4 rounded border-slate-300 text-indigo-700 focus:ring-indigo-300"
@@ -847,18 +1020,24 @@ function TextInput({
   label,
   value,
   placeholder,
+  type = "text",
+  maxLength,
   onChange,
 }: {
   label: string;
   value: string;
   placeholder?: string;
+  type?: "text" | "url";
+  maxLength?: number;
   onChange: (value: string) => void;
 }): JSX.Element {
   return (
     <label className="block">
       <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]">{label}</span>
       <input
+        type={type}
         value={value}
+        maxLength={maxLength}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         className="mt-2 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm text-[var(--color-on-surface)] outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"

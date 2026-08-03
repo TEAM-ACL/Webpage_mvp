@@ -60,14 +60,7 @@ export function OrganisationProvider({ children }: OrganisationProviderProps): J
       const resolvedOrganisation = await getActiveOrganisation(routeSlug);
       setOrganisation(resolvedOrganisation);
     } catch (loadError) {
-      setOrganisation(
-        buildFallbackActiveOrganisation({
-          id: profile?.organisationId,
-          name: profile?.organisationName,
-          slug: activeSlug,
-          role: profile?.role || user.role,
-        }),
-      );
+      setOrganisation(null);
       setError(loadError instanceof Error ? loadError.message : "Unable to load organisation configuration.");
     } finally {
       setIsLoading(false);
@@ -115,7 +108,7 @@ export function OrganisationProvider({ children }: OrganisationProviderProps): J
 
   const value = useMemo<OrganisationContextValue>(
     () => ({
-      organisation: currentOrganisation,
+      organisation,
       isLoading,
       error,
       navigationItems,
@@ -125,7 +118,7 @@ export function OrganisationProvider({ children }: OrganisationProviderProps): J
       isModuleEnabled,
       refreshOrganisation,
     }),
-    [currentOrganisation, error, isLoading, isModuleEnabled, navigationItems, refreshOrganisation],
+    [currentOrganisation, error, isLoading, isModuleEnabled, navigationItems, organisation, refreshOrganisation],
   );
 
   return (
