@@ -5,6 +5,7 @@
 
 import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Header, Footer } from './components/Layout';
 import Home from './pages/Home';
@@ -367,6 +368,7 @@ export default function App() {
           </Router>
         </ThemeProvider>
       </AuthProvider>
+      <SpeedInsights />
     </ToastProvider>
   );
 }
