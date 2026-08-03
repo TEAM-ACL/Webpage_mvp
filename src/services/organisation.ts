@@ -7,6 +7,7 @@ import type {
   InviteOrganisationMemberRequest,
   OrganisationBranding,
   OrganisationBrandingUpdate,
+  OrganisationConfiguration,
   OrganisationMember,
   OrganisationOverviewResponse,
   PublicOrganisationProfile,
@@ -60,6 +61,8 @@ const defaultSettings = {
   configurationStatus: "published" as const,
   publishedAt: null,
   publishedBy: null,
+  draftVersion: 0,
+  publishedVersion: null,
   updatedAt: null,
   updatedBy: null,
 };
@@ -95,6 +98,8 @@ type ActiveOrganisationBackendResponse = {
     feature_flags: Record<string, boolean>;
     terminology_config: Record<string, string>;
     configuration_status: ActiveOrganisation["settings"]["configurationStatus"];
+    draft_version: number;
+    published_version: number | null;
     published_at: string | null;
     published_by: string | null;
     updated_at: string | null;
@@ -104,6 +109,11 @@ type ActiveOrganisationBackendResponse = {
 
 type OrganisationBrandingBackendResponse = NonNullable<ActiveOrganisationBackendResponse["branding"]>;
 type OrganisationSettingsBackendResponse = NonNullable<ActiveOrganisationBackendResponse["settings"]>;
+
+type OrganisationConfigurationBackendResponse = {
+  branding: OrganisationBrandingBackendResponse;
+  settings: OrganisationSettingsBackendResponse;
+};
 
 type PublicOrganisationBackendResponse = {
   id: string;
@@ -171,6 +181,8 @@ function mapOrganisationSettings(data: OrganisationSettingsBackendResponse | nul
     featureFlags: data?.feature_flags || defaultSettings.featureFlags,
     terminologyConfig: data?.terminology_config || defaultSettings.terminologyConfig,
     configurationStatus: data?.configuration_status || defaultSettings.configurationStatus,
+    draftVersion: data?.draft_version ?? defaultSettings.draftVersion,
+    publishedVersion: data?.published_version ?? defaultSettings.publishedVersion,
     publishedAt: data?.published_at ?? null,
     publishedBy: data?.published_by ?? null,
     updatedAt: data?.updated_at ?? null,
@@ -271,6 +283,109 @@ export async function getOrganisationOverview(organisationId?: string | null): P
   }
 
   return (await response.json()) as OrganisationOverviewResponse;
+}
+
+export async function saveOrganisationConfiguration(
+  organisationId: string,
+  configuration: OrganisationConfiguration,
+): Promise<OrganisationConfiguration> {
+  return requestOrganisationConfiguration(
+    organisationId,
+    "PATCH",
+    "/configuration",
+    configurationPayload(configuration),
+  );
+}
+
+export async function publishOrganisationConfiguration(
+  organisationId: string,
+  configuration: OrganisationConfiguration,
+): Promise<OrganisationConfiguration> {
+  return requestOrganisationConfiguration(
+    organisationId,
+    "POST",
+    "/configuration/publish",
+    configurationPayload(configuration),
+  );
+}
+
+export async function restorePublishedOrganisationConfiguration(
+  organisationId: string,
+  expectedVersion: number,
+): Promise<OrganisationConfiguration> {
+  return requestOrganisationConfiguration(
+    organisationId,
+    "POST",
+    "/configuration/restore",
+    { expected_version: expectedVersion },
+  );
+}
+
+async function requestOrganisationConfiguration(
+  organisationId: string,
+  method: "PATCH" | "POST",
+  path: string,
+  body: Record<string, unknown>,
+): Promise<OrganisationConfiguration> {
+  const response = await fetch(
+    `${API_BASE_URL}/organisations/${encodeURIComponent(organisationId)}${path}`,
+    {
+      method,
+      credentials: "include",
+      headers: organisationHeaders(),
+      body: JSON.stringify(body),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await readApiError(response, "Unable to update organisation configuration."));
+  }
+
+  const data = (await response.json()) as OrganisationConfigurationBackendResponse;
+  return {
+    branding: mapOrganisationBranding(data.branding),
+    settings: mapOrganisationSettings(data.settings),
+  };
+}
+
+function configurationPayload(configuration: OrganisationConfiguration): Record<string, unknown> {
+  const { branding, settings } = configuration;
+  return {
+    expected_version: settings.draftVersion,
+    branding: {
+      logo_url: branding.logoUrl,
+      favicon_url: branding.faviconUrl,
+      primary_colour: branding.primaryColour,
+      secondary_colour: branding.secondaryColour,
+      accent_colour: branding.accentColour,
+      background_colour: branding.backgroundColour,
+      text_colour: branding.textColour,
+      font_family: branding.fontFamily,
+      border_radius: branding.borderRadius,
+      theme_mode: branding.themeMode,
+      login_banner_url: branding.loginBannerUrl,
+      dashboard_banner_url: branding.dashboardBannerUrl,
+    },
+    settings: {
+      welcome_heading: settings.welcomeHeading,
+      welcome_message: settings.welcomeMessage,
+      navigation_config: settings.navigationConfig,
+      homepage_config: settings.homepageConfig,
+      feature_flags: settings.featureFlags,
+      terminology_config: settings.terminologyConfig,
+    },
+  };
+}
+
+async function readApiError(response: Response, fallback: string): Promise<string> {
+  const text = await response.text();
+  if (!text) return fallback;
+  try {
+    const payload = JSON.parse(text) as { detail?: string; message?: string };
+    return payload.detail || payload.message || fallback;
+  } catch {
+    return text;
+  }
 }
 
 export async function updateOrganisationBranding(

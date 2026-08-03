@@ -206,6 +206,7 @@ export type OrganisationSummaryResponse = {
 export type OrganisationMembershipRole =
   | "owner"
   | "organisation_admin"
+  | "admin"
   | "department_manager"
   | "content_editor"
   | "mentor"
@@ -239,7 +240,13 @@ export type OrganisationNavigationConfigItem = {
 
 export type OrganisationHomepageSection = {
   id: string;
-  type: string;
+  type:
+    | "metrics"
+    | "ai_insight"
+    | "ai_assistant"
+    | "health_priority"
+    | "cohorts_support"
+    | "opportunities_activity";
   enabled: boolean;
   position: number;
   heading?: string | null;
@@ -254,7 +261,9 @@ export type OrganisationSettings = {
   homepageConfig: OrganisationHomepageSection[];
   featureFlags: Record<string, boolean>;
   terminologyConfig: Record<string, string>;
-  configurationStatus: "draft" | "published";
+  configurationStatus: "draft" | "published" | "archived";
+  draftVersion: number;
+  publishedVersion?: number | null;
   publishedAt?: string | null;
   publishedBy?: string | null;
   updatedAt?: string | null;
@@ -267,6 +276,11 @@ export type OrganisationSettingsUpdate = Partial<
     "welcomeHeading" | "welcomeMessage" | "navigationConfig" | "homepageConfig" | "featureFlags" | "terminologyConfig"
   >
 >;
+
+export type OrganisationConfiguration = {
+  branding: OrganisationBranding;
+  settings: OrganisationSettings;
+};
 
 export type ActiveOrganisation = {
   id: string;
