@@ -149,21 +149,23 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
       title={content.title}
       description={content.description}
       actions={
-        <>
-          {content.secondaryAction && (
-            <button type="button" className={outlineButton} onClick={() => handleAction(content.secondaryAction!)}>
-              {content.secondaryAction.label}
+        organisation ? (
+          <>
+            {content.secondaryAction && (
+              <button type="button" className={outlineButton} onClick={() => handleAction(content.secondaryAction!)}>
+                {content.secondaryAction.label}
+              </button>
+            )}
+            <button type="button" className={primaryButton} onClick={() => handleAction(content.primaryAction)}>
+              {content.primaryAction.label}
             </button>
-          )}
-          <button type="button" className={primaryButton} onClick={() => handleAction(content.primaryAction)}>
-            {content.primaryAction.label}
-          </button>
-        </>
+          </>
+        ) : undefined
       }
     >
-      {organisationError ? (
+      {organisationError && organisation ? (
         <section className="mb-5 rounded-3xl border border-amber-300/60 bg-amber-50 p-4 text-sm font-semibold text-amber-950 shadow-sm">
-          Using fallback organisation details while the live configuration reloads: {organisationError}
+          Showing the last verified organisation details because the live configuration reload failed: {organisationError}
         </section>
       ) : null}
       {!organisation ? (
@@ -174,6 +176,15 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
           <p className="mt-2 text-sm leading-6">
             {organisationError || "This organisation could not be resolved for your account."}
           </p>
+          {!isOrganisationLoading ? (
+            <button
+              type="button"
+              onClick={() => void refreshOrganisation()}
+              className="mt-4 inline-flex h-10 items-center justify-center rounded-xl bg-amber-950 px-4 text-sm font-black text-white transition hover:bg-amber-900"
+            >
+              Retry organisation loading
+            </button>
+          ) : null}
         </section>
       ) : !isModuleEnabled(moduleKey) ? (
         <DisabledModuleState moduleName={content.title} onOpenSettings={() => navigate(getOrganisationPath("settings"))} />
