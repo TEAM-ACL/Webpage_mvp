@@ -159,6 +159,11 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
         </>
       }
     >
+      {organisationError ? (
+        <section className="mb-5 rounded-3xl border border-amber-300/60 bg-amber-50 p-4 text-sm font-semibold text-amber-950 shadow-sm">
+          Using fallback organisation details while the live configuration reloads: {organisationError}
+        </section>
+      ) : null}
       {!organisation ? (
         <section className="rounded-3xl border border-amber-300/60 bg-amber-50 p-6 text-amber-950 shadow-sm">
           <h2 className="text-lg font-black">

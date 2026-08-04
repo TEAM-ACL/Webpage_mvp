@@ -108,7 +108,7 @@ export function OrganisationProvider({ children }: OrganisationProviderProps): J
 
   const value = useMemo<OrganisationContextValue>(
     () => ({
-      organisation,
+      organisation: currentOrganisation,
       isLoading,
       error,
       navigationItems,
@@ -118,7 +118,7 @@ export function OrganisationProvider({ children }: OrganisationProviderProps): J
       isModuleEnabled,
       refreshOrganisation,
     }),
-    [currentOrganisation, error, isLoading, isModuleEnabled, navigationItems, organisation, refreshOrganisation],
+    [currentOrganisation, error, isLoading, isModuleEnabled, navigationItems, refreshOrganisation],
   );
 
   return (
