@@ -236,8 +236,7 @@ export async function getActiveOrganisation(slug?: string | null): Promise<Activ
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || "Unable to resolve active organisation.");
+    throw new Error(await readApiError(response, "Unable to resolve active organisation."));
   }
 
   return mapActiveOrganisation((await response.json()) as ActiveOrganisationBackendResponse);
@@ -402,8 +401,12 @@ async function readApiError(response: Response, fallback: string): Promise<strin
   const text = await response.text();
   if (!text) return fallback;
   try {
-    const payload = JSON.parse(text) as { detail?: string; message?: string };
-    return payload.detail || payload.message || fallback;
+    const payload = JSON.parse(text) as {
+      detail?: string;
+      message?: string;
+      error?: { message?: string };
+    };
+    return payload.error?.message || payload.detail || payload.message || fallback;
   } catch {
     return text;
   }
