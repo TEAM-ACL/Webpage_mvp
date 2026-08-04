@@ -68,6 +68,15 @@ export function isOrganisationAdminRole(role: string | null | undefined): boolea
   return normalized === "organisation_admin" || normalized === "organization_admin";
 }
 
+export function hasOrganisationManagementMembership(
+  role: string | null | undefined,
+): boolean {
+  const normalized = (role || "").toLowerCase();
+  return normalized === "owner"
+    || normalized === "admin"
+    || isOrganisationAdminRole(normalized);
+}
+
 export function isBootstrapPlatformAdminEmail(email: string | null | undefined): boolean {
   const normalizedEmail = (email || "").trim().toLowerCase();
   if (!normalizedEmail) {

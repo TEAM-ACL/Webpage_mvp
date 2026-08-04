@@ -64,4 +64,22 @@ describe("organisation service tenant identity", () => {
     await expect(getActiveOrganisation()).rejects.toThrow(/still loading/i);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it("surfaces the backend reason when an account has no active organisation", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      text: async () => JSON.stringify({
+        error: {
+          code: "not_found",
+          message: "No active organisation is connected to this account.",
+        },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { getActiveOrganisation } = await import("./organisation");
+
+    await expect(getActiveOrganisation()).rejects.toThrow(
+      "No active organisation is connected to this account.",
+    );
+  });
 });
