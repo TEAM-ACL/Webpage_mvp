@@ -386,13 +386,16 @@ function OrganisationPersonalisationSettings({
   const isWorking = isSaving || isPublishing || isRestoring;
 
   useEffect(() => {
+    if (savedConfiguration.settings.draftVersion > organisation.settings.draftVersion) {
+      return;
+    }
     setBranding(organisation.branding);
     setSettings(organisation.settings);
     setSavedConfiguration({
       branding: organisation.branding,
       settings: organisation.settings,
     });
-  }, [organisation.branding, organisation.settings]);
+  }, [organisation.branding, organisation.settings, savedConfiguration.settings.draftVersion]);
 
   useEffect(() => {
     function warnBeforeUnload(event: BeforeUnloadEvent): void {
