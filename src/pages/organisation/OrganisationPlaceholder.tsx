@@ -34,6 +34,7 @@ import {
   normaliseOrganisationSettingsForSave,
   validateOrganisationConfiguration,
 } from "../../lib/organisationConfiguration";
+import { isOrganisationAdminRole, isPlatformAdminRole } from "../../lib/auth";
 import type {
   ActiveOrganisation,
   InstitutionalAIInsight,
@@ -369,7 +370,10 @@ function OrganisationPersonalisationSettings({
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
-  const canManageSettings = ["owner", "organisation_admin", "admin"].includes(organisation.role);
+  const canManageSettings =
+    organisation.role === "owner" ||
+    isOrganisationAdminRole(organisation.role) ||
+    isPlatformAdminRole(organisation.role);
   const currentConfiguration = useMemo(
     () => ({ branding, settings }),
     [branding, settings],
