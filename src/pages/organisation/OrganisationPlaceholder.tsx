@@ -72,6 +72,7 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
     getOrganisationPath,
     isLoading: isOrganisationLoading,
     isModuleEnabled,
+    applyOrganisationConfiguration,
     refreshOrganisation,
   } = useOrganisation();
   const organisationId = organisation?.id;
@@ -181,6 +182,7 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
           {queryAction ? <ModuleQueryActionBanner action={queryAction} /> : null}
           <OrganisationPersonalisationSettings
             organisation={organisation}
+            onApplyConfiguration={applyOrganisationConfiguration}
             onRefresh={refreshOrganisation}
             onError={showError}
             onSuccess={showSuccess}
@@ -352,11 +354,13 @@ function DisabledModuleState({
 
 function OrganisationPersonalisationSettings({
   organisation,
+  onApplyConfiguration,
   onRefresh,
   onError,
   onSuccess,
 }: {
   organisation: ActiveOrganisation;
+  onApplyConfiguration: (configuration: OrganisationConfiguration) => void;
   onRefresh: () => Promise<void>;
   onError: (message: string) => void;
   onSuccess: (message: string) => void;
@@ -423,6 +427,7 @@ function OrganisationPersonalisationSettings({
     setBranding(configuration.branding);
     setSettings(configuration.settings);
     setSavedConfiguration(configuration);
+    onApplyConfiguration(configuration);
   }
 
   async function handleSave(): Promise<void> {
