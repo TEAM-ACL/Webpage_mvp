@@ -16,7 +16,7 @@ import {
   buildFallbackActiveOrganisation,
   getActiveOrganisation,
 } from "../services/organisation";
-import type { ActiveOrganisation } from "../types/organisation";
+import type { ActiveOrganisation, OrganisationConfiguration } from "../types/organisation";
 
 type OrganisationContextValue = {
   organisation: ActiveOrganisation | null;
@@ -28,6 +28,7 @@ type OrganisationContextValue = {
   getOrganisationPath: (path?: string) => string;
   isModuleEnabled: (key: string) => boolean;
   refreshOrganisation: () => Promise<void>;
+  applyOrganisationConfiguration: (configuration: OrganisationConfiguration) => void;
 };
 
 const OrganisationContext = createContext<OrganisationContextValue | undefined>(undefined);
@@ -58,7 +59,7 @@ export function OrganisationProvider({ children }: OrganisationProviderProps): J
 
     try {
       const resolvedOrganisation = await getActiveOrganisation(routeSlug);
-      setOrganisation(resolvedOrganisation);
+      setOrganisation((current) => preserveNewerConfiguration(current, resolvedOrganisation));
     } catch (loadError) {
       setOrganisation(null);
       setError(loadError instanceof Error ? loadError.message : "Unable to load organisation configuration.");
@@ -106,6 +107,18 @@ export function OrganisationProvider({ children }: OrganisationProviderProps): J
     [currentOrganisation.branding],
   );
 
+  const applyOrganisationConfiguration = useCallback(
+    (configuration: OrganisationConfiguration) => {
+      setOrganisation((current) => ({
+        ...(current || currentOrganisation),
+        branding: configuration.branding,
+        settings: configuration.settings,
+      }));
+      setError(null);
+    },
+    [currentOrganisation],
+  );
+
   const value = useMemo<OrganisationContextValue>(
     () => ({
       organisation: currentOrganisation,
@@ -117,8 +130,9 @@ export function OrganisationProvider({ children }: OrganisationProviderProps): J
       getOrganisationPath: (path = "") => buildOrganisationPath(currentOrganisation.slug, path),
       isModuleEnabled,
       refreshOrganisation,
+      applyOrganisationConfiguration,
     }),
-    [currentOrganisation, error, isLoading, isModuleEnabled, navigationItems, refreshOrganisation],
+    [applyOrganisationConfiguration, currentOrganisation, error, isLoading, isModuleEnabled, navigationItems, refreshOrganisation],
   );
 
   return (
@@ -151,4 +165,21 @@ function getOrganisationSlugFromPath(pathname: string): string | null {
 
 function isLegacyOrganisationSection(segment: string): boolean {
   return ["members", "cohorts", "interventions", "opportunities", "reports", "settings"].includes(segment);
+}
+
+function preserveNewerConfiguration(
+  current: ActiveOrganisation | null,
+  resolved: ActiveOrganisation,
+): ActiveOrganisation {
+  if (!current || current.id !== resolved.id) {
+    return resolved;
+  }
+  if (current.settings.draftVersion <= resolved.settings.draftVersion) {
+    return resolved;
+  }
+  return {
+    ...resolved,
+    branding: current.branding,
+    settings: current.settings,
+  };
 }
