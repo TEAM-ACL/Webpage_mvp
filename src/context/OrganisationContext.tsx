@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type JSX,
   type ReactNode,
@@ -11,6 +12,7 @@ import {
 import { useLocation } from "react-router-dom";
 import { buildOrganisationPath, normaliseNavigation, slugifyOrganisationName } from "../config/organisationTenant";
 import { buildOrganisationThemeVariables } from "../lib/organisationTheme";
+import { createOrganisationAccessState } from "../lib/organisationIdentity";
 import { useAuth } from "./AuthContext";
 import {
   buildFallbackActiveOrganisation,
@@ -19,7 +21,10 @@ import {
 import type { ActiveOrganisation, OrganisationConfiguration } from "../types/organisation";
 
 type OrganisationContextValue = {
+  /** The organisation verified by the API for the current route. Never contains fallback data. */
   organisation: ActiveOrganisation | null;
+  /** Read-only organisation data used to keep the application shell stable while resolving. */
+  displayOrganisation: ActiveOrganisation;
   isLoading: boolean;
   error: string | null;
   navigationItems: ReturnType<typeof normaliseNavigation>;
@@ -43,23 +48,49 @@ export function OrganisationProvider({ children }: OrganisationProviderProps): J
   const routeSlug = getOrganisationSlugFromPath(location.pathname);
   const fallbackSlug = slugifyOrganisationName(profile?.organisationName);
   const activeSlug = routeSlug || fallbackSlug;
-  const [organisation, setOrganisation] = useState<ActiveOrganisation | null>(null);
+  const isOrganisationRoute = location.pathname.startsWith("/organisation");
+  const tenantLookupKey = routeSlug ? `slug:${routeSlug}` : "current";
+  const [resolution, setResolution] = useState<{
+    lookupKey: string | null;
+    organisation: ActiveOrganisation | null;
+  }>({ lookupKey: null, organisation: null });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<{
+    lookupKey: string | null;
+    message: string | null;
+  }>({ lookupKey: null, message: null });
+  const requestSequence = useRef(0);
+
+  const resolvedOrganisation =
+    resolution.lookupKey === tenantLookupKey ? resolution.organisation : null;
+  const error = loadError.lookupKey === tenantLookupKey ? loadError.message : null;
 
   const refreshOrganisation = useCallback(async () => {
-    if (!user || !location.pathname.startsWith("/organisation")) {
-      setOrganisation(null);
-      setError(null);
+    const requestId = ++requestSequence.current;
+    if (!user || !isOrganisationRoute) {
+      setResolution({ lookupKey: null, organisation: null });
+      setLoadError({ lookupKey: null, message: null });
+      setIsLoading(false);
       return;
     }
 
+    setResolution((current) => ({
+      lookupKey: tenantLookupKey,
+      organisation: current.lookupKey === tenantLookupKey ? current.organisation : null,
+    }));
     setIsLoading(true);
-    setError(null);
+    setLoadError({ lookupKey: tenantLookupKey, message: null });
 
     try {
       const resolvedOrganisation = await getActiveOrganisation(routeSlug);
-      setOrganisation((current) => preserveNewerConfiguration(current, resolvedOrganisation));
+      if (requestId !== requestSequence.current) return;
+      setResolution((current) => ({
+        lookupKey: tenantLookupKey,
+        organisation: preserveNewerConfiguration(
+          current.lookupKey === tenantLookupKey ? current.organisation : null,
+          resolvedOrganisation,
+        ),
+      }));
     } catch (loadError) {
       if (routeSlug) {
         try {
@@ -73,16 +104,22 @@ export function OrganisationProvider({ children }: OrganisationProviderProps): J
       }
       setOrganisation(null);
       setError(loadError instanceof Error ? loadError.message : "Unable to load organisation configuration.");
+      if (requestId !== requestSequence.current) return;
+      setLoadError({
+        lookupKey: tenantLookupKey,
+        message: loadError instanceof Error
+          ? loadError.message
+          : "Unable to load organisation configuration.",
+      });
     } finally {
-      setIsLoading(false);
+      if (requestId === requestSequence.current) {
+        setIsLoading(false);
+      }
     }
   }, [
-    activeSlug,
-    location.pathname,
-    profile?.organisationId,
-    profile?.organisationName,
-    profile?.role,
+    isOrganisationRoute,
     routeSlug,
+    tenantLookupKey,
     user,
   ]);
 
@@ -90,59 +127,74 @@ export function OrganisationProvider({ children }: OrganisationProviderProps): J
     void refreshOrganisation();
   }, [refreshOrganisation]);
 
-  const currentOrganisation =
-    organisation ||
-    buildFallbackActiveOrganisation({
-      id: profile?.organisationId,
+  const fallbackOrganisation = useMemo(
+    () => buildFallbackActiveOrganisation({
       name: profile?.organisationName,
       slug: activeSlug,
       role: profile?.role || user?.role,
-    });
+    }),
+    [activeSlug, profile?.organisationName, profile?.role, user?.role],
+  );
+  const { organisation, displayOrganisation } = createOrganisationAccessState(
+    resolvedOrganisation,
+    fallbackOrganisation,
+  );
+  const organisationIsLoading =
+    isLoading || (Boolean(user) && isOrganisationRoute && resolution.lookupKey !== tenantLookupKey);
 
   const navigationItems = useMemo(
     () => normaliseNavigation(
-      currentOrganisation.settings.navigationConfig,
-      currentOrganisation.settings.featureFlags,
+      displayOrganisation.settings.navigationConfig,
+      displayOrganisation.settings.featureFlags,
     ),
-    [currentOrganisation.settings.featureFlags, currentOrganisation.settings.navigationConfig],
+    [displayOrganisation.settings.featureFlags, displayOrganisation.settings.navigationConfig],
   );
 
   const isModuleEnabled = useCallback(
-    (key: string) => key === "overview" || key === "settings" || currentOrganisation.settings.featureFlags[key] !== false,
-    [currentOrganisation.settings.featureFlags],
+    (key: string) => key === "overview" || key === "settings" || displayOrganisation.settings.featureFlags[key] !== false,
+    [displayOrganisation.settings.featureFlags],
   );
 
   const themeVariables = useMemo(
-    () => buildOrganisationThemeVariables(currentOrganisation.branding),
-    [currentOrganisation.branding],
+    () => buildOrganisationThemeVariables(displayOrganisation.branding),
+    [displayOrganisation.branding],
   );
 
   const applyOrganisationConfiguration = useCallback(
     (configuration: OrganisationConfiguration) => {
-      setOrganisation((current) => ({
-        ...(current || currentOrganisation),
-        branding: configuration.branding,
-        settings: configuration.settings,
-      }));
-      setError(null);
+      setResolution((current) => {
+        if (current.lookupKey !== tenantLookupKey || !current.organisation) {
+          return current;
+        }
+        return {
+          ...current,
+          organisation: {
+            ...current.organisation,
+            branding: configuration.branding,
+            settings: configuration.settings,
+          },
+        };
+      });
+      setLoadError({ lookupKey: tenantLookupKey, message: null });
     },
-    [currentOrganisation],
+    [tenantLookupKey],
   );
 
   const value = useMemo<OrganisationContextValue>(
     () => ({
-      organisation: currentOrganisation,
-      isLoading,
+      organisation,
+      displayOrganisation,
+      isLoading: organisationIsLoading,
       error,
       navigationItems,
-      organisationBasePath: buildOrganisationPath(currentOrganisation.slug),
-      activeSlug: currentOrganisation.slug,
-      getOrganisationPath: (path = "") => buildOrganisationPath(currentOrganisation.slug, path),
+      organisationBasePath: buildOrganisationPath(displayOrganisation.slug),
+      activeSlug: displayOrganisation.slug,
+      getOrganisationPath: (path = "") => buildOrganisationPath(displayOrganisation.slug, path),
       isModuleEnabled,
       refreshOrganisation,
       applyOrganisationConfiguration,
     }),
-    [applyOrganisationConfiguration, currentOrganisation, error, isLoading, isModuleEnabled, navigationItems, refreshOrganisation],
+    [applyOrganisationConfiguration, displayOrganisation, error, organisationIsLoading, isModuleEnabled, navigationItems, organisation, refreshOrganisation],
   );
 
   return (

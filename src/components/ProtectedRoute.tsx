@@ -1,7 +1,12 @@
 import type { JSX } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { hasOrganisationDashboardAccessForUser, isAdmin } from "../lib/auth";
+import {
+  hasOrganisationDashboardAccessForUser,
+  hasOrganisationManagementMembership,
+  isAdmin,
+} from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
+import { useOrganisation } from "../context/OrganisationContext";
 
 type Props = { children: JSX.Element };
 type RedirectIfOnboardedProps = Props & {
@@ -59,6 +64,12 @@ export function RequireAdmin({ children }: Props): JSX.Element {
 export function RequireOrganisationAdmin({ children }: Props): JSX.Element {
   const location = useLocation();
   const { user, profile, loading, profileLoading } = useAuth();
+  const {
+    organisation,
+    isLoading: organisationLoading,
+    error: organisationError,
+    refreshOrganisation,
+  } = useOrganisation();
   if (loading || profileLoading) return <></>;
   if (!user) {
     const redirectTo = `${location.pathname}${location.search}`;
@@ -71,21 +82,42 @@ export function RequireOrganisationAdmin({ children }: Props): JSX.Element {
   }
 
   const role = profile?.role || user.role;
-  if (!hasOrganisationDashboardAccessForUser(role, user.email)) {
+  const hasAccountAccess = hasOrganisationDashboardAccessForUser(role, user.email);
+  const hasMembershipAccess = hasOrganisationManagementMembership(organisation?.role);
+
+  if (!hasAccountAccess && organisationLoading) return <></>;
+  if (hasAccountAccess || hasMembershipAccess) return children;
+
+  if (organisationError) {
     return (
       <main className="min-h-screen bg-slate-50 px-6 py-16 text-slate-900">
         <div className="mx-auto max-w-lg rounded-3xl border border-amber-200 bg-white p-8 text-center shadow-sm">
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-amber-700">Organisation Access Required</p>
-          <h1 className="mt-3 text-2xl font-black tracking-tight">This account is not an organisation administrator yet.</h1>
-          <p className="mt-3 text-sm leading-6 text-slate-600">
-            Ask a platform administrator to assign your account the platform_admin or organisation_admin role before opening the organisation dashboard.
-          </p>
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-amber-700">Organisation Unavailable</p>
+          <h1 className="mt-3 text-2xl font-black tracking-tight">We could not verify your organisation access.</h1>
+          <p className="mt-3 text-sm leading-6 text-slate-600">{organisationError}</p>
+          <button
+            type="button"
+            onClick={() => void refreshOrganisation()}
+            className="mt-5 inline-flex h-10 items-center justify-center rounded-xl bg-amber-950 px-4 text-sm font-black text-white transition hover:bg-amber-900"
+          >
+            Retry organisation loading
+          </button>
         </div>
       </main>
     );
   }
 
-  return children;
+  return (
+    <main className="min-h-screen bg-slate-50 px-6 py-16 text-slate-900">
+      <div className="mx-auto max-w-lg rounded-3xl border border-amber-200 bg-white p-8 text-center shadow-sm">
+        <p className="text-sm font-bold uppercase tracking-[0.2em] text-amber-700">Organisation Access Required</p>
+        <h1 className="mt-3 text-2xl font-black tracking-tight">This account is not an organisation administrator yet.</h1>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          Ask an organisation owner or platform administrator to grant an owner, admin, or organisation_admin membership before opening the organisation dashboard.
+        </p>
+      </div>
+    </main>
+  );
 }
 
 export function RedirectIfOnboarded({

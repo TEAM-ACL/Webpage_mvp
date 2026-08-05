@@ -17,6 +17,10 @@ import type {
 } from "../types/organisation";
 import { mockInstitutionalInsight } from "../data/mockInstitutionalInsight";
 import { DEFAULT_ORGANISATION_SLUG, slugifyOrganisationName } from "../config/organisationTenant";
+import {
+  FALLBACK_ORGANISATION_ID,
+  requireResolvedOrganisationId,
+} from "../lib/organisationIdentity";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -68,7 +72,7 @@ const defaultSettings = {
 };
 
 type ActiveOrganisationBackendResponse = {
-  id?: string | null;
+  id: string;
   name?: string | null;
   slug?: string | null;
   organisation_type?: string | null;
@@ -129,7 +133,7 @@ type PublicOrganisationBackendResponse = {
 function mapActiveOrganisation(data: ActiveOrganisationBackendResponse): ActiveOrganisation {
   const name = data.name || "VisionTech Demo Organisation";
   return {
-    id: data.id || "mock-organisation-001",
+    id: requireResolvedOrganisationId(data.id),
     name,
     slug: data.slug || slugifyOrganisationName(name),
     organisationType: data.organisation_type || "Training Provider",
@@ -191,20 +195,36 @@ function mapOrganisationSettings(data: OrganisationSettingsBackendResponse | nul
 }
 
 export function buildFallbackActiveOrganisation(input?: {
-  id?: string | null;
   name?: string | null;
   slug?: string | null;
   organisationType?: string | null;
   role?: string | null;
 }): ActiveOrganisation {
   const name = input?.name || "VisionTech Demo Organisation";
-  return mapActiveOrganisation({
-    id: input?.id || "mock-organisation-001",
+  return {
+    id: FALLBACK_ORGANISATION_ID,
     name,
     slug: input?.slug || slugifyOrganisationName(name) || DEFAULT_ORGANISATION_SLUG,
-    organisation_type: input?.organisationType || "Training Provider",
-    role: input?.role as ActiveOrganisation["role"],
-  });
+    organisationType: input?.organisationType || "Training Provider",
+    description: null,
+    websiteUrl: null,
+    status: "active",
+    role: (input?.role as ActiveOrganisation["role"]) || "organisation_admin",
+    branding: {
+      logoUrl: null,
+      faviconUrl: null,
+      ...defaultBranding,
+      loginBannerUrl: null,
+      dashboardBannerUrl: null,
+    },
+    settings: {
+      ...defaultSettings,
+      navigationConfig: [],
+      homepageConfig: [],
+      featureFlags: { ...defaultSettings.featureFlags },
+      terminologyConfig: {},
+    },
+  };
 }
 
 export async function getActiveOrganisation(slug?: string | null): Promise<ActiveOrganisation> {
@@ -216,8 +236,7 @@ export async function getActiveOrganisation(slug?: string | null): Promise<Activ
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || "Unable to resolve active organisation.");
+    throw new Error(await readApiError(response, "Unable to resolve active organisation."));
   }
 
   return mapActiveOrganisation((await response.json()) as ActiveOrganisationBackendResponse);
@@ -327,8 +346,9 @@ async function requestOrganisationConfiguration(
   path: string,
   body: Record<string, unknown>,
 ): Promise<OrganisationConfiguration> {
+  const resolvedOrganisationId = requireResolvedOrganisationId(organisationId);
   const response = await fetch(
-    `${API_BASE_URL}/organisations/${encodeURIComponent(organisationId)}${path}`,
+    `${API_BASE_URL}/organisations/${encodeURIComponent(resolvedOrganisationId)}${path}`,
     {
       method,
       credentials: "include",
@@ -381,8 +401,12 @@ async function readApiError(response: Response, fallback: string): Promise<strin
   const text = await response.text();
   if (!text) return fallback;
   try {
-    const payload = JSON.parse(text) as { detail?: string; message?: string };
-    return payload.detail || payload.message || fallback;
+    const payload = JSON.parse(text) as {
+      detail?: string;
+      message?: string;
+      error?: { message?: string };
+    };
+    return payload.error?.message || payload.detail || payload.message || fallback;
   } catch {
     return text;
   }

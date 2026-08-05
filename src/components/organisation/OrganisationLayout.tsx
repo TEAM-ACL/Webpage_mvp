@@ -25,9 +25,9 @@ export default function OrganisationLayout({
   children,
 }: OrganisationLayoutProps): JSX.Element {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { organisation } = useOrganisation();
-  const branding = organisation?.branding;
-  const settings = organisation?.settings;
+  const { displayOrganisation } = useOrganisation();
+  const branding = displayOrganisation.branding;
+  const settings = displayOrganisation.settings;
   const shellStyle = {
     background: branding
       ? `linear-gradient(135deg, ${branding.backgroundColour} 0%, color-mix(in srgb, ${branding.backgroundColour} 72%, #ffffff) 58%, var(--color-surface-container-lowest) 100%)`
