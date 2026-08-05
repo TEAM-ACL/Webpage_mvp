@@ -61,6 +61,16 @@ export function OrganisationProvider({ children }: OrganisationProviderProps): J
       const resolvedOrganisation = await getActiveOrganisation(routeSlug);
       setOrganisation((current) => preserveNewerConfiguration(current, resolvedOrganisation));
     } catch (loadError) {
+      if (routeSlug) {
+        try {
+          const fallbackOrganisation = await getActiveOrganisation();
+          setOrganisation((current) => preserveNewerConfiguration(current, fallbackOrganisation));
+          setError(loadError instanceof Error ? loadError.message : "Unable to load organisation configuration.");
+          return;
+        } catch {
+          // Keep the original slug-specific error below; it explains why the current URL failed.
+        }
+      }
       setOrganisation(null);
       setError(loadError instanceof Error ? loadError.message : "Unable to load organisation configuration.");
     } finally {
