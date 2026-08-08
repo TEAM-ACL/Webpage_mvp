@@ -10,7 +10,11 @@ import {
   type ReactNode,
 } from "react";
 import { useLocation } from "react-router-dom";
-import { buildOrganisationPath, normaliseNavigation, slugifyOrganisationName } from "../config/organisationTenant";
+import {
+  buildVerifiedOrganisationPath,
+  normaliseNavigation,
+  slugifyOrganisationName,
+} from "../config/organisationTenant";
 import { buildOrganisationThemeVariables } from "../lib/organisationTheme";
 import { createOrganisationAccessState } from "../lib/organisationIdentity";
 import { useAuth } from "./AuthContext";
@@ -175,9 +179,9 @@ export function OrganisationProvider({ children }: OrganisationProviderProps): J
       isLoading: organisationIsLoading,
       error,
       navigationItems,
-      organisationBasePath: buildOrganisationPath(displayOrganisation.slug),
-      activeSlug: displayOrganisation.slug,
-      getOrganisationPath: (path = "") => buildOrganisationPath(displayOrganisation.slug, path),
+      organisationBasePath: buildVerifiedOrganisationPath(organisation?.slug),
+      activeSlug: organisation?.slug ?? "",
+      getOrganisationPath: (path = "") => buildVerifiedOrganisationPath(organisation?.slug, path),
       isModuleEnabled,
       refreshOrganisation,
       applyOrganisationConfiguration,
