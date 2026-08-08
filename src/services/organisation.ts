@@ -16,7 +16,7 @@ import type {
   OrganisationSummaryResponse,
 } from "../types/organisation";
 import { mockInstitutionalInsight } from "../data/mockInstitutionalInsight";
-import { DEFAULT_ORGANISATION_SLUG, slugifyOrganisationName } from "../config/organisationTenant";
+import { FALLBACK_ORGANISATION_SLUG, slugifyOrganisationName } from "../config/organisationTenant";
 import {
   FALLBACK_ORGANISATION_ID,
   requireResolvedOrganisationId,
@@ -131,7 +131,7 @@ type PublicOrganisationBackendResponse = {
 };
 
 function mapActiveOrganisation(data: ActiveOrganisationBackendResponse): ActiveOrganisation {
-  const name = data.name || "VisionTech Demo Organisation";
+  const name = data.name || "Organisation";
   return {
     id: requireResolvedOrganisationId(data.id),
     name,
@@ -200,11 +200,11 @@ export function buildFallbackActiveOrganisation(input?: {
   organisationType?: string | null;
   role?: string | null;
 }): ActiveOrganisation {
-  const name = input?.name || "VisionTech Demo Organisation";
+  const name = input?.name || "Organisation";
   return {
     id: FALLBACK_ORGANISATION_ID,
     name,
-    slug: input?.slug || slugifyOrganisationName(name) || DEFAULT_ORGANISATION_SLUG,
+    slug: input?.slug || slugifyOrganisationName(name) || FALLBACK_ORGANISATION_SLUG,
     organisationType: input?.organisationType || "Training Provider",
     description: null,
     websiteUrl: null,

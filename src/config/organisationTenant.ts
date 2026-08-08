@@ -27,7 +27,11 @@ export type OrganisationNavigationItem = {
   icon: LucideIcon;
 };
 
-export const DEFAULT_ORGANISATION_SLUG = "visiontech-demo";
+/**
+ * Display-only value used until an organisation has been resolved by the API.
+ * It must never be used to construct a tenant route or mutation target.
+ */
+export const FALLBACK_ORGANISATION_SLUG = "organisation-unavailable";
 
 export const DEFAULT_ORGANISATION_NAVIGATION: OrganisationNavigationItem[] = [
   { key: "overview", label: "Overview", path: "", enabled: true, order: 1, icon: BarChart3 },
@@ -47,12 +51,24 @@ export function slugifyOrganisationName(name: string | null | undefined): string
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-  return slug || DEFAULT_ORGANISATION_SLUG;
+  return slug || FALLBACK_ORGANISATION_SLUG;
 }
 
 export function buildOrganisationPath(slug: string, path = ""): string {
   const cleanPath = path.replace(/^\/+/, "");
   return cleanPath ? `/organisation/${slug}/${cleanPath}` : `/organisation/${slug}`;
+}
+
+/**
+ * Routes are authoritative tenant boundaries. Until the API verifies a slug,
+ * keep callers on the organisation index rather than fabricating a tenant URL.
+ */
+export function buildVerifiedOrganisationPath(
+  slug: string | null | undefined,
+  path = "",
+): string {
+  const verifiedSlug = slug?.trim();
+  return verifiedSlug ? buildOrganisationPath(verifiedSlug, path) : "/organisation";
 }
 
 export function normaliseNavigation(
