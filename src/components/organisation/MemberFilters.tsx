@@ -60,12 +60,12 @@ export default function MemberFilters({
           value={filters.search}
           onChange={(event) => onChange({ ...filters, search: event.target.value })}
           placeholder="Search by name or email"
-          className="rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 py-3 text-sm outline-none focus:border-[var(--color-primary)]"
+          className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm text-[var(--color-on-surface)] outline-none focus:border-[var(--organisation-action)]"
         />
         <select
           value={filters.cohort}
           onChange={(event) => onChange({ ...filters, cohort: event.target.value })}
-          className="rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 py-3 text-sm"
+          className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm text-[var(--color-on-surface)]"
         >
           <option value="all">All cohorts</option>
           {cohorts.map((cohort) => (
@@ -75,7 +75,7 @@ export default function MemberFilters({
         <select
           value={filters.goal}
           onChange={(event) => onChange({ ...filters, goal: event.target.value })}
-          className="rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 py-3 text-sm"
+          className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm text-[var(--color-on-surface)]"
         >
           <option value="all">All goals</option>
           {goals.map((goal) => (
@@ -85,7 +85,7 @@ export default function MemberFilters({
         <select
           value={filters.status}
           onChange={(event) => onChange({ ...filters, status: event.target.value as MemberFiltersState["status"] })}
-          className="rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 py-3 text-sm"
+          className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm text-[var(--color-on-surface)]"
         >
           <option value="all">All statuses</option>
           <option value="active">Active</option>
@@ -96,7 +96,7 @@ export default function MemberFilters({
         <select
           value={filters.readiness}
           onChange={(event) => onChange({ ...filters, readiness: event.target.value as MemberFiltersState["readiness"] })}
-          className="rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 py-3 text-sm"
+          className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm text-[var(--color-on-surface)]"
         >
           <option value="all">All readiness</option>
           <option value="low">Below 50%</option>

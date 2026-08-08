@@ -234,22 +234,22 @@ const [insightError, setInsightError] = useState<string | null>(null);
     >
       <div className="space-y-6">
         {error && (
-          <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+          <section className="rounded-3xl border border-[var(--color-warning)] bg-[var(--color-warning-container)] p-5 text-sm text-[var(--color-warning)]">
             Backend overview data is unavailable, so professional preview data is shown. {error}
           </section>
         )}
 
         {hasNoMembers && (
-          <section className="rounded-3xl border border-dashed border-indigo-200 bg-indigo-50 p-6">
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-indigo-700">New organisation</p>
-            <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">No members have joined yet</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+          <section className="rounded-3xl border border-dashed border-[var(--color-info)] bg-[var(--color-info-container)] p-6">
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-[var(--color-info)]">New organisation</p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--color-on-surface)]">No members have joined yet</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-on-surface-variant)]">
               Invite people to begin building institutional intelligence, cohorts, support workflows, and opportunity recommendations.
             </p>
             <button
               type="button"
               onClick={() => navigate(getOrganisationPath("members?invite=true"))}
-              className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-indigo-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-200"
+              className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-[var(--organisation-action)] px-4 py-3 text-sm font-bold text-[var(--organisation-on-action)] shadow-lg"
             >
               <Plus className="h-4 w-4" />
               Invite First Member
@@ -284,8 +284,8 @@ function ActionButton({
       onClick={onClick}
       className={
         primary
-          ? "inline-flex items-center gap-2 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-200"
-          : "inline-flex items-center gap-2 rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 py-3 text-sm font-bold text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]"
+          ? "inline-flex items-center gap-2 rounded-2xl bg-[var(--organisation-action)] px-4 py-3 text-sm font-bold text-[var(--organisation-on-action)] shadow-lg"
+          : "inline-flex items-center gap-2 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 py-3 text-sm font-bold text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]"
       }
     >
       {icon}

@@ -53,13 +53,13 @@ export default function MembersTable({
                 </td>
                 <td className="rounded-r-2xl px-4 py-4">
                   <div className="flex flex-wrap gap-2">
-                    <button type="button" className="rounded-xl bg-white px-3 py-2 text-xs font-semibold" onClick={() => onSelectMember(member)}>
+                    <button type="button" className="rounded-xl bg-[var(--color-surface-container-lowest)] px-3 py-2 text-xs font-semibold text-[var(--color-on-surface)] ring-1 ring-[var(--color-outline-variant)]" onClick={() => onSelectMember(member)}>
                       View
                     </button>
-                    <button type="button" className="rounded-xl bg-white px-3 py-2 text-xs font-semibold" onClick={() => onAssignToCohort(member)}>
+                    <button type="button" className="rounded-xl bg-[var(--color-surface-container-lowest)] px-3 py-2 text-xs font-semibold text-[var(--color-on-surface)] ring-1 ring-[var(--color-outline-variant)]" onClick={() => onAssignToCohort(member)}>
                       Assign
                     </button>
-                    <button type="button" className="rounded-xl bg-white px-3 py-2 text-xs font-semibold" onClick={() => onCreateIntervention(member)}>
+                    <button type="button" className="rounded-xl bg-[var(--color-surface-container-lowest)] px-3 py-2 text-xs font-semibold text-[var(--color-on-surface)] ring-1 ring-[var(--color-outline-variant)]" onClick={() => onCreateIntervention(member)}>
                       Intervene
                     </button>
                   </div>
@@ -74,11 +74,11 @@ export default function MembersTable({
 }
 
 function statusClass(status: OrganisationMember["status"], needsSupport: boolean): string {
-  if (needsSupport) return "bg-amber-100 text-amber-700";
-  if (status === "active") return "bg-emerald-100 text-emerald-700";
-  if (status === "invited") return "bg-indigo-100 text-indigo-700";
-  if (status === "suspended") return "bg-red-100 text-red-700";
-  return "bg-slate-100 text-slate-700";
+  if (needsSupport) return "bg-[var(--color-warning-container)] text-[var(--color-warning)]";
+  if (status === "active") return "bg-[var(--color-success-container)] text-[var(--color-success)]";
+  if (status === "invited") return "bg-[var(--color-info-container)] text-[var(--color-info)]";
+  if (status === "suspended") return "bg-[var(--color-error-container)] text-[var(--color-error)]";
+  return "bg-[var(--color-surface-container-high)] text-[var(--color-on-surface-variant)]";
 }
 
 function formatDate(value?: string | null): string {

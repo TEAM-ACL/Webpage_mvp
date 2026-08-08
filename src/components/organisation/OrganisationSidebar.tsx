@@ -97,7 +97,7 @@ export default function OrganisationSidebar({
         <div className="mt-5 rounded-[var(--organisation-card-radius,1rem)] border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4">
           <p className="text-xs font-semibold text-[var(--color-on-surface-variant)]">Access</p>
           <p className="mt-1 text-sm font-semibold text-[var(--color-on-surface)]">{administratorRole}</p>
-          <p className="mt-2 text-xs font-semibold text-emerald-500">{status}</p>
+              <p className="mt-2 text-xs font-semibold text-[var(--color-success)]">{status}</p>
         </div>
 
         <nav className="mt-6 space-y-2">
@@ -113,7 +113,7 @@ export default function OrganisationSidebar({
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                     isActive
-                      ? "bg-[var(--color-primary)] text-[var(--organisation-on-primary)]"
+                      ? "bg-[var(--color-primary)] text-[var(--organisation-on-action)]"
                       : "text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-low)]"
                   }`
                 }
