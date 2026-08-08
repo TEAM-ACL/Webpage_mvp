@@ -15,7 +15,6 @@ import {
   normaliseNavigation,
   slugifyOrganisationName,
 } from "../config/organisationTenant";
-import { buildOrganisationThemeVariables } from "../lib/organisationTheme";
 import { createOrganisationAccessState } from "../lib/organisationIdentity";
 import { useAuth } from "./AuthContext";
 import {
@@ -147,11 +146,6 @@ export function OrganisationProvider({ children }: OrganisationProviderProps): J
     [displayOrganisation.settings.featureFlags],
   );
 
-  const themeVariables = useMemo(
-    () => buildOrganisationThemeVariables(displayOrganisation.branding),
-    [displayOrganisation.branding],
-  );
-
   const applyOrganisationConfiguration = useCallback(
     (configuration: OrganisationConfiguration) => {
       setResolution((current) => {
@@ -191,7 +185,7 @@ export function OrganisationProvider({ children }: OrganisationProviderProps): J
 
   return (
     <OrganisationContext.Provider value={value}>
-      <div style={themeVariables}>{children}</div>
+      {children}
     </OrganisationContext.Provider>
   );
 }

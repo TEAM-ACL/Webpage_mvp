@@ -68,7 +68,7 @@ export default function InviteMemberModal({
         </p>
         {inviteUrl ? (
           <section className="mt-5 rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-primary)]">Tenant invite link</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--organisation-action)]">Tenant invite link</p>
             <p className="mt-2 text-sm leading-6 text-[var(--color-on-surface-variant)]">
               Share this branded signup link with members so they land in the correct organisation flow.
             </p>
@@ -78,12 +78,12 @@ export default function InviteMemberModal({
             <button
               type="button"
               onClick={handleCopyInviteLink}
-              className="mt-3 rounded-2xl bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+              className="mt-3 rounded-2xl bg-[var(--organisation-action)] px-4 py-2 text-sm font-semibold text-[var(--organisation-on-action)] transition hover:opacity-90"
             >
               {copyState === "copied" ? "Copied invite message" : "Copy invite message"}
             </button>
             {copyState === "failed" ? (
-              <p className="mt-2 text-xs font-semibold text-amber-700">
+              <p className="mt-2 text-xs font-semibold text-[var(--color-warning)]">
                 Copy failed. Select the link above manually.
               </p>
             ) : null}
@@ -98,7 +98,7 @@ export default function InviteMemberModal({
             <button type="button" className="rounded-2xl border border-[var(--color-outline-variant)] px-4 py-3 text-sm font-semibold" onClick={onClose}>
               Cancel
             </button>
-            <button type="submit" className="rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white">
+            <button type="submit" className="rounded-2xl bg-[var(--organisation-action)] px-4 py-3 text-sm font-semibold text-[var(--organisation-on-action)]">
               Send Invite
             </button>
           </div>

@@ -84,7 +84,7 @@ export default function OrganisationAIPanel({
               <button
                 type="button"
                 onClick={() => onActionSelect(primaryAction)}
-                className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-indigo-50"
+                className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-[var(--color-fixed-light-surface)] px-4 py-3 text-sm font-black text-[var(--color-on-fixed-light-surface)] transition hover:opacity-90"
               >
                 Review recommendation
                 <ChevronRight className="h-4 w-4" />
@@ -93,8 +93,8 @@ export default function OrganisationAIPanel({
           )}
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-white p-5 text-slate-950">
-          <div className="flex items-center gap-2 text-indigo-700">
+        <div className="rounded-3xl border border-white/10 bg-[var(--color-fixed-light-surface)] p-5 text-[var(--color-on-fixed-light-surface)]">
+          <div className="flex items-center gap-2 text-[#4338ca]">
             <Sparkles className="h-4 w-4" />
             <p className="text-sm font-black">Ask AI about this module</p>
           </div>
@@ -106,8 +106,8 @@ export default function OrganisationAIPanel({
                 onClick={() => onPromptSelect(prompt)}
                 className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
                   selectedPrompt === prompt
-                    ? "border-indigo-300 bg-indigo-50 text-indigo-800"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-indigo-200 hover:bg-indigo-50"
+                    ? "border-[#a5b4fc] bg-[#eef2ff] text-[#3730a3]"
+                    : "border-[#e2e8f0] bg-[var(--color-fixed-light-surface)] text-[var(--color-on-fixed-light-surface)] hover:border-[#c7d2fe] hover:bg-[#eef2ff]"
                 }`}
               >
                 {prompt}
@@ -115,9 +115,9 @@ export default function OrganisationAIPanel({
             ))}
           </div>
 
-          <div className="mt-5 rounded-3xl bg-slate-50 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">AI Response</p>
-            <p className="mt-2 text-sm leading-6 text-slate-700">
+          <div className="mt-5 rounded-3xl bg-[#f1f5f9] p-4">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-on-fixed-light-surface)] opacity-60">AI Response</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--color-on-fixed-light-surface)]">
               {response || "Select a prompt to generate a practical, module-specific recommendation from the latest institutional insight."}
             </p>
           </div>

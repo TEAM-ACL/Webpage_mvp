@@ -18,13 +18,13 @@ type InstitutionalAIInsightCardProps = {
 function getPriorityClasses(priority: InsightPriority): string {
   switch (priority) {
     case "critical":
-      return "border-red-500/30 bg-red-500/10 text-red-700";
+      return "border-[var(--color-error)] bg-[var(--color-error-container)] text-[var(--color-error)]";
     case "high":
-      return "border-orange-500/30 bg-orange-500/10 text-orange-700";
+      return "border-[var(--color-error)] bg-[var(--color-error-container)] text-[var(--color-error)]";
     case "medium":
-      return "border-amber-500/30 bg-amber-500/10 text-amber-700";
+      return "border-[var(--color-warning)] bg-[var(--color-warning-container)] text-[var(--color-warning)]";
     default:
-      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-700";
+      return "border-[var(--color-success)] bg-[var(--color-success-container)] text-[var(--color-success)]";
   }
 }
 
@@ -65,13 +65,13 @@ export default function InstitutionalAIInsightCard({
 
   if (error && !insight) {
     return (
-      <section className="rounded-3xl border border-red-200 bg-red-50 p-6">
-        <h2 className="text-lg font-semibold text-red-700">Institutional AI insight unavailable</h2>
-        <p className="mt-2 text-sm leading-6 text-red-900/80">{error}</p>
+      <section className="rounded-3xl border border-[var(--color-error)] bg-[var(--color-error-container)] p-6">
+        <h2 className="text-lg font-semibold text-[var(--color-error)]">Institutional AI insight unavailable</h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--color-error)]">{error}</p>
         <button
           type="button"
           onClick={onRefresh}
-          className="mt-4 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white"
+          className="mt-4 rounded-2xl bg-[var(--organisation-action)] px-4 py-3 text-sm font-semibold text-[var(--organisation-on-action)]"
         >
           Try again
         </button>
@@ -82,7 +82,7 @@ export default function InstitutionalAIInsightCard({
   if (!insight) {
     return (
       <section className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
-        <p className="text-sm font-semibold text-[var(--color-primary)]">VisionTech Institutional AI</p>
+        <p className="text-sm font-semibold text-[var(--organisation-action)]">VisionTech Institutional AI</p>
         <h2 className="mt-2 text-xl font-bold text-[var(--color-on-surface)]">
           Generate your first institutional insight
         </h2>
@@ -94,7 +94,7 @@ export default function InstitutionalAIInsightCard({
           type="button"
           onClick={onRefresh}
           disabled={isRefreshing}
-          className="mt-5 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-5 rounded-2xl bg-[var(--organisation-action)] px-4 py-3 text-sm font-semibold text-[var(--organisation-on-action)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isRefreshing ? "Generating insight..." : "Generate AI Insight"}
         </button>
@@ -106,11 +106,11 @@ export default function InstitutionalAIInsightCard({
     <section className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
-          <div className="rounded-2xl bg-[var(--color-primary)]/10 p-3 text-[var(--color-primary)]">
+          <div className="rounded-2xl bg-[var(--organisation-action-container)] p-3 text-[var(--organisation-action)]">
             <Sparkles className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-[var(--color-primary)]">VisionTech Institutional AI</p>
+            <p className="text-sm font-semibold text-[var(--organisation-action)]">VisionTech Institutional AI</p>
             <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">
               Organisation Intelligence
             </h2>
@@ -140,7 +140,7 @@ export default function InstitutionalAIInsightCard({
       </div>
 
       {error && (
-        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+        <div className="mt-4 rounded-2xl border border-[var(--color-warning)] bg-[var(--color-warning-container)] p-4 text-sm text-[var(--color-warning)]">
           Showing the latest available insight. Refresh failed: {error}
         </div>
       )}
@@ -153,7 +153,7 @@ export default function InstitutionalAIInsightCard({
       </div>
 
       {insight.mainConcern && (
-        <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+        <div className="mt-4 rounded-2xl border border-[var(--color-warning)] bg-[var(--color-warning-container)] p-4">
           <p className="text-sm font-semibold text-[var(--color-on-surface)]">Priority concern</p>
           <p className="mt-1 text-sm leading-6 text-[var(--color-on-surface-variant)]">
             {insight.mainConcern}
@@ -209,7 +209,7 @@ export default function InstitutionalAIInsightCard({
               <button
                 type="button"
                 onClick={() => onActionSelect(action)}
-                className="shrink-0 rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white"
+                className="shrink-0 rounded-2xl bg-[var(--organisation-action)] px-4 py-3 text-sm font-semibold text-[var(--organisation-on-action)]"
               >
                 Review Action
               </button>

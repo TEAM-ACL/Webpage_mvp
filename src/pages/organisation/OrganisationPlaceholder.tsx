@@ -13,6 +13,7 @@ import {
 import { APPROVED_ORGANISATION_HOMEPAGE_WIDGETS } from "../../config/organisationHomepageWidgets";
 import { useAuth } from "../../context/AuthContext";
 import { useOrganisation } from "../../context/OrganisationContext";
+import { useTheme } from "../../context/ThemeContext";
 import { useToast } from "../../context/ToastContext";
 import {
   organisationModules,
@@ -35,6 +36,7 @@ import {
   validateOrganisationConfiguration,
 } from "../../lib/organisationConfiguration";
 import { isOrganisationAdminRole, isPlatformAdminRole } from "../../lib/auth";
+import { buildOrganisationPortalThemeVariables } from "../../lib/organisationTheme";
 import type {
   ActiveOrganisation,
   InstitutionalAIInsight,
@@ -51,9 +53,9 @@ type OrganisationPlaceholderProps = {
 };
 
 const outlineButton =
-  "inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-bold text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]";
+  "inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 text-sm font-bold text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]";
 const primaryButton =
-  "inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-bold text-white shadow-lg shadow-indigo-200 transition hover:opacity-90";
+  "inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--organisation-action)] px-4 text-sm font-bold text-[var(--organisation-on-action)] shadow-lg transition hover:opacity-90";
 const requiredNavigationKeys = new Set<OrganisationNavigationKey>(["overview", "settings"]);
 const terminologyFields: Array<{ key: string; label: string; placeholder: string }> = [
   { key: "members", label: "Members", placeholder: "Students, Employees, Participants" },
@@ -164,12 +166,12 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
       }
     >
       {organisationError && organisation ? (
-        <section className="mb-5 rounded-3xl border border-amber-300/60 bg-amber-50 p-4 text-sm font-semibold text-amber-950 shadow-sm">
+        <section className="mb-5 rounded-3xl border border-[var(--color-warning)] bg-[var(--color-warning-container)] p-4 text-sm font-semibold text-[var(--color-warning)] shadow-sm">
           Showing the last verified organisation details because the live configuration reload failed: {organisationError}
         </section>
       ) : null}
       {!organisation ? (
-        <section className="rounded-3xl border border-amber-300/60 bg-amber-50 p-6 text-amber-950 shadow-sm">
+        <section className="rounded-3xl border border-[var(--color-warning)] bg-[var(--color-warning-container)] p-6 text-[var(--color-warning)] shadow-sm">
           <h2 className="text-lg font-black">
             {isOrganisationLoading ? "Loading organisation..." : "Organisation unavailable"}
           </h2>
@@ -180,7 +182,7 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
             <button
               type="button"
               onClick={() => void refreshOrganisation()}
-              className="mt-4 inline-flex h-10 items-center justify-center rounded-xl bg-amber-950 px-4 text-sm font-black text-white transition hover:bg-amber-900"
+              className="mt-4 inline-flex h-10 items-center justify-center rounded-xl bg-[var(--color-warning)] px-4 text-sm font-black text-[var(--color-warning-container)] transition hover:opacity-90"
             >
               Retry organisation loading
             </button>
@@ -232,7 +234,7 @@ type ModuleQueryAction = {
 
 function ModuleQueryActionBanner({ action }: { action: ModuleQueryAction }): JSX.Element {
   return (
-    <section className="mb-6 rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-5 shadow-sm shadow-slate-200/50">
+    <section className="mb-6 rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-5 shadow-sm">
       <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">{action.eyebrow}</p>
       <h2 className="mt-2 text-xl font-black tracking-tight text-[var(--color-on-surface)]">{action.title}</h2>
       <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--color-on-surface-variant)]">{action.description}</p>
@@ -343,19 +345,19 @@ function DisabledModuleState({
   onOpenSettings: () => void;
 }): JSX.Element {
   return (
-    <section className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm shadow-slate-200/50">
+    <section className="rounded-3xl border border-dashed border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-8 text-center shadow-sm">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-950 text-white">
         <LockKeyhole className="h-6 w-6" />
       </div>
-      <p className="mt-5 text-xs font-black uppercase tracking-[0.22em] text-slate-500">Module Hidden</p>
-      <h2 className="mt-2 text-2xl font-black text-slate-950">{moduleName} is disabled for this organisation</h2>
-      <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+      <p className="mt-5 text-xs font-black uppercase tracking-[0.22em] text-[var(--color-on-surface-variant)]">Module Hidden</p>
+      <h2 className="mt-2 text-2xl font-black text-[var(--color-on-surface)]">{moduleName} is disabled for this organisation</h2>
+      <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-[var(--color-on-surface-variant)]">
         This module has been turned off in organisation feature visibility. Administrators can re-enable it from settings when it is needed.
       </p>
       <button
         type="button"
         onClick={onOpenSettings}
-        className="mt-6 inline-flex items-center justify-center rounded-2xl bg-[var(--color-primary)] px-5 py-3 text-sm font-black text-white transition hover:opacity-90"
+        className="mt-6 inline-flex items-center justify-center rounded-2xl bg-[var(--organisation-action)] px-5 py-3 text-sm font-black text-[var(--organisation-on-action)] transition hover:opacity-90"
       >
         Open Settings
       </button>
@@ -376,6 +378,7 @@ function OrganisationPersonalisationSettings({
   onError: (message: string) => void;
   onSuccess: (message: string) => void;
 }): JSX.Element {
+  const { systemMode } = useTheme();
   const [branding, setBranding] = useState<OrganisationBranding>(organisation.branding);
   const [settings, setSettings] = useState<OrganisationSettings>(organisation.settings);
   const [savedConfiguration, setSavedConfiguration] = useState<OrganisationConfiguration>({
@@ -399,6 +402,10 @@ function OrganisationPersonalisationSettings({
     [currentConfiguration, savedConfiguration],
   );
   const isWorking = isSaving || isPublishing || isRestoring;
+  const previewThemeVariables = useMemo(
+    () => buildOrganisationPortalThemeVariables(branding, { prefix: "preview", systemMode }),
+    [branding, systemMode],
+  );
 
   useEffect(() => {
     if (savedConfiguration.settings.draftVersion > organisation.settings.draftVersion) {
@@ -659,7 +666,7 @@ function OrganisationPersonalisationSettings({
       <section className="rounded-[var(--organisation-card-radius,1.5rem)] border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">Personalisation</p>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--organisation-action)]">Personalisation</p>
             <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--color-on-surface)]">Organisation identity</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-on-surface-variant)]">
               Configure the visual identity and welcome experience members see inside this organisation workspace.
@@ -678,7 +685,7 @@ function OrganisationPersonalisationSettings({
               type="button"
               disabled={isWorking || !isDirty || !canManageSettings}
               onClick={() => void handleSave()}
-              className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-5 text-sm font-black text-[var(--organisation-on-primary)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--organisation-action)] px-5 text-sm font-black text-[var(--organisation-on-action)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSaving ? "Saving..." : "Save Draft"}
             </button>
@@ -686,14 +693,14 @@ function OrganisationPersonalisationSettings({
         </div>
 
         {!canManageSettings && (
-          <div className="mt-5 rounded-2xl border border-amber-300/60 bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+          <div className="mt-5 rounded-2xl border border-[var(--color-warning)] bg-[var(--color-warning-container)] p-4 text-sm font-semibold text-[var(--color-warning)]">
             You can view these settings, but only organisation administrators can update them.
           </div>
         )}
 
         <div className="mt-5 grid gap-3 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 md:grid-cols-[1fr_auto] md:items-center">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-primary)]">Publishing Status</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--organisation-action)]">Publishing Status</p>
             <h3 className="mt-1 text-lg font-black text-[var(--color-on-surface)]">
               {isDirty
                 ? "Unsaved edits in this browser"
@@ -720,7 +727,7 @@ function OrganisationPersonalisationSettings({
               type="button"
               disabled={isWorking || (!isDirty && settings.configurationStatus !== "draft") || !canManageSettings}
               onClick={() => void handlePublish()}
-              className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-primary)] bg-[var(--color-surface-container-lowest)] px-5 text-sm font-black text-[var(--color-primary)] transition hover:bg-[var(--color-surface-container-high)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--organisation-action)] bg-[var(--color-surface-container-lowest)] px-5 text-sm font-black text-[var(--organisation-action)] transition hover:bg-[var(--color-surface-container-high)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isPublishing ? "Publishing..." : "Review & Publish"}
             </button>
@@ -787,7 +794,7 @@ function OrganisationPersonalisationSettings({
         <div className="mt-8 rounded-[var(--organisation-card-radius,1.5rem)] border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">Navigation & Terminology</p>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--organisation-action)]">Navigation & Terminology</p>
               <h3 className="mt-2 text-xl font-black text-[var(--color-on-surface)]">Adapt approved platform language</h3>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--color-on-surface-variant)]">
                 Rename approved sections, adjust order, and hide optional modules without changing protected routes.
@@ -858,7 +865,7 @@ function OrganisationPersonalisationSettings({
         <div className="mt-8 rounded-[var(--organisation-card-radius,1.5rem)] border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">Homepage Widgets</p>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--organisation-action)]">Homepage Widgets</p>
               <h3 className="mt-2 text-xl font-black text-[var(--color-on-surface)]">Configure approved homepage sections</h3>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--color-on-surface-variant)]">
                 Show, hide, and reorder controlled VisionTech widgets. Unknown widget types are ignored safely.
@@ -920,7 +927,7 @@ function OrganisationPersonalisationSettings({
                     />
                   </div>
                   <div className="rounded-2xl border border-dashed border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3">
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-primary)]">Preview Label</p>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--organisation-action)]">Preview Label</p>
                     <p className="text-sm font-black text-[var(--color-on-surface)]">{widget.label}</p>
                     <p className="mt-1 text-xs leading-5 text-[var(--color-on-surface-variant)]">
                       {configuredSection?.heading || configuredSection?.description
@@ -949,7 +956,7 @@ function OrganisationPersonalisationSettings({
               onChange={(event) => setSettings((current) => ({ ...current, welcomeMessage: event.target.value || null }))}
               rows={4}
               maxLength={1000}
-              className="mt-2 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm text-[var(--color-on-surface)] outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+              className="mt-2 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm text-[var(--color-on-surface)] outline-none transition focus:border-[var(--organisation-action)] focus:ring-2 focus:ring-[var(--organisation-action)]"
               placeholder="Add a short message that explains the purpose of this organisation workspace."
             />
           </label>
@@ -959,37 +966,36 @@ function OrganisationPersonalisationSettings({
 
       <section className="space-y-6">
         <div
-          className="rounded-3xl border p-6 shadow-xl"
+          className="rounded-3xl border border-[var(--preview-accent-foreground)] bg-[var(--preview-background)] p-6 text-[var(--preview-text)] shadow-xl"
           style={{
-            background: branding.backgroundColour,
-            borderColor: branding.accentColour,
-            color: branding.textColour,
+            ...previewThemeVariables,
             borderRadius: branding.borderRadius === "rounded" ? "2rem" : undefined,
           }}
         >
           <div className="flex items-center gap-3">
             <div
-              className="flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-black text-white"
-              style={{ background: branding.primaryColour }}
+              className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--preview-action)] text-sm font-black text-[var(--preview-on-action)]"
             >
               {organisation.name.slice(0, 2).toUpperCase()}
             </div>
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: branding.accentColour }}>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--preview-accent-foreground)]">
                 Draft Preview
               </p>
               <h3 className="text-xl font-black">{settings.welcomeHeading || organisation.name}</h3>
             </div>
           </div>
-          <p className="mt-5 text-sm leading-6 opacity-80">
-            {settings.welcomeMessage || "Your organisation workspace can carry your identity while staying inside the VisionTech experience."}
-          </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            {navigationPreview.slice(0, 5).map((item) => (
-              <span key={item.key} className="rounded-full px-3 py-1 text-xs font-bold text-white" style={{ background: branding.secondaryColour }}>
-                {item.label}
-              </span>
-            ))}
+          <div className="mt-5 rounded-2xl border border-[var(--preview-outline-variant)] bg-[var(--preview-surface-container-low)] p-4">
+            <p className="text-sm leading-6 text-[var(--preview-on-surface-variant)]">
+              {settings.welcomeMessage || "Your organisation workspace can carry your identity while staying inside the VisionTech experience."}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {navigationPreview.slice(0, 5).map((item) => (
+                <span key={item.key} className="rounded-full bg-[var(--preview-secondary-action)] px-3 py-1 text-xs font-bold text-[var(--preview-on-secondary-action)]">
+                  {item.label}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -1038,7 +1044,7 @@ function NumberInput({
         min={min}
         max={max}
         onChange={(event) => onChange(Number(event.target.value) || min)}
-        className="mt-2 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm font-bold text-[var(--color-on-surface)] outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+        className="mt-2 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm font-bold text-[var(--color-on-surface)] outline-none transition focus:border-[var(--organisation-action)] focus:ring-2 focus:ring-[var(--organisation-action)]"
       />
     </label>
   );
@@ -1068,7 +1074,7 @@ function TextInput({
         maxLength={maxLength}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="mt-2 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm text-[var(--color-on-surface)] outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+        className="mt-2 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm text-[var(--color-on-surface)] outline-none transition focus:border-[var(--organisation-action)] focus:ring-2 focus:ring-[var(--organisation-action)]"
       />
     </label>
   );
@@ -1086,7 +1092,7 @@ function ColourInput({
   return (
     <label className="block">
       <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]">{label}</span>
-      <div className="mt-2 flex rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-1 focus-within:border-[var(--color-primary)] focus-within:ring-2 focus-within:ring-[var(--color-primary)]/20">
+      <div className="mt-2 flex rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-1 focus-within:border-[var(--organisation-action)] focus-within:ring-2 focus-within:ring-[var(--organisation-action)]">
         <input
           type="color"
           value={value}
@@ -1120,7 +1126,7 @@ function SelectInput({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm font-bold text-[var(--color-on-surface)] outline-none transition focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+        className="mt-2 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 py-3 text-sm font-bold text-[var(--color-on-surface)] outline-none transition focus:border-[var(--organisation-action)] focus:ring-2 focus:ring-[var(--organisation-action)]"
       >
         {options.map((option) => (
           <option key={option} value={option}>
@@ -1165,7 +1171,7 @@ function OrganisationModuleView({
         ))}
       </section>
 
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 shadow-xl shadow-slate-200/60">
+      <section className="overflow-hidden rounded-3xl border border-[var(--color-outline-variant)] bg-slate-950 shadow-xl shadow-black/20">
         <div className="grid gap-6 p-6 text-white lg:grid-cols-[1.35fr_0.65fr] lg:p-8">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.24em] text-indigo-300">{content.eyebrow}</p>
@@ -1177,7 +1183,7 @@ function OrganisationModuleView({
             <button
               type="button"
               onClick={() => onAction(content.focusAction)}
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-indigo-50"
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-fixed-light-surface)] px-4 py-3 text-sm font-black text-[var(--color-on-fixed-light-surface)] transition hover:opacity-90"
             >
               {content.focusAction.label}
               <ArrowRight className="h-4 w-4" />
@@ -1187,17 +1193,17 @@ function OrganisationModuleView({
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/50">
+        <section className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">{content.title}</p>
-              <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">{content.itemsTitle}</h2>
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">{content.itemsDescription}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--organisation-action)]">{content.title}</p>
+              <h2 className="mt-2 text-xl font-black tracking-tight text-[var(--color-on-surface)]">{content.itemsTitle}</h2>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--color-on-surface-variant)]">{content.itemsDescription}</p>
             </div>
             <button
               type="button"
               onClick={() => onAction(content.primaryAction)}
-              className="rounded-2xl bg-indigo-50 px-4 py-2 text-sm font-black text-indigo-700 transition hover:bg-indigo-100"
+              className="rounded-2xl bg-[var(--color-info-container)] px-4 py-2 text-sm font-black text-[var(--color-info)] transition hover:opacity-85"
             >
               {content.primaryAction.label}
             </button>
@@ -1210,21 +1216,21 @@ function OrganisationModuleView({
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/50">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{content.workflowTitle}</p>
-          <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">How this tab works</h2>
+        <section className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-on-surface-variant)]">{content.workflowTitle}</p>
+          <h2 className="mt-2 text-xl font-black tracking-tight text-[var(--color-on-surface)]">How this tab works</h2>
           <div className="mt-6 space-y-5">
             {content.workflow.map((step, index) => {
               const Icon = step.icon;
               return (
                 <div key={step.title} className="flex gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-info-container)] text-[var(--color-info)]">
                     <Icon className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Step {index + 1}</p>
-                    <h3 className="mt-1 font-bold text-slate-950">{step.title}</h3>
-                    <p className="mt-1 text-sm leading-5 text-slate-500">{step.description}</p>
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)] opacity-75">Step {index + 1}</p>
+                    <h3 className="mt-1 font-bold text-[var(--color-on-surface)]">{step.title}</h3>
+                    <p className="mt-1 text-sm leading-5 text-[var(--color-on-surface-variant)]">{step.description}</p>
                   </div>
                 </div>
               );
@@ -1244,17 +1250,17 @@ function ModuleItemCard({
   onAction: (action: OrganisationModuleAction) => void;
 }): JSX.Element {
   return (
-    <article className="rounded-3xl border border-slate-100 bg-slate-50 p-5 transition hover:border-indigo-200 hover:bg-white hover:shadow-sm">
+    <article className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5 transition hover:border-[var(--organisation-action)] hover:bg-[var(--color-surface-container-high)] hover:shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-black tracking-tight text-slate-950">{item.title}</h3>
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700 ring-1 ring-slate-200">
+            <h3 className="font-black tracking-tight text-[var(--color-on-surface)]">{item.title}</h3>
+            <span className="rounded-full bg-[var(--color-surface-container-lowest)] px-3 py-1 text-xs font-bold text-[var(--color-on-surface)] ring-1 ring-[var(--color-outline-variant)]">
               {item.status}
             </span>
           </div>
-          <p className="mt-1 text-sm text-slate-500">{item.subtitle}</p>
-          <p className="mt-2 text-sm font-semibold text-indigo-700">{item.meta}</p>
+          <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">{item.subtitle}</p>
+          <p className="mt-2 text-sm font-semibold text-[var(--organisation-action)]">{item.meta}</p>
         </div>
         <button
           type="button"
@@ -1268,12 +1274,12 @@ function ModuleItemCard({
 
       {typeof item.progress === "number" && (
         <div className="mt-4">
-          <div className="mb-2 flex justify-between text-xs font-bold text-slate-500">
+          <div className="mb-2 flex justify-between text-xs font-bold text-[var(--color-on-surface-variant)]">
             <span>Progress</span>
             <span>{item.progress}%</span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-white">
-            <div className="h-full rounded-full bg-indigo-600" style={{ width: `${item.progress}%` }} />
+          <div className="h-2 overflow-hidden rounded-full bg-[var(--color-surface-container-lowest)]">
+            <div className="h-full rounded-full bg-[var(--organisation-action)]" style={{ width: `${item.progress}%` }} />
           </div>
         </div>
       )}
@@ -1285,7 +1291,7 @@ function ModuleItemCard({
 
 function renderTag(tag: string): ReactNode {
   return (
-    <span key={tag} className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
+    <span key={tag} className="rounded-full bg-[var(--color-surface-container-lowest)] px-3 py-1 text-xs font-semibold text-[var(--color-on-surface-variant)] ring-1 ring-[var(--color-outline-variant)]">
       {tag}
     </span>
   );

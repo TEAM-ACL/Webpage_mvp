@@ -1,5 +1,10 @@
 import { useState, type CSSProperties, type JSX, type ReactNode } from "react";
 import { useOrganisation } from "../../context/OrganisationContext";
+import { useTheme } from "../../context/ThemeContext";
+import {
+  buildOrganisationThemeVariables,
+  resolveOrganisationRadiusClass,
+} from "../../lib/organisationTheme";
 import OrganisationHeader from "./OrganisationHeader";
 import OrganisationSidebar from "./OrganisationSidebar";
 
@@ -26,16 +31,17 @@ export default function OrganisationLayout({
 }: OrganisationLayoutProps): JSX.Element {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { displayOrganisation } = useOrganisation();
+  const { isDark } = useTheme();
   const branding = displayOrganisation.branding;
   const settings = displayOrganisation.settings;
   const shellStyle = {
-    background: branding
-      ? `linear-gradient(135deg, ${branding.backgroundColour} 0%, color-mix(in srgb, ${branding.backgroundColour} 72%, #ffffff) 58%, var(--color-surface-container-lowest) 100%)`
-      : undefined,
-    color: branding?.textColour,
+    ...buildOrganisationThemeVariables(branding, { mode: isDark ? "dark" : "light" }),
+    "--color-primary": "var(--organisation-action)",
+    "--color-secondary": "var(--organisation-secondary-action)",
+    backgroundImage: "radial-gradient(circle at 92% 4%, color-mix(in srgb, var(--organisation-primary) 11%, transparent), transparent 34%), linear-gradient(135deg, var(--color-surface), var(--color-surface-container-low) 58%, var(--color-surface))",
     fontFamily: branding?.fontFamily,
   } as CSSProperties;
-  const radiusClass = resolveRadiusClass(branding?.borderRadius);
+  const radiusClass = resolveOrganisationRadiusClass(branding?.borderRadius);
 
   return (
     <main className={`min-h-screen bg-[var(--color-surface)] text-[var(--color-on-surface)] ${radiusClass}`} style={shellStyle}>
@@ -59,8 +65,6 @@ export default function OrganisationLayout({
             organisationType={organisationType}
             logoUrl={branding?.logoUrl}
             bannerUrl={branding?.dashboardBannerUrl}
-            brandColour={branding?.primaryColour}
-            accentColour={branding?.accentColour}
             welcomeHeading={settings?.welcomeHeading}
             welcomeMessage={settings?.welcomeMessage}
             onMenuClick={() => setIsSidebarOpen(true)}
@@ -70,17 +74,4 @@ export default function OrganisationLayout({
       </div>
     </main>
   );
-}
-
-function resolveRadiusClass(borderRadius?: string): string {
-  if (borderRadius === "small") {
-    return "[--organisation-card-radius:0.75rem]";
-  }
-  if (borderRadius === "large") {
-    return "[--organisation-card-radius:1.5rem]";
-  }
-  if (borderRadius === "rounded") {
-    return "[--organisation-card-radius:2rem]";
-  }
-  return "[--organisation-card-radius:1rem]";
 }

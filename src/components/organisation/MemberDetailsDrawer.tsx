@@ -69,7 +69,7 @@ export default function MemberDetailsDrawer({
         </section>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <button type="button" className="rounded-2xl bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white">
+          <button type="button" className="rounded-2xl bg-[var(--organisation-action)] px-4 py-3 text-sm font-semibold text-[var(--organisation-on-action)]">
             View Full Profile
           </button>
           <button type="button" className="rounded-2xl border border-[var(--color-outline-variant)] px-4 py-3 text-sm font-semibold" onClick={() => onCreateIntervention(member)}>

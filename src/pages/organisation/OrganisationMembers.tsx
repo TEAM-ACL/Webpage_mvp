@@ -28,8 +28,8 @@ import type {
   OrganisationOverviewResponse,
 } from "../../types/organisation";
 
-const primaryButton = "inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-semibold text-white transition hover:opacity-90";
-const outlineButton = "inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-white px-4 text-sm font-semibold text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]";
+const primaryButton = "inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--organisation-action)] px-4 text-sm font-semibold text-[var(--organisation-on-action)] transition hover:opacity-90";
+const outlineButton = "inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 text-sm font-semibold text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]";
 
 export default function OrganisationMembers(): JSX.Element {
   const navigate = useNavigate();
@@ -228,16 +228,16 @@ export default function OrganisationMembers(): JSX.Element {
       }
     >
       {!isModuleEnabled("members") ? (
-        <section className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm shadow-slate-200/50">
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">Module Hidden</p>
-          <h2 className="mt-2 text-2xl font-black text-slate-950">Members is disabled for this organisation</h2>
-          <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+        <section className="rounded-3xl border border-dashed border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-8 text-center shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--color-on-surface-variant)]">Module Hidden</p>
+          <h2 className="mt-2 text-2xl font-black text-[var(--color-on-surface)]">Members is disabled for this organisation</h2>
+          <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-[var(--color-on-surface-variant)]">
             Administrators can re-enable member management from organisation settings when this workspace needs people management tools.
           </p>
           <button
             type="button"
             onClick={() => navigate(getOrganisationPath("settings"))}
-            className="mt-6 inline-flex items-center justify-center rounded-2xl bg-[var(--color-primary)] px-5 py-3 text-sm font-black text-white transition hover:opacity-90"
+            className="mt-6 inline-flex items-center justify-center rounded-2xl bg-[var(--organisation-action)] px-5 py-3 text-sm font-black text-[var(--organisation-on-action)] transition hover:opacity-90"
           >
             Open Settings
           </button>
@@ -245,18 +245,18 @@ export default function OrganisationMembers(): JSX.Element {
       ) : (
         <>
           {notice && (
-            <section className="mb-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">
+            <section className="mb-6 rounded-3xl border border-[var(--color-success)] bg-[var(--color-success-container)] p-4 text-sm font-semibold text-[var(--color-success)]">
               {notice}
             </section>
           )}
 
           {filters.support === "needs-support" ? (
-            <section className="mb-6 flex flex-col gap-3 rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 sm:flex-row sm:items-center sm:justify-between">
+            <section className="mb-6 flex flex-col gap-3 rounded-3xl border border-[var(--color-warning)] bg-[var(--color-warning-container)] p-4 text-sm text-[var(--color-warning)] sm:flex-row sm:items-center sm:justify-between">
               <span className="font-semibold">Showing members who need support or intervention.</span>
               <button
                 type="button"
                 onClick={handleClearSupportFilter}
-                className="inline-flex w-fit items-center justify-center rounded-2xl border border-amber-300 bg-white px-4 py-2 text-sm font-bold text-amber-800 transition hover:bg-amber-100"
+                className="inline-flex w-fit items-center justify-center rounded-2xl border border-[var(--color-warning)] bg-[var(--color-surface-container-lowest)] px-4 py-2 text-sm font-bold text-[var(--color-warning)] transition hover:bg-[var(--color-surface-container-high)]"
               >
                 Clear support filter
               </button>
