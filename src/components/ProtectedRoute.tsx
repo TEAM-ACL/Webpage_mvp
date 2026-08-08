@@ -5,6 +5,7 @@ import {
   hasOrganisationManagementMembership,
   isAdmin,
 } from "../lib/auth";
+import { resolveOrganisationDashboardAccess } from "../lib/organisationAccess";
 import { useAuth } from "../context/AuthContext";
 import { useOrganisation } from "../context/OrganisationContext";
 
@@ -84,11 +85,16 @@ export function RequireOrganisationAdmin({ children }: Props): JSX.Element {
   const role = profile?.role || user.role;
   const hasAccountAccess = hasOrganisationDashboardAccessForUser(role, user.email);
   const hasMembershipAccess = hasOrganisationManagementMembership(organisation?.role);
+  const access = resolveOrganisationDashboardAccess({
+    hasAccountAccess,
+    hasMembershipAccess,
+    isLoading: organisationLoading,
+    error: organisationError,
+  });
 
-  if (!hasAccountAccess && organisationLoading) return <></>;
-  if (hasAccountAccess || hasMembershipAccess) return children;
+  if (access === "loading") return <></>;
 
-  if (organisationError) {
+  if (access === "unavailable") {
     return (
       <main className="min-h-screen bg-slate-50 px-6 py-16 text-slate-900">
         <div className="mx-auto max-w-lg rounded-3xl border border-amber-200 bg-white p-8 text-center shadow-sm">
@@ -106,6 +112,8 @@ export function RequireOrganisationAdmin({ children }: Props): JSX.Element {
       </main>
     );
   }
+
+  if (access === "allowed") return children;
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-16 text-slate-900">
