@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowRight, LockKeyhole } from "lucide-react";
+import { ArrowRight, Info, LockKeyhole } from "lucide-react";
 import type { JSX, ReactNode } from "react";
 import OrganisationAIPanel from "../../components/organisation/OrganisationAIPanel";
 import OrganisationLayout from "../../components/organisation/OrganisationLayout";
@@ -63,6 +63,18 @@ const terminologyFields: Array<{ key: string; label: string; placeholder: string
   { key: "opportunities", label: "Opportunities", placeholder: "Placements, Vacancies, Pathways" },
   { key: "interventions", label: "Interventions", placeholder: "Student Support, Workforce Support" },
 ];
+const colourFieldHints = {
+  primary:
+    "Primary colour drives main organisation actions and strongest brand moments: save/publish buttons, key links, sidebar logo background, progress bars, active highlights, and panel gradients.",
+  secondary:
+    "Secondary colour drives supporting action chips and navigation pills, including the module labels shown in organisation previews.",
+  accent:
+    "Accent colour drives branded emphasis such as preview borders, accent labels, and the secondary blend in organisation header panels.",
+  text:
+    "Text colour controls readable foreground text in tenant-facing organisation previews. VisionTech automatically adjusts it if contrast is too low.",
+  background:
+    "Background colour controls tenant-facing organisation page surfaces, the preview canvas, and the derived low/high card surfaces.",
+};
 
 export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlaceholderProps): JSX.Element {
   const navigate = useNavigate();
@@ -775,26 +787,31 @@ function OrganisationPersonalisationSettings({
           <ColourInput
             label="Primary Colour"
             value={branding.primaryColour}
+            description={colourFieldHints.primary}
             onChange={(value) => setBranding((current) => ({ ...current, primaryColour: value }))}
           />
           <ColourInput
             label="Secondary Colour"
             value={branding.secondaryColour}
+            description={colourFieldHints.secondary}
             onChange={(value) => setBranding((current) => ({ ...current, secondaryColour: value }))}
           />
           <ColourInput
             label="Accent Colour"
             value={branding.accentColour}
+            description={colourFieldHints.accent}
             onChange={(value) => setBranding((current) => ({ ...current, accentColour: value }))}
           />
           <ColourInput
             label="Text Colour"
             value={branding.textColour}
+            description={colourFieldHints.text}
             onChange={(value) => setBranding((current) => ({ ...current, textColour: value }))}
           />
           <ColourInput
             label="Background Colour"
             value={branding.backgroundColour}
+            description={colourFieldHints.background}
             onChange={(value) => setBranding((current) => ({ ...current, backgroundColour: value }))}
           />
           <SelectInput
@@ -809,6 +826,12 @@ function OrganisationPersonalisationSettings({
             options={["small", "medium", "large", "rounded"]}
             onChange={(value) => setBranding((current) => ({ ...current, borderRadius: value as OrganisationBranding["borderRadius"] }))}
           />
+        </div>
+        <div className="mt-4 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm leading-6 text-[var(--color-on-surface-variant)]">
+          <p className="font-black text-[var(--color-on-surface)]">Palette coverage</p>
+          <p className="mt-1">
+            These colours theme tenant-facing organisation areas, previews, headers, actions, navigation chips, and module highlights. Core VisionTech dashboard chrome keeps neutral system colours so readability and platform consistency stay intact.
+          </p>
         </div>
 
         <div className="mt-8 rounded-[var(--organisation-card-radius,1.5rem)] border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5">
@@ -1195,15 +1218,31 @@ function TextInput({
 function ColourInput({
   label,
   value,
+  description,
   onChange,
 }: {
   label: string;
   value: string;
+  description: string;
   onChange: (value: string) => void;
 }): JSX.Element {
   return (
-    <label className="block">
-      <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]">{label}</span>
+    <div className="block">
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]">{label}</span>
+        <span className="group relative inline-flex">
+          <span
+            tabIndex={0}
+            aria-label={`${label} details: ${description}`}
+            className="inline-flex h-5 w-5 cursor-help items-center justify-center rounded-full border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface-variant)] outline-none transition hover:text-[var(--organisation-action)] focus:text-[var(--organisation-action)]"
+          >
+            <Info className="h-3.5 w-3.5" aria-hidden="true" />
+          </span>
+          <span className="pointer-events-none absolute left-1/2 top-7 z-20 hidden w-72 -translate-x-1/2 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-3 text-xs font-medium normal-case leading-5 tracking-normal text-[var(--color-on-surface)] shadow-xl group-hover:block group-focus-within:block">
+            {description}
+          </span>
+        </span>
+      </div>
       <div className="mt-2 flex rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-1 focus-within:border-[var(--organisation-action)] focus-within:ring-2 focus-within:ring-[var(--organisation-action)]">
         <input
           type="color"
@@ -1217,7 +1256,7 @@ function ColourInput({
           className="min-w-0 flex-1 bg-transparent px-3 text-sm font-bold text-[var(--color-on-surface)] outline-none"
         />
       </div>
-    </label>
+    </div>
   );
 }
 
