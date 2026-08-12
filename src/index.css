@@ -121,6 +121,7 @@
   .dark .bg-\[\#9f85f0\]\/30,
   .dark .bg-\[\#bca8ff\],
   .dark .bg-amber-50,
+  .dark .bg-amber-50\/80,
   .dark .bg-amber-100,
   .dark .bg-amber-300\/10,
   .dark .bg-amber-500\/10,
@@ -155,11 +156,18 @@
   .dark .bg-violet-100\/60,
   .dark .bg-violet-100,
   .dark .bg-zinc-100,
-  .dark .bg-sky-50 {
+  .dark .bg-sky-50,
+  .dark .bg-sky-100 {
     background-color: #1f2036;
     color: #f8f7ff;
   }
 
+  .dark .bg-slate-200 {
+    background-color: #34364f;
+    color: #f8f7ff;
+  }
+
+  .dark .from-white,
   .dark .from-indigo-100,
   .dark .from-indigo-50,
   .dark .from-blue-50,
@@ -259,6 +267,7 @@
   .dark .text-amber-900\/70,
   .dark .text-amber-900\/75,
   .dark .text-amber-900\/80,
+  .dark .text-blue-600,
   .dark .text-blue-700,
   .dark .text-blue-700\/80,
   .dark .text-blue-800,
@@ -408,6 +417,7 @@
   .dark .border-rose-100,
   .dark .border-rose-200,
   .dark .border-rose-200\/80,
+  .dark .border-slate-300,
   .dark .border-violet-200,
   .dark .border-violet-200\/70,
   .dark .border-violet-200\/80,
@@ -429,6 +439,13 @@
   .dark .ring-rose-100,
   .dark .ring-sky-100 {
     --tw-ring-color: #34364f;
+  }
+
+  .dark .hover\:bg-blue-100:hover,
+  .dark .hover\:bg-emerald-100:hover,
+  .dark .hover\:bg-slate-50:hover {
+    background-color: #25273d;
+    color: #f8f7ff;
   }
 
   .dark input,

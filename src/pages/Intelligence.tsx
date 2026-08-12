@@ -3468,17 +3468,17 @@ export default function Intelligence(): JSX.Element {
               ) : projects.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-2">
                   {projects.map((project) => (
-                    <div key={project.id} className="rounded-xl border border-blue-200 bg-white p-4 shadow-sm">
+                    <div key={project.id} className="rounded-xl border border-blue-200 bg-white p-4 shadow-sm dark:border-[var(--color-outline-variant)] dark:bg-[var(--color-surface-container-low)]">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <h4 className="font-semibold text-[var(--color-on-surface)]">{project.title}</h4>
-                          <p className="mt-1 text-sm text-slate-600">{project.description}</p>
+                          <h4 className="font-semibold text-slate-950 dark:text-white">{project.title}</h4>
+                          <p className="mt-1 text-sm text-slate-600 dark:text-[var(--color-on-surface-variant)]">{project.description}</p>
                         </div>
                         <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">
                           {project.status.replace("_", " ")}
                         </span>
                       </div>
-                      <p className="mt-3 text-sm text-slate-700">Category: {project.category}</p>
+                      <p className="mt-3 text-sm text-slate-700 dark:text-[var(--color-on-surface-variant)]">Category: {project.category}</p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {project.skills_used.map((skill) => (
                           <span
