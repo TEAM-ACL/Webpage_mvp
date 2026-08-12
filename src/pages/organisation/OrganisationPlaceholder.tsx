@@ -388,6 +388,7 @@ function OrganisationPersonalisationSettings({
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [publishPreviewConfiguration, setPublishPreviewConfiguration] = useState<OrganisationConfiguration | null>(null);
   const canManageSettings =
     organisation.role === "owner" ||
     isOrganisationAdminRole(organisation.role) ||
@@ -405,6 +406,12 @@ function OrganisationPersonalisationSettings({
   const previewThemeVariables = useMemo(
     () => buildOrganisationPortalThemeVariables(branding, { prefix: "preview", systemMode }),
     [branding, systemMode],
+  );
+  const publishPreviewThemeVariables = useMemo(
+    () => publishPreviewConfiguration
+      ? buildOrganisationPortalThemeVariables(publishPreviewConfiguration.branding, { prefix: "publish-preview", systemMode })
+      : null,
+    [publishPreviewConfiguration, systemMode],
   );
 
   useEffect(() => {
@@ -461,7 +468,6 @@ function OrganisationPersonalisationSettings({
     try {
       const saved = await saveOrganisationConfiguration(organisation.id, configuration);
       applySavedConfiguration(saved);
-      await onRefresh();
       onSuccess("Organisation personalisation saved as a draft.");
     } catch (error) {
       onError(readError(error, "Unable to save organisation personalisation."));
@@ -478,15 +484,23 @@ function OrganisationPersonalisationSettings({
 
     const configuration = configurationForSave();
     if (!configuration) return;
-    const confirmed = window.confirm(
-      "Publish this configuration now? Members and public organisation pages will begin using it.",
-    );
-    if (!confirmed) return;
+    setPublishPreviewConfiguration(configuration);
+  }
+
+  async function handleConfirmPublish(): Promise<void> {
+    if (!canManageSettings) {
+      onError("Organisation administrator access is required.");
+      return;
+    }
+
+    const configuration = publishPreviewConfiguration ?? configurationForSave();
+    if (!configuration) return;
 
     setIsPublishing(true);
     try {
       const published = await publishOrganisationConfiguration(organisation.id, configuration);
       applySavedConfiguration(published);
+      setPublishPreviewConfiguration(null);
       await onRefresh();
       onSuccess("Organisation personalisation published successfully.");
     } catch (error) {
@@ -660,6 +674,12 @@ function OrganisationPersonalisationSettings({
   }
 
   const navigationPreview = normaliseNavigation(settings.navigationConfig, settings.featureFlags);
+  const publishNavigationPreview = publishPreviewConfiguration
+    ? normaliseNavigation(
+      publishPreviewConfiguration.settings.navigationConfig,
+      publishPreviewConfiguration.settings.featureFlags,
+    )
+    : [];
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
@@ -1018,6 +1038,98 @@ function OrganisationPersonalisationSettings({
           </div>
         </div>
       </section>
+      {publishPreviewConfiguration && publishPreviewThemeVariables ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6 backdrop-blur-sm">
+          <div className="max-h-[calc(100vh-3rem)] w-full max-w-3xl overflow-y-auto rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-2xl">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--organisation-action)]">Review Before Publishing</p>
+                <h3 className="mt-2 text-2xl font-black tracking-tight text-[var(--color-on-surface)]">Preview organisation changes</h3>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-on-surface-variant)]">
+                  This is the configuration members and public organisation pages will use after publishing.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPublishPreviewConfiguration(null)}
+                disabled={isPublishing}
+                className="inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 text-sm font-black text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-high)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Close
+              </button>
+            </div>
+
+            <div
+              className="mt-5 rounded-3xl border border-[var(--publish-preview-accent-foreground)] bg-[var(--publish-preview-background)] p-6 text-[var(--publish-preview-text)] shadow-xl"
+              style={{
+                ...publishPreviewThemeVariables,
+                borderRadius: publishPreviewConfiguration.branding.borderRadius === "rounded" ? "2rem" : undefined,
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-[var(--publish-preview-action)] text-sm font-black text-[var(--publish-preview-on-action)]">
+                  {publishPreviewConfiguration.branding.logoUrl ? (
+                    <img src={publishPreviewConfiguration.branding.logoUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    organisation.name.slice(0, 2).toUpperCase()
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--publish-preview-accent-foreground)]">
+                    Publish Preview
+                  </p>
+                  <h4 className="text-xl font-black">{publishPreviewConfiguration.settings.welcomeHeading || organisation.name}</h4>
+                </div>
+              </div>
+              <div className="mt-5 rounded-2xl border border-[var(--publish-preview-outline-variant)] bg-[var(--publish-preview-surface-container-low)] p-4">
+                <p className="text-sm leading-6 text-[var(--publish-preview-on-surface-variant)]">
+                  {publishPreviewConfiguration.settings.welcomeMessage || "Your organisation workspace can carry your identity while staying inside the VisionTech experience."}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {publishNavigationPreview.slice(0, 5).map((item) => (
+                    <span key={item.key} className="rounded-full bg-[var(--publish-preview-secondary-action)] px-3 py-1 text-xs font-bold text-[var(--publish-preview-on-secondary-action)]">
+                      {item.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)] sm:grid-cols-2">
+              <div>
+                <p className="font-black text-[var(--color-on-surface)]">Theme</p>
+                <p className="mt-1">Mode: {publishPreviewConfiguration.branding.themeMode}</p>
+                <p>Radius: {publishPreviewConfiguration.branding.borderRadius}</p>
+              </div>
+              <div>
+                <p className="font-black text-[var(--color-on-surface)]">Visible modules</p>
+                <p className="mt-1">
+                  {publishNavigationPreview.map((item) => item.label).join(", ") || "No optional modules enabled"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setPublishPreviewConfiguration(null)}
+                disabled={isPublishing}
+                className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 text-sm font-black text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-high)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Keep Editing
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleConfirmPublish()}
+                disabled={isPublishing}
+                className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--organisation-action)] px-5 text-sm font-black text-[var(--organisation-on-action)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isPublishing ? "Publishing..." : "Confirm Publish"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
