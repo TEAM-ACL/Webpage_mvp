@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowRight, LockKeyhole } from "lucide-react";
+import { ArrowRight, Info, LockKeyhole } from "lucide-react";
 import type { JSX, ReactNode } from "react";
 import OrganisationAIPanel from "../../components/organisation/OrganisationAIPanel";
 import OrganisationLayout from "../../components/organisation/OrganisationLayout";
@@ -63,6 +63,18 @@ const terminologyFields: Array<{ key: string; label: string; placeholder: string
   { key: "opportunities", label: "Opportunities", placeholder: "Placements, Vacancies, Pathways" },
   { key: "interventions", label: "Interventions", placeholder: "Student Support, Workforce Support" },
 ];
+const colourFieldHints = {
+  primary:
+    "Primary colour drives main organisation actions and strongest brand moments: save/publish buttons, key links, sidebar logo background, progress bars, active highlights, and panel gradients.",
+  secondary:
+    "Secondary colour drives supporting action chips and navigation pills, including the module labels shown in organisation previews.",
+  accent:
+    "Accent colour drives branded emphasis such as preview borders, accent labels, and the secondary blend in organisation header panels.",
+  text:
+    "Text colour controls readable foreground text in tenant-facing organisation previews. VisionTech automatically adjusts it if contrast is too low.",
+  background:
+    "Background colour controls tenant-facing organisation page surfaces, the preview canvas, and the derived low/high card surfaces.",
+};
 
 export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlaceholderProps): JSX.Element {
   const navigate = useNavigate();
@@ -388,6 +400,7 @@ function OrganisationPersonalisationSettings({
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [publishPreviewConfiguration, setPublishPreviewConfiguration] = useState<OrganisationConfiguration | null>(null);
   const canManageSettings =
     organisation.role === "owner" ||
     isOrganisationAdminRole(organisation.role) ||
@@ -405,6 +418,12 @@ function OrganisationPersonalisationSettings({
   const previewThemeVariables = useMemo(
     () => buildOrganisationPortalThemeVariables(branding, { prefix: "preview", systemMode }),
     [branding, systemMode],
+  );
+  const publishPreviewThemeVariables = useMemo(
+    () => publishPreviewConfiguration
+      ? buildOrganisationPortalThemeVariables(publishPreviewConfiguration.branding, { prefix: "publish-preview", systemMode })
+      : null,
+    [publishPreviewConfiguration, systemMode],
   );
 
   useEffect(() => {
@@ -461,7 +480,6 @@ function OrganisationPersonalisationSettings({
     try {
       const saved = await saveOrganisationConfiguration(organisation.id, configuration);
       applySavedConfiguration(saved);
-      await onRefresh();
       onSuccess("Organisation personalisation saved as a draft.");
     } catch (error) {
       onError(readError(error, "Unable to save organisation personalisation."));
@@ -478,15 +496,23 @@ function OrganisationPersonalisationSettings({
 
     const configuration = configurationForSave();
     if (!configuration) return;
-    const confirmed = window.confirm(
-      "Publish this configuration now? Members and public organisation pages will begin using it.",
-    );
-    if (!confirmed) return;
+    setPublishPreviewConfiguration(configuration);
+  }
+
+  async function handleConfirmPublish(): Promise<void> {
+    if (!canManageSettings) {
+      onError("Organisation administrator access is required.");
+      return;
+    }
+
+    const configuration = publishPreviewConfiguration ?? configurationForSave();
+    if (!configuration) return;
 
     setIsPublishing(true);
     try {
       const published = await publishOrganisationConfiguration(organisation.id, configuration);
       applySavedConfiguration(published);
+      setPublishPreviewConfiguration(null);
       await onRefresh();
       onSuccess("Organisation personalisation published successfully.");
     } catch (error) {
@@ -660,6 +686,12 @@ function OrganisationPersonalisationSettings({
   }
 
   const navigationPreview = normaliseNavigation(settings.navigationConfig, settings.featureFlags);
+  const publishNavigationPreview = publishPreviewConfiguration
+    ? normaliseNavigation(
+      publishPreviewConfiguration.settings.navigationConfig,
+      publishPreviewConfiguration.settings.featureFlags,
+    )
+    : [];
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
@@ -755,26 +787,31 @@ function OrganisationPersonalisationSettings({
           <ColourInput
             label="Primary Colour"
             value={branding.primaryColour}
+            description={colourFieldHints.primary}
             onChange={(value) => setBranding((current) => ({ ...current, primaryColour: value }))}
           />
           <ColourInput
             label="Secondary Colour"
             value={branding.secondaryColour}
+            description={colourFieldHints.secondary}
             onChange={(value) => setBranding((current) => ({ ...current, secondaryColour: value }))}
           />
           <ColourInput
             label="Accent Colour"
             value={branding.accentColour}
+            description={colourFieldHints.accent}
             onChange={(value) => setBranding((current) => ({ ...current, accentColour: value }))}
           />
           <ColourInput
             label="Text Colour"
             value={branding.textColour}
+            description={colourFieldHints.text}
             onChange={(value) => setBranding((current) => ({ ...current, textColour: value }))}
           />
           <ColourInput
             label="Background Colour"
             value={branding.backgroundColour}
+            description={colourFieldHints.background}
             onChange={(value) => setBranding((current) => ({ ...current, backgroundColour: value }))}
           />
           <SelectInput
@@ -789,6 +826,12 @@ function OrganisationPersonalisationSettings({
             options={["small", "medium", "large", "rounded"]}
             onChange={(value) => setBranding((current) => ({ ...current, borderRadius: value as OrganisationBranding["borderRadius"] }))}
           />
+        </div>
+        <div className="mt-4 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm leading-6 text-[var(--color-on-surface-variant)]">
+          <p className="font-black text-[var(--color-on-surface)]">Palette coverage</p>
+          <p className="mt-1">
+            These colours theme tenant-facing organisation areas, previews, headers, actions, navigation chips, and module highlights. Core VisionTech dashboard chrome keeps neutral system colours so readability and platform consistency stay intact.
+          </p>
         </div>
 
         <div className="mt-8 rounded-[var(--organisation-card-radius,1.5rem)] border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5">
@@ -1018,6 +1061,98 @@ function OrganisationPersonalisationSettings({
           </div>
         </div>
       </section>
+      {publishPreviewConfiguration && publishPreviewThemeVariables ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6 backdrop-blur-sm">
+          <div className="max-h-[calc(100vh-3rem)] w-full max-w-3xl overflow-y-auto rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-2xl">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--organisation-action)]">Review Before Publishing</p>
+                <h3 className="mt-2 text-2xl font-black tracking-tight text-[var(--color-on-surface)]">Preview organisation changes</h3>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-on-surface-variant)]">
+                  This is the configuration members and public organisation pages will use after publishing.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPublishPreviewConfiguration(null)}
+                disabled={isPublishing}
+                className="inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] px-4 text-sm font-black text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-high)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Close
+              </button>
+            </div>
+
+            <div
+              className="mt-5 rounded-3xl border border-[var(--publish-preview-accent-foreground)] bg-[var(--publish-preview-background)] p-6 text-[var(--publish-preview-text)] shadow-xl"
+              style={{
+                ...publishPreviewThemeVariables,
+                borderRadius: publishPreviewConfiguration.branding.borderRadius === "rounded" ? "2rem" : undefined,
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-[var(--publish-preview-action)] text-sm font-black text-[var(--publish-preview-on-action)]">
+                  {publishPreviewConfiguration.branding.logoUrl ? (
+                    <img src={publishPreviewConfiguration.branding.logoUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    organisation.name.slice(0, 2).toUpperCase()
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--publish-preview-accent-foreground)]">
+                    Publish Preview
+                  </p>
+                  <h4 className="text-xl font-black">{publishPreviewConfiguration.settings.welcomeHeading || organisation.name}</h4>
+                </div>
+              </div>
+              <div className="mt-5 rounded-2xl border border-[var(--publish-preview-outline-variant)] bg-[var(--publish-preview-surface-container-low)] p-4">
+                <p className="text-sm leading-6 text-[var(--publish-preview-on-surface-variant)]">
+                  {publishPreviewConfiguration.settings.welcomeMessage || "Your organisation workspace can carry your identity while staying inside the VisionTech experience."}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {publishNavigationPreview.slice(0, 5).map((item) => (
+                    <span key={item.key} className="rounded-full bg-[var(--publish-preview-secondary-action)] px-3 py-1 text-xs font-bold text-[var(--publish-preview-on-secondary-action)]">
+                      {item.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)] sm:grid-cols-2">
+              <div>
+                <p className="font-black text-[var(--color-on-surface)]">Theme</p>
+                <p className="mt-1">Mode: {publishPreviewConfiguration.branding.themeMode}</p>
+                <p>Radius: {publishPreviewConfiguration.branding.borderRadius}</p>
+              </div>
+              <div>
+                <p className="font-black text-[var(--color-on-surface)]">Visible modules</p>
+                <p className="mt-1">
+                  {publishNavigationPreview.map((item) => item.label).join(", ") || "No optional modules enabled"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setPublishPreviewConfiguration(null)}
+                disabled={isPublishing}
+                className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 text-sm font-black text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-high)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Keep Editing
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleConfirmPublish()}
+                disabled={isPublishing}
+                className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--organisation-action)] px-5 text-sm font-black text-[var(--organisation-on-action)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isPublishing ? "Publishing..." : "Confirm Publish"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1083,15 +1218,31 @@ function TextInput({
 function ColourInput({
   label,
   value,
+  description,
   onChange,
 }: {
   label: string;
   value: string;
+  description: string;
   onChange: (value: string) => void;
 }): JSX.Element {
   return (
-    <label className="block">
-      <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]">{label}</span>
+    <div className="block">
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]">{label}</span>
+        <span className="group relative inline-flex">
+          <span
+            tabIndex={0}
+            aria-label={`${label} details: ${description}`}
+            className="inline-flex h-5 w-5 cursor-help items-center justify-center rounded-full border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface-variant)] outline-none transition hover:text-[var(--organisation-action)] focus:text-[var(--organisation-action)]"
+          >
+            <Info className="h-3.5 w-3.5" aria-hidden="true" />
+          </span>
+          <span className="pointer-events-none absolute left-1/2 top-7 z-20 hidden w-72 -translate-x-1/2 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-3 text-xs font-medium normal-case leading-5 tracking-normal text-[var(--color-on-surface)] shadow-xl group-hover:block group-focus-within:block">
+            {description}
+          </span>
+        </span>
+      </div>
       <div className="mt-2 flex rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-1 focus-within:border-[var(--organisation-action)] focus-within:ring-2 focus-within:ring-[var(--organisation-action)]">
         <input
           type="color"
@@ -1105,7 +1256,7 @@ function ColourInput({
           className="min-w-0 flex-1 bg-transparent px-3 text-sm font-bold text-[var(--color-on-surface)] outline-none"
         />
       </div>
-    </label>
+    </div>
   );
 }
 
