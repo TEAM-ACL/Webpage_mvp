@@ -11,6 +11,8 @@ import type {
   OrganisationConfiguration,
   OrganisationCohortOverview,
   OrganisationMember,
+  OrganisationMemberInterventionRecord,
+  OrganisationMemberOpportunityRecommendationRecord,
   OrganisationOverviewResponse,
   PublicOrganisationProfile,
   OrganisationSettings,
@@ -782,6 +784,42 @@ export async function createMemberIntervention(
     interventionId: data.id,
     recommendedAction: data.recommended_action,
   };
+}
+
+export async function getOrganisationMemberInterventions(
+  organisationId: string,
+): Promise<OrganisationMemberInterventionRecord[]> {
+  const response = await fetch(`${API_BASE_URL}${organisationDataEndpoint("interventions", organisationId)}`, {
+    method: "GET",
+    credentials: "include",
+    headers: organisationHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Unable to load member interventions.");
+  }
+
+  const body = (await response.json()) as { items?: OrganisationMemberInterventionRecord[] };
+  return body.items ?? [];
+}
+
+export async function getOrganisationOpportunityRecommendations(
+  organisationId: string,
+): Promise<OrganisationMemberOpportunityRecommendationRecord[]> {
+  const response = await fetch(`${API_BASE_URL}${organisationDataEndpoint("opportunity-recommendations", organisationId)}`, {
+    method: "GET",
+    credentials: "include",
+    headers: organisationHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Unable to load opportunity recommendations.");
+  }
+
+  const body = (await response.json()) as { items?: OrganisationMemberOpportunityRecommendationRecord[] };
+  return body.items ?? [];
 }
 
 export async function getInstitutionalAIInsight(organisationId?: string | null): Promise<InstitutionalAIInsightResponse> {

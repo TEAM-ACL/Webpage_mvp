@@ -111,6 +111,28 @@ export interface CreateMemberInterventionRequest {
   riskLevel: "low" | "medium" | "high";
 }
 
+export interface OrganisationMemberInterventionRecord {
+  id: string;
+  organisation_id: string;
+  user_id: string;
+  type: CreateMemberInterventionRequest["type"];
+  reason: string;
+  recommended_action: string;
+  risk_level: CreateMemberInterventionRequest["riskLevel"];
+  status: string;
+  created_at: string | null;
+}
+
+export interface OrganisationMemberOpportunityRecommendationRecord {
+  id: string;
+  organisation_id: string;
+  user_id: string;
+  title: string;
+  note: string | null;
+  status: string;
+  created_at: string | null;
+}
+
 export type InsightPriority = "low" | "medium" | "high" | "critical";
 
 export interface InstitutionalInsightEvidence {
