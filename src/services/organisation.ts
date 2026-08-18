@@ -656,6 +656,32 @@ export async function updateOrganisationMember(
   return { memberId, updates };
 }
 
+export async function recommendMemberOpportunity(
+  organisationId: string,
+  memberId: string,
+  payload: { title: string; note?: string | null },
+): Promise<{ id: string; title: string; status: string }> {
+  const response = await fetch(
+    `${API_BASE_URL}${organisationDataEndpoint(`members/${encodeURIComponent(memberId)}/opportunity-recommendations`, organisationId)}`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: organisationHeaders(),
+      body: JSON.stringify({
+        title: payload.title,
+        note: payload.note,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Unable to recommend opportunity.");
+  }
+
+  return (await response.json()) as { id: string; title: string; status: string };
+}
+
 export async function assignMemberToCohort(
   organisationId: string,
   memberId: string,
@@ -682,13 +708,35 @@ export async function assignMemberToCohort(
 }
 
 export async function createMemberIntervention(
+  organisationId: string,
   memberId: string,
   payload: CreateMemberInterventionRequest,
 ): Promise<{ memberId: string; interventionId: string; recommendedAction: string }> {
+  const response = await fetch(
+    `${API_BASE_URL}${organisationDataEndpoint(`members/${encodeURIComponent(memberId)}/interventions`, organisationId)}`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: organisationHeaders(),
+      body: JSON.stringify({
+        type: payload.type,
+        reason: payload.reason,
+        recommended_action: payload.recommendedAction,
+        risk_level: payload.riskLevel,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Unable to create member intervention.");
+  }
+
+  const data = (await response.json()) as { id: string; recommended_action: string };
   return {
     memberId,
-    interventionId: `intervention-${Date.now()}`,
-    recommendedAction: payload.recommendedAction,
+    interventionId: data.id,
+    recommendedAction: data.recommended_action,
   };
 }
 

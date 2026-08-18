@@ -20,7 +20,7 @@ import {
   getOrganisationMembers,
   getOrganisationOverview,
   inviteOrganisationMember,
-  updateOrganisationMember,
+  recommendMemberOpportunity,
 } from "../../services/organisation";
 import type {
   InviteOrganisationMemberRequest,
@@ -151,7 +151,8 @@ export default function OrganisationMembers(): JSX.Element {
   }
 
   async function handleCreateIntervention(member: OrganisationMember): Promise<void> {
-    await createMemberIntervention(member.id, {
+    if (!organisationId) return;
+    await createMemberIntervention(organisationId, member.id, {
       type: member.status === "inactive" ? "inactive_member" : "low_readiness",
       reason: member.status === "inactive" ? "No recent workspace activity." : "Readiness score requires support.",
       recommendedAction: "Assign a short practical project and schedule mentor feedback.",
@@ -175,9 +176,24 @@ export default function OrganisationMembers(): JSX.Element {
   }
 
   async function handleRecommendOpportunity(member: OrganisationMember): Promise<void> {
-    await updateOrganisationMember(member.id, {
-      assignedOpportunities: [...(member.assignedOpportunities || []), "Recommended opportunity"],
+    if (!organisationId) return;
+    const recommendation = await recommendMemberOpportunity(organisationId, member.id, {
+      title: "Recommended opportunity",
+      note: "Prepared from the organisation members dashboard.",
     });
+    setMembers((currentMembers) =>
+      currentMembers.map((currentMember) =>
+        currentMember.id === member.id
+          ? {
+              ...currentMember,
+              assignedOpportunities: [
+                ...(currentMember.assignedOpportunities || []),
+                recommendation.title,
+              ],
+            }
+          : currentMember,
+      ),
+    );
     setNotice(`Opportunity recommendation prepared for ${member.fullName}.`);
   }
 
