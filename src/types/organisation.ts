@@ -162,6 +162,7 @@ export type OrganisationMemberOverview = {
   progress_percent: number;
   last_active_at: string | null;
   status: "on_track" | "needs_support" | "inactive" | "incomplete_onboarding";
+  membership_status?: "active" | "invited" | "suspended" | "removed" | null;
 };
 
 export type OrganisationCohortOverview = {

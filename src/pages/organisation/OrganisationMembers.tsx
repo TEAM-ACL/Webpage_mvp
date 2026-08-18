@@ -111,7 +111,8 @@ export default function OrganisationMembers(): JSX.Element {
   const memberMetrics = useMemo(() => buildMemberMetrics(members), [members]);
 
   async function handleInvite(payload: InviteOrganisationMemberRequest): Promise<void> {
-    const invitedMember = await inviteOrganisationMember(payload);
+    if (!organisationId) return;
+    const invitedMember = await inviteOrganisationMember(organisationId, payload);
     setMembers((currentMembers) => [invitedMember, ...currentMembers]);
     setNotice(`${invitedMember.fullName} has been invited. Share the tenant signup link if email delivery is not connected yet.`);
   }
@@ -136,15 +137,15 @@ export default function OrganisationMembers(): JSX.Element {
 
   async function handleAssignToCohort(member: OrganisationMember): Promise<void> {
     const cohortName = window.prompt("Assign to cohort", member.cohortName || cohorts[0] || "Cloud Career Cohort");
-    if (!cohortName) return;
-    await assignMemberToCohort(member.id, { cohortName });
+    if (!cohortName || !organisationId) return;
+    const updatedMember = await assignMemberToCohort(organisationId, member.id, { cohortName });
     setMembers((currentMembers) =>
       currentMembers.map((currentMember) =>
-        currentMember.id === member.id ? { ...currentMember, cohortName } : currentMember,
+        currentMember.id === member.id ? updatedMember : currentMember,
       ),
     );
     setSelectedMember((currentMember) =>
-      currentMember?.id === member.id ? { ...currentMember, cohortName } : currentMember,
+      currentMember?.id === member.id ? updatedMember : currentMember,
     );
     setNotice(`${member.fullName} assigned to ${cohortName}.`);
   }
