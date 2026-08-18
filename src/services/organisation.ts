@@ -574,7 +574,16 @@ function mapBackendMember(member: {
   progress_percent: number;
   last_active_at: string | null;
   status: "on_track" | "needs_support" | "inactive" | "incomplete_onboarding";
+  membership_status?: "active" | "invited" | "suspended" | "removed" | null;
 }): OrganisationMember {
+  const status = member.membership_status === "invited"
+    ? "invited"
+    : member.status === "inactive"
+      ? "inactive"
+      : member.membership_status === "suspended"
+        ? "suspended"
+        : "active";
+
   return {
     id: member.user_id,
     fullName: member.name,
@@ -584,8 +593,8 @@ function mapBackendMember(member: {
     readinessScore: member.readiness_score,
     pathwayProgress: member.progress_percent,
     lastActiveAt: member.last_active_at,
-    status: member.status === "inactive" ? "inactive" : "active",
-    needsSupport: member.status !== "on_track",
+    status,
+    needsSupport: status === "active" && member.status !== "on_track",
     currentPathway: member.cohort || "Individual pathway",
     skillGaps: member.status === "on_track" ? ["Project evidence"] : ["Readiness support", "Project evidence"],
     activeProjects: member.progress_percent > 0 ? ["Workspace project evidence"] : [],
@@ -617,27 +626,27 @@ export async function getOrganisationMemberById(memberId: string): Promise<Organ
 }
 
 export async function inviteOrganisationMember(
+  organisationId: string,
   payload: InviteOrganisationMemberRequest,
 ): Promise<OrganisationMember> {
-  return {
-    id: `invited-${Date.now()}`,
-    fullName: payload.fullName,
-    email: payload.email,
-    goal: payload.goal,
-    cohortName: payload.cohortName,
-    readinessScore: 0,
-    pathwayProgress: 0,
-    lastActiveAt: null,
-    status: "invited",
-    needsSupport: false,
-    currentPathway: "Invitation pending",
-    skillGaps: [],
-    activeProjects: [],
-    overdueTasks: 0,
-    recentActivity: ["Invitation created"],
-    assignedOpportunities: [],
-    openInterventions: [],
-  };
+  const response = await fetch(`${API_BASE_URL}${organisationDataEndpoint("members", organisationId)}`, {
+    method: "POST",
+    credentials: "include",
+    headers: organisationHeaders(),
+    body: JSON.stringify({
+      full_name: payload.fullName,
+      email: payload.email,
+      goal: payload.goal,
+      cohort_name: payload.cohortName,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Unable to invite organisation member.");
+  }
+
+  return mapBackendMember((await response.json()) as Parameters<typeof mapBackendMember>[0]);
 }
 
 export async function updateOrganisationMember(
@@ -648,10 +657,28 @@ export async function updateOrganisationMember(
 }
 
 export async function assignMemberToCohort(
+  organisationId: string,
   memberId: string,
   payload: AssignMemberToCohortRequest,
-): Promise<{ memberId: string; cohortName: string }> {
-  return { memberId, cohortName: payload.cohortName };
+): Promise<OrganisationMember> {
+  const response = await fetch(
+    `${API_BASE_URL}${organisationDataEndpoint(`members/${encodeURIComponent(memberId)}/cohort`, organisationId)}`,
+    {
+      method: "PUT",
+      credentials: "include",
+      headers: organisationHeaders(),
+      body: JSON.stringify({
+        cohort_name: payload.cohortName,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Unable to assign member to cohort.");
+  }
+
+  return mapBackendMember((await response.json()) as Parameters<typeof mapBackendMember>[0]);
 }
 
 export async function createMemberIntervention(

@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import type { OrganisationBranding } from "../types/organisation";
 
 type OrganisationThemeOptions = {
-  prefix?: "organisation" | "tenant" | "preview";
+  prefix?: "organisation" | "tenant" | "preview" | "publish-preview";
   mode?: ResolvedThemeMode;
   surfaceColour?: string;
 };
