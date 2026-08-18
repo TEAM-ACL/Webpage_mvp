@@ -82,4 +82,41 @@ describe("organisation service tenant identity", () => {
       "No active organisation is connected to this account.",
     );
   });
+
+  it("creates cohorts against the verified organisation endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        cohort_id: "cohort-1",
+        name: "Digital Skills Cohort",
+        member_count: 0,
+        average_completion: 0,
+        average_readiness: 0,
+        start_date: null,
+        end_date: null,
+        status: "active",
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { createOrganisationCohort } = await import("./organisation");
+
+    await createOrganisationCohort(" organisation-123 ", {
+      name: "Digital Skills Cohort",
+      description: "Created from members.",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/organisations/organisation-123/cohorts",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          name: "Digital Skills Cohort",
+          description: "Created from members.",
+          start_date: undefined,
+          end_date: undefined,
+          status: "active",
+        }),
+      }),
+    );
+  });
 });
