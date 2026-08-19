@@ -2,12 +2,14 @@ import { getAccessToken } from "../lib/api";
 import type {
   AssignMemberToCohortRequest,
   CreateMemberInterventionRequest,
+  CreateOrganisationCohortRequest,
   InstitutionalAIInsightResponse,
   ActiveOrganisation,
   InviteOrganisationMemberRequest,
   OrganisationBranding,
   OrganisationBrandingUpdate,
   OrganisationConfiguration,
+  OrganisationCohortOverview,
   OrganisationMember,
   OrganisationMemberInterventionRecord,
   OrganisationMemberOpportunityRecommendationRecord,
@@ -658,6 +660,47 @@ export async function updateOrganisationMember(
   updates: Partial<OrganisationMember>,
 ): Promise<{ memberId: string; updates: Partial<OrganisationMember> }> {
   return { memberId, updates };
+}
+
+export async function getOrganisationCohorts(organisationId: string): Promise<OrganisationCohortOverview[]> {
+  const response = await fetch(`${API_BASE_URL}${organisationDataEndpoint("cohorts", organisationId)}`, {
+    method: "GET",
+    credentials: "include",
+    headers: organisationHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Unable to load organisation cohorts.");
+  }
+
+  const body = (await response.json()) as { items?: OrganisationCohortOverview[] };
+  return body.items ?? [];
+}
+
+export async function createOrganisationCohort(
+  organisationId: string,
+  payload: CreateOrganisationCohortRequest,
+): Promise<OrganisationCohortOverview> {
+  const response = await fetch(`${API_BASE_URL}${organisationDataEndpoint("cohorts", organisationId)}`, {
+    method: "POST",
+    credentials: "include",
+    headers: organisationHeaders(),
+    body: JSON.stringify({
+      name: payload.name,
+      description: payload.description,
+      start_date: payload.startDate,
+      end_date: payload.endDate,
+      status: payload.status ?? "active",
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Unable to create organisation cohort.");
+  }
+
+  return (await response.json()) as OrganisationCohortOverview;
 }
 
 export async function recommendMemberOpportunity(

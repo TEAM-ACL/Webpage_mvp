@@ -23,7 +23,9 @@ import {
   type OrganisationModuleItem,
 } from "../../data/organisationModules";
 import {
+  createOrganisationCohort,
   getInstitutionalAIInsight,
+  getOrganisationCohorts,
   getOrganisationMemberInterventions,
   getOrganisationOpportunityRecommendations,
   getOrganisationReportSummary,
@@ -46,6 +48,7 @@ import type {
   InstitutionalRecommendedAction,
   OrganisationBranding,
   OrganisationConfiguration,
+  OrganisationCohortOverview,
   OrganisationHomepageSection,
   OrganisationMemberInterventionRecord,
   OrganisationMemberOpportunityRecommendationRecord,
@@ -107,6 +110,7 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
   const [opportunityRecommendations, setOpportunityRecommendations] = useState<OrganisationMemberOpportunityRecommendationRecord[]>([]);
   const [recordsError, setRecordsError] = useState<string | null>(null);
   const [areRecordsLoading, setAreRecordsLoading] = useState(false);
+  const [cohorts, setCohorts] = useState<OrganisationCohortOverview[]>([]);
   const [report, setReport] = useState<OrganisationReportResponse | null>(null);
   const queryAction = buildModuleQueryAction(moduleKey, location.search);
 
@@ -138,7 +142,8 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
     let isMounted = true;
 
     async function loadModuleRecords(): Promise<void> {
-      if (!organisationId || !["interventions", "opportunities", "reports"].includes(moduleKey)) {
+      if (!organisationId || !["cohorts", "interventions", "opportunities", "reports"].includes(moduleKey)) {
+        setCohorts([]);
         setInterventions([]);
         setOpportunityRecommendations([]);
         setReport(null);
@@ -150,9 +155,21 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
       setAreRecordsLoading(true);
       setRecordsError(null);
       try {
+        if (moduleKey === "cohorts") {
+          const records = await getOrganisationCohorts(organisationId);
+          if (isMounted) {
+            setCohorts(records);
+            setInterventions([]);
+            setOpportunityRecommendations([]);
+            setReport(null);
+          }
+          return;
+        }
+
         if (moduleKey === "interventions") {
           const records = await getOrganisationMemberInterventions(organisationId);
           if (isMounted) {
+            setCohorts([]);
             setInterventions(records);
             setOpportunityRecommendations([]);
             setReport(null);
@@ -164,6 +181,7 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
           const reportSummary = await getOrganisationReportSummary(organisationId);
           if (isMounted) {
             setReport(reportSummary);
+            setCohorts([]);
             setInterventions([]);
             setOpportunityRecommendations([]);
           }
@@ -173,6 +191,7 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
         const records = await getOrganisationOpportunityRecommendations(organisationId);
         if (isMounted) {
           setOpportunityRecommendations(records);
+          setCohorts([]);
           setInterventions([]);
           setReport(null);
         }
@@ -194,7 +213,27 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
     };
   }, [moduleKey, organisationId]);
 
-  function handleAction(action: OrganisationModuleAction): void {
+  async function handleAction(action: OrganisationModuleAction): Promise<void> {
+    if (moduleKey === "cohorts" && action.href.includes("create=true") && organisationId) {
+      const cohortName = window.prompt("Create cohort", "Digital Skills Cohort");
+      if (!cohortName) return;
+      try {
+        const cohort = await createOrganisationCohort(organisationId, {
+          name: cohortName,
+          description: "Created from the cohorts module.",
+          status: "active",
+        });
+        setCohorts((currentCohorts) =>
+          currentCohorts.some((currentCohort) => currentCohort.cohort_id === cohort.cohort_id)
+            ? currentCohorts
+            : [cohort, ...currentCohorts],
+        );
+        showSuccess(`${cohort.name} cohort created.`);
+      } catch (error) {
+        showError(readError(error, "Unable to create organisation cohort."));
+      }
+      return;
+    }
     navigate(toTenantPath(action.href, getOrganisationPath));
   }
 
@@ -237,11 +276,11 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
         organisation ? (
           <>
             {content.secondaryAction && (
-              <button type="button" className={outlineButton} onClick={() => handleAction(content.secondaryAction!)}>
+              <button type="button" className={outlineButton} onClick={() => void handleAction(content.secondaryAction!)}>
                 {content.secondaryAction.label}
               </button>
             )}
-            <button type="button" className={primaryButton} onClick={() => handleAction(content.primaryAction)}>
+            <button type="button" className={primaryButton} onClick={() => void handleAction(content.primaryAction)}>
               {content.primaryAction.label}
             </button>
           </>
@@ -291,7 +330,14 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
             content={content}
             onAction={handleAction}
             liveRecords={
-              moduleKey === "interventions" ? (
+              moduleKey === "cohorts" ? (
+                <CohortRecordsPanel
+                  records={cohorts}
+                  isLoading={areRecordsLoading}
+                  error={recordsError}
+                  onCreate={() => void handleAction(content.primaryAction)}
+                />
+              ) : moduleKey === "interventions" ? (
                 <InterventionRecordsPanel
                   records={interventions}
                   isLoading={areRecordsLoading}
@@ -1402,7 +1448,7 @@ function OrganisationModuleView({
   liveRecords,
 }: {
   content: OrganisationModuleContent;
-  onAction: (action: OrganisationModuleAction) => void;
+  onAction: (action: OrganisationModuleAction) => void | Promise<void>;
   liveRecords?: ReactNode;
 }): JSX.Element {
   return (
@@ -1430,7 +1476,7 @@ function OrganisationModuleView({
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-200">Recommended Admin Action</p>
             <button
               type="button"
-              onClick={() => onAction(content.focusAction)}
+              onClick={() => void onAction(content.focusAction)}
               className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-fixed-light-surface)] px-4 py-3 text-sm font-black text-[var(--color-on-fixed-light-surface)] transition hover:opacity-90"
             >
               {content.focusAction.label}
@@ -1452,7 +1498,7 @@ function OrganisationModuleView({
             </div>
             <button
               type="button"
-              onClick={() => onAction(content.primaryAction)}
+              onClick={() => void onAction(content.primaryAction)}
               className="rounded-2xl bg-[var(--color-info-container)] px-4 py-2 text-sm font-black text-[var(--color-info)] transition hover:opacity-85"
             >
               {content.primaryAction.label}
@@ -1488,6 +1534,87 @@ function OrganisationModuleView({
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+function CohortRecordsPanel({
+  records,
+  isLoading,
+  error,
+  onCreate,
+}: {
+  records: OrganisationCohortOverview[];
+  isLoading: boolean;
+  error: string | null;
+  onCreate: () => void;
+}): JSX.Element {
+  return (
+    <section className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--organisation-action)]">Live Cohorts</p>
+          <h2 className="mt-2 text-xl font-black tracking-tight text-[var(--color-on-surface)]">Tenant cohort records</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--color-on-surface-variant)]">
+            Cohorts created for this organisation appear here with assignment and delivery status.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onCreate}
+          className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--organisation-action)] px-4 text-sm font-black text-[var(--organisation-on-action)] transition hover:opacity-90"
+        >
+          Create Cohort
+        </button>
+      </div>
+
+      {isLoading ? (
+        <p className="mt-5 rounded-2xl bg-[var(--color-surface-container-low)] px-4 py-3 text-sm font-semibold text-[var(--color-on-surface-variant)]">
+          Loading cohorts...
+        </p>
+      ) : error ? (
+        <p className="mt-5 rounded-2xl border border-[var(--color-warning)] bg-[var(--color-warning-container)] px-4 py-3 text-sm font-semibold text-[var(--color-warning)]">
+          {error}
+        </p>
+      ) : records.length > 0 ? (
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {records.map((cohort) => (
+            <article key={cohort.cohort_id} className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5">
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="font-black text-[var(--color-on-surface)]">{cohort.name}</h3>
+                <span className="rounded-full bg-[var(--color-info-container)] px-3 py-1 text-xs font-bold text-[var(--color-info)]">
+                  {formatRecordLabel(cohort.status)}
+                </span>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
+                <MetricMini label="Members" value={String(cohort.member_count)} />
+                <MetricMini label="Readiness" value={`${cohort.average_readiness}%`} />
+                <MetricMini label="Progress" value={`${cohort.average_completion}%`} />
+              </div>
+              <p className="mt-4 text-xs leading-5 text-[var(--color-on-surface-variant)]">
+                {cohort.start_date ? `Starts ${cohort.start_date}` : "No start date set"}
+                {cohort.end_date ? ` - ends ${cohort.end_date}` : ""}
+              </p>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-5 rounded-2xl border border-dashed border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5">
+          <h3 className="font-black text-[var(--color-on-surface)]">No cohorts created yet</h3>
+          <p className="mt-1 text-sm leading-6 text-[var(--color-on-surface-variant)]">
+            Create a cohort to organise members into programmes, project sprints, or support groups.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function MetricMini({ label, value }: { label: string; value: string }): JSX.Element {
+  return (
+    <div className="rounded-xl bg-[var(--color-surface-container-lowest)] p-3">
+      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-on-surface-variant)]">{label}</p>
+      <p className="mt-1 font-black text-[var(--color-on-surface)]">{value}</p>
     </div>
   );
 }
@@ -1730,7 +1857,7 @@ function ModuleItemCard({
   onAction,
 }: {
   item: OrganisationModuleItem;
-  onAction: (action: OrganisationModuleAction) => void;
+  onAction: (action: OrganisationModuleAction) => void | Promise<void>;
 }): JSX.Element {
   return (
     <article className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5 transition hover:border-[var(--organisation-action)] hover:bg-[var(--color-surface-container-high)] hover:shadow-sm">
@@ -1747,7 +1874,7 @@ function ModuleItemCard({
         </div>
         <button
           type="button"
-          onClick={() => onAction(item.action)}
+          onClick={() => void onAction(item.action)}
           className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-indigo-700"
         >
           {item.action.label}

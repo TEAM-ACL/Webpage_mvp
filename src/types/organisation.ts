@@ -96,6 +96,14 @@ export interface AssignMemberToCohortRequest {
   cohortName: string;
 }
 
+export interface CreateOrganisationCohortRequest {
+  name: string;
+  description?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  status?: OrganisationCohortOverview["status"];
+}
+
 export interface CreateMemberInterventionRequest {
   type: "inactive_member" | "low_readiness" | "incomplete_onboarding" | "overdue_tasks" | "no_active_project" | "low_pathway_progress" | "no_opportunity_engagement";
   reason: string;
