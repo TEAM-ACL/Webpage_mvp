@@ -6,6 +6,7 @@ import {
   buildOrganisationPortalThemeVariables,
   resolveOrganisationRadiusClass,
 } from "../lib/organisationTheme";
+import { applyPublicOrganisationDocumentBranding } from "../lib/organisationDocumentBranding";
 import { getPublicOrganisationProfile } from "../services/organisation";
 import type { PublicOrganisationProfile } from "../types/organisation";
 
@@ -50,6 +51,13 @@ export default function PublicOrganisationEntry(): JSX.Element {
     };
   }, [organisationSlug]);
 
+  useEffect(() => {
+    if (!profile) {
+      return undefined;
+    }
+    return applyPublicOrganisationDocumentBranding(profile);
+  }, [profile]);
+
   const branding = profile?.branding;
   const pageStyle = useMemo(
     () => ({
@@ -69,6 +77,7 @@ export default function PublicOrganisationEntry(): JSX.Element {
   const redirectTo = profile ? `/org/${profile.slug}/continue` : "/intelligence";
   const loginPath = profile ? `/org/${profile.slug}/login` : "/login";
   const signupPath = profile ? `/org/${profile.slug}/signup` : "/signup";
+  const portalBannerUrl = profile?.branding.loginBannerUrl || profile?.branding.dashboardBannerUrl;
 
   return (
     <main className={`min-h-screen bg-[var(--tenant-background)] text-[var(--tenant-text)] ${radiusClass}`} style={pageStyle}>
@@ -139,12 +148,23 @@ export default function PublicOrganisationEntry(): JSX.Element {
             ) : null}
           </section>
 
-          <section className="rounded-[var(--organisation-card-radius,2rem)] border border-[var(--tenant-outline-variant)] bg-[var(--tenant-surface-container-lowest)] p-5 shadow-2xl">
+          <section
+            className="rounded-[var(--organisation-card-radius,2rem)] border border-[var(--tenant-outline-variant)] bg-[var(--tenant-surface-container-lowest)] p-5 shadow-2xl"
+            style={portalBannerUrl ? {
+              backgroundImage: `linear-gradient(135deg, color-mix(in srgb, var(--tenant-surface-container-lowest) 92%, transparent), color-mix(in srgb, var(--tenant-surface-container-lowest) 82%, transparent)), url("${portalBannerUrl}")`,
+              backgroundPosition: "center",
+              backgroundSize: "cover",
+            } : undefined}
+          >
             <div className="rounded-[var(--organisation-card-radius,1.5rem)] p-6 text-[var(--tenant-on-panel)]" style={{ background: "linear-gradient(135deg, var(--tenant-panel-start), var(--tenant-panel-end))" }}>
               <p className="text-xs font-black uppercase tracking-[0.22em] opacity-75">What members can access</p>
-              <h2 className="mt-3 text-3xl font-black tracking-tight">A branded pathway into VisionTech intelligence.</h2>
+              <h2 className="mt-3 text-3xl font-black tracking-tight">
+                {profile ? `${profile.name} inside VisionTech intelligence.` : "A branded pathway into VisionTech intelligence."}
+              </h2>
               <p className="mt-3 text-sm leading-6 opacity-80">
-                Organisations can personalise the experience while members keep the same trusted VisionTech guidance flow.
+                {portalBannerUrl
+                  ? "The portal uses this organisation's saved public banner, logo, colours, and welcome message before members sign in."
+                  : "Organisations can personalise the experience while members keep the same trusted VisionTech guidance flow."}
               </p>
             </div>
             <div className="mt-5 grid gap-3">
