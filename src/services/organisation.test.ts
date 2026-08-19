@@ -308,4 +308,35 @@ describe("organisation service tenant identity", () => {
       }),
     );
   });
+
+  it("resets organisation branding against the tenant branding endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        logo_url: null,
+        favicon_url: null,
+        primary_colour: "#1f0954",
+        secondary_colour: "#2563eb",
+        accent_colour: "#7c3aed",
+        background_colour: "#ffffff",
+        text_colour: "#111827",
+        font_family: "Inter",
+        border_radius: "medium",
+        theme_mode: "light",
+        login_banner_url: null,
+        dashboard_banner_url: null,
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { resetOrganisationBranding } = await import("./organisation");
+
+    const branding = await resetOrganisationBranding(" organisation-123 ");
+
+    expect(branding.primaryColour).toBe("#1f0954");
+    expect(branding.logoUrl).toBeNull();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/organisations/organisation-123/branding/reset",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
 });

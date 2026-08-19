@@ -452,6 +452,24 @@ export async function updateOrganisationBranding(
   return mapOrganisationBranding((await response.json()) as OrganisationBrandingBackendResponse);
 }
 
+export async function resetOrganisationBranding(organisationId: string): Promise<OrganisationBranding> {
+  const response = await fetch(
+    `${API_BASE_URL}/organisations/${encodeURIComponent(organisationId.trim())}/branding/reset`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: organisationHeaders(),
+    },
+  );
+
+  if (!response.ok) {
+    const errorText = await readApiError(response, "Unable to reset organisation branding.");
+    throw new Error(errorText);
+  }
+
+  return mapOrganisationBranding((await response.json()) as OrganisationBrandingBackendResponse);
+}
+
 export async function updateOrganisationSettings(
   organisationId: string,
   payload: OrganisationSettingsUpdate,

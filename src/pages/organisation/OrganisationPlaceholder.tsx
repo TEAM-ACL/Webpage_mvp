@@ -33,6 +33,7 @@ import {
   getOrganisationReportSummary,
   publishOrganisationConfiguration,
   refreshInstitutionalAIInsight,
+  resetOrganisationBranding as resetOrganisationBrandingRequest,
   restorePublishedOrganisationConfiguration,
   saveOrganisationConfiguration,
 } from "../../services/organisation";
@@ -41,7 +42,6 @@ import {
   editableConfigurationFingerprint,
   normaliseOrganisationBrandingForSave,
   normaliseOrganisationSettingsForSave,
-  resetOrganisationBranding,
   validateOrganisationConfiguration,
 } from "../../lib/organisationConfiguration";
 import { isOrganisationAdminRole, isPlatformAdminRole } from "../../lib/auth";
@@ -581,6 +581,7 @@ function OrganisationPersonalisationSettings({
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [isResettingBranding, setIsResettingBranding] = useState(false);
   const [publishPreviewConfiguration, setPublishPreviewConfiguration] = useState<OrganisationConfiguration | null>(null);
   const canManageSettings =
     organisation.role === "owner" ||
@@ -599,7 +600,7 @@ function OrganisationPersonalisationSettings({
     () => validateOrganisationConfiguration(currentConfiguration),
     [currentConfiguration],
   );
-  const isWorking = isSaving || isPublishing || isRestoring;
+  const isWorking = isSaving || isPublishing || isRestoring || isResettingBranding;
   const previewThemeVariables = useMemo(
     () => buildOrganisationPortalThemeVariables(branding, { prefix: "preview", systemMode }),
     [branding, systemMode],
@@ -738,8 +739,39 @@ function OrganisationPersonalisationSettings({
     setSettings(savedConfiguration.settings);
   }
 
-  function resetBrandingDefaults(): void {
-    setBranding((current) => resetOrganisationBranding(current));
+  async function handleResetBrandingDefaults(): Promise<void> {
+    if (!canManageSettings) {
+      onError("Organisation administrator access is required.");
+      return;
+    }
+    const confirmed = window.confirm(
+      "Reset this organisation's branding to VisionTech defaults? This creates a draft change.",
+    );
+    if (!confirmed) return;
+
+    setIsResettingBranding(true);
+    try {
+      const resetBranding = await resetOrganisationBrandingRequest(organisation.id);
+      const nextSettings = {
+        ...settings,
+        configurationStatus: "draft",
+        draftVersion: settings.draftVersion + 1,
+      } satisfies OrganisationSettings;
+      const nextConfiguration = {
+        branding: resetBranding,
+        settings: nextSettings,
+      };
+      setBranding(resetBranding);
+      setSettings(nextSettings);
+      setSavedConfiguration(nextConfiguration);
+      onApplyConfiguration(nextConfiguration);
+      await onRefresh();
+      onSuccess("Organisation branding reset to VisionTech defaults.");
+    } catch (error) {
+      onError(readError(error, "Unable to reset organisation branding."));
+    } finally {
+      setIsResettingBranding(false);
+    }
   }
 
   function updateFeatureFlag(key: string, enabled: boolean): void {
@@ -973,11 +1005,12 @@ function OrganisationPersonalisationSettings({
             </div>
             <button
               type="button"
-              onClick={resetBrandingDefaults}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 text-xs font-black text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-high)]"
+              disabled={isWorking || !canManageSettings}
+              onClick={() => void handleResetBrandingDefaults()}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 text-xs font-black text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-high)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <RotateCcw className="h-4 w-4" aria-hidden="true" />
-              Reset Branding
+              {isResettingBranding ? "Resetting..." : "Reset Branding"}
             </button>
           </div>
 
