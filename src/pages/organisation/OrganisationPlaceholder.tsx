@@ -36,6 +36,7 @@ import {
   resetOrganisationBranding as resetOrganisationBrandingRequest,
   restorePublishedOrganisationConfiguration,
   saveOrganisationConfiguration,
+  updateOrganisationProfile,
 } from "../../services/organisation";
 import {
   DEFAULT_ORGANISATION_BRANDING,
@@ -88,6 +89,15 @@ const colourFieldHints = {
     "Text colour controls readable foreground text in tenant-facing organisation previews. VisionTech automatically adjusts it if contrast is too low.",
   background:
     "Background colour controls tenant-facing organisation page surfaces, the preview canvas, and the derived low/high card surfaces.",
+};
+const supportedImageUrlExtensions = [".gif", ".ico", ".jpeg", ".jpg", ".png", ".svg", ".webp"];
+
+type OrganisationProfileForm = {
+  name: string;
+  organisationType: string;
+  description: string;
+  websiteUrl: string;
+  logoUrl: string;
 };
 
 export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlaceholderProps): JSX.Element {
@@ -574,10 +584,17 @@ function OrganisationPersonalisationSettings({
   const { systemMode } = useTheme();
   const [branding, setBranding] = useState<OrganisationBranding>(organisation.branding);
   const [settings, setSettings] = useState<OrganisationSettings>(organisation.settings);
+  const [profileForm, setProfileForm] = useState<OrganisationProfileForm>(
+    () => profileFormFromOrganisation(organisation),
+  );
+  const [savedProfileForm, setSavedProfileForm] = useState<OrganisationProfileForm>(
+    () => profileFormFromOrganisation(organisation),
+  );
   const [savedConfiguration, setSavedConfiguration] = useState<OrganisationConfiguration>({
     branding: organisation.branding,
     settings: organisation.settings,
   });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
@@ -596,11 +613,19 @@ function OrganisationPersonalisationSettings({
       !== editableConfigurationFingerprint(savedConfiguration),
     [currentConfiguration, savedConfiguration],
   );
+  const isProfileDirty = useMemo(
+    () => profileFingerprint(profileForm) !== profileFingerprint(savedProfileForm),
+    [profileForm, savedProfileForm],
+  );
+  const profileValidationMessage = useMemo(
+    () => validateOrganisationProfileForm(profileForm),
+    [profileForm],
+  );
   const validationMessage = useMemo(
     () => validateOrganisationConfiguration(currentConfiguration),
     [currentConfiguration],
   );
-  const isWorking = isSaving || isPublishing || isRestoring || isResettingBranding;
+  const isWorking = isSavingProfile || isSaving || isPublishing || isRestoring || isResettingBranding;
   const previewThemeVariables = useMemo(
     () => buildOrganisationPortalThemeVariables(branding, { prefix: "preview", systemMode }),
     [branding, systemMode],
@@ -622,7 +647,15 @@ function OrganisationPersonalisationSettings({
       branding: organisation.branding,
       settings: organisation.settings,
     });
-  }, [organisation.branding, organisation.settings, savedConfiguration.settings.draftVersion]);
+    const nextProfile = profileFormFromOrganisation(organisation);
+    setProfileForm(nextProfile);
+    setSavedProfileForm(nextProfile);
+  }, [
+    organisation,
+    organisation.branding,
+    organisation.settings,
+    savedConfiguration.settings.draftVersion,
+  ]);
 
   useEffect(() => {
     function warnBeforeUnload(event: BeforeUnloadEvent): void {
@@ -651,6 +684,39 @@ function OrganisationPersonalisationSettings({
     setSettings(configuration.settings);
     setSavedConfiguration(configuration);
     onApplyConfiguration(configuration);
+  }
+
+  async function handleSaveProfile(): Promise<void> {
+    if (!canManageSettings) {
+      onError("Organisation administrator access is required.");
+      return;
+    }
+    if (profileValidationMessage) {
+      onError(profileValidationMessage);
+      return;
+    }
+
+    setIsSavingProfile(true);
+    try {
+      await updateOrganisationProfile(organisation.id, {
+        name: profileForm.name.trim(),
+        organisationType: profileForm.organisationType.trim() || null,
+        description: profileForm.description.trim() || null,
+        websiteUrl: profileForm.websiteUrl.trim() || null,
+        logoUrl: profileForm.logoUrl.trim() || null,
+      });
+      setSavedProfileForm(profileForm);
+      await onRefresh();
+      onSuccess("Organisation profile updated.");
+    } catch (error) {
+      onError(readError(error, "Unable to update organisation profile."));
+    } finally {
+      setIsSavingProfile(false);
+    }
+  }
+
+  function handleDiscardProfileEdits(): void {
+    setProfileForm(savedProfileForm);
   }
 
   async function handleSave(): Promise<void> {
@@ -994,6 +1060,84 @@ function OrganisationPersonalisationSettings({
         </div>
 
         <fieldset disabled={!canManageSettings}>
+        <div className="mt-6 rounded-[var(--organisation-card-radius,1.5rem)] border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--organisation-action)]">Profile Details</p>
+              <h3 className="mt-2 text-xl font-black text-[var(--color-on-surface)]">Organisation name, type, and profile links</h3>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--color-on-surface-variant)]">
+                These identity details appear in organisation discovery, public entry, and administrator context.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={isWorking || !isProfileDirty || !canManageSettings}
+                onClick={handleDiscardProfileEdits}
+                className="inline-flex h-10 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 text-xs font-black text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-high)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Discard Profile
+              </button>
+              <button
+                type="button"
+                disabled={isWorking || !isProfileDirty || Boolean(profileValidationMessage) || !canManageSettings}
+                onClick={() => void handleSaveProfile()}
+                className="inline-flex h-10 items-center justify-center rounded-2xl bg-[var(--organisation-action)] px-4 text-xs font-black text-[var(--organisation-on-action)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isSavingProfile ? "Saving..." : "Save Profile"}
+              </button>
+            </div>
+          </div>
+
+          {profileValidationMessage ? (
+            <div className="mt-4 rounded-2xl border border-[var(--color-error)] bg-[var(--color-error-container)] p-4 text-sm font-semibold text-[var(--color-error)]">
+              {profileValidationMessage}
+            </div>
+          ) : null}
+
+          <div className="mt-5 grid gap-5 md:grid-cols-2">
+            <TextInput
+              label="Organisation Name"
+              value={profileForm.name}
+              placeholder="VisionTech Growth Academy"
+              maxLength={255}
+              onChange={(value) => setProfileForm((current) => ({ ...current, name: value }))}
+            />
+            <TextInput
+              label="Organisation Type"
+              value={profileForm.organisationType}
+              placeholder="Training Provider"
+              maxLength={100}
+              onChange={(value) => setProfileForm((current) => ({ ...current, organisationType: value }))}
+            />
+            <TextInput
+              label="Website URL"
+              value={profileForm.websiteUrl}
+              placeholder="https://example.com"
+              type="url"
+              maxLength={2000}
+              onChange={(value) => setProfileForm((current) => ({ ...current, websiteUrl: value }))}
+            />
+            <TextInput
+              label="Profile Logo URL"
+              value={profileForm.logoUrl}
+              placeholder="https://example.com/logo.png"
+              type="url"
+              maxLength={2000}
+              onChange={(value) => setProfileForm((current) => ({ ...current, logoUrl: value }))}
+            />
+            <div className="md:col-span-2">
+              <TextInput
+                label="Description"
+                value={profileForm.description}
+                placeholder="Practical AI readiness programmes for learners and teams."
+                maxLength={4000}
+                onChange={(value) => setProfileForm((current) => ({ ...current, description: value }))}
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="mt-6 rounded-[var(--organisation-card-radius,1.5rem)] border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -2181,6 +2325,63 @@ function formatDateTime(value: string): string {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function profileFormFromOrganisation(organisation: ActiveOrganisation): OrganisationProfileForm {
+  return {
+    name: organisation.name || "",
+    organisationType: organisation.organisationType || "",
+    description: organisation.description || "",
+    websiteUrl: organisation.websiteUrl || "",
+    logoUrl: organisation.logoUrl || "",
+  };
+}
+
+function profileFingerprint(form: OrganisationProfileForm): string {
+  return JSON.stringify({
+    name: form.name.trim(),
+    organisationType: form.organisationType.trim(),
+    description: form.description.trim(),
+    websiteUrl: form.websiteUrl.trim(),
+    logoUrl: form.logoUrl.trim(),
+  });
+}
+
+function validateOrganisationProfileForm(form: OrganisationProfileForm): string | null {
+  if (!form.name.trim()) {
+    return "Organisation name is required.";
+  }
+  const websiteError = validateAbsoluteHttpUrl(form.websiteUrl, "Website URL");
+  if (websiteError) {
+    return websiteError;
+  }
+  const logoError = validateAbsoluteHttpUrl(form.logoUrl, "Profile logo URL");
+  if (logoError) {
+    return logoError;
+  }
+  if (form.logoUrl.trim()) {
+    const pathname = new URL(form.logoUrl.trim()).pathname.toLowerCase();
+    if (!supportedImageUrlExtensions.some((extension) => pathname.endsWith(extension))) {
+      return "Profile logo URL must point to a supported image file.";
+    }
+  }
+  return null;
+}
+
+function validateAbsoluteHttpUrl(value: string, label: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  try {
+    const parsed = new URL(trimmed);
+    if (!["http:", "https:"].includes(parsed.protocol) || !parsed.host) {
+      return `${label} must use an absolute HTTP or HTTPS URL.`;
+    }
+  } catch {
+    return `${label} must use an absolute HTTP or HTTPS URL.`;
+  }
+  return null;
 }
 
 function buildPromptResponse(
