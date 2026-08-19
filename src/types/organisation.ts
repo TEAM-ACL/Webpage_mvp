@@ -233,6 +233,7 @@ export type OrganisationResponse = {
   name: string;
   organisation_type: string | null;
   description: string | null;
+  website_url?: string | null;
   logo_url: string | null;
   status: "active" | "paused" | "archived";
   created_at?: string | null;
@@ -318,6 +319,14 @@ export type OrganisationBranding = {
 
 export type OrganisationBrandingUpdate = Partial<OrganisationBranding>;
 
+export type OrganisationProfileUpdate = Partial<{
+  name: string | null;
+  organisationType: string | null;
+  description: string | null;
+  websiteUrl: string | null;
+  logoUrl: string | null;
+}>;
+
 export type OrganisationNavigationConfigItem = {
   key: "overview" | "members" | "cohorts" | "interventions" | "opportunities" | "reports" | "settings";
   label: string;
@@ -377,6 +386,7 @@ export type ActiveOrganisation = {
   organisationType: string | null;
   description?: string | null;
   websiteUrl?: string | null;
+  logoUrl?: string | null;
   status: "active" | "paused" | "archived";
   role: OrganisationMembershipRole;
   branding: OrganisationBranding;

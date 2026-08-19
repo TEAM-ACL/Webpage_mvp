@@ -18,6 +18,8 @@ import type {
   OrganisationOpportunityRecord,
   OrganisationReportResponse,
   PublicOrganisationProfile,
+  OrganisationProfileUpdate,
+  OrganisationResponse,
   OrganisationSettings,
   OrganisationSettingsUpdate,
   OrganisationSummaryResponse,
@@ -85,6 +87,7 @@ type ActiveOrganisationBackendResponse = {
   organisation_type?: string | null;
   description?: string | null;
   website_url?: string | null;
+  logo_url?: string | null;
   status?: "active" | "paused" | "archived" | null;
   role?: ActiveOrganisation["role"] | null;
   branding?: Partial<{
@@ -146,6 +149,7 @@ function mapActiveOrganisation(data: ActiveOrganisationBackendResponse): ActiveO
     organisationType: data.organisation_type || "Training Provider",
     description: data.description || null,
     websiteUrl: data.website_url || null,
+    logoUrl: data.logo_url || null,
     status: data.status || "active",
     role: data.role || "organisation_admin",
     branding: {
@@ -215,6 +219,7 @@ export function buildFallbackActiveOrganisation(input?: {
     organisationType: input?.organisationType || "Training Provider",
     description: null,
     websiteUrl: null,
+    logoUrl: null,
     status: "active",
     role: (input?.role as ActiveOrganisation["role"]) || "organisation_admin",
     branding: {
@@ -468,6 +473,34 @@ export async function resetOrganisationBranding(organisationId: string): Promise
   }
 
   return mapOrganisationBranding((await response.json()) as OrganisationBrandingBackendResponse);
+}
+
+export async function updateOrganisationProfile(
+  organisationId: string,
+  payload: OrganisationProfileUpdate,
+): Promise<OrganisationResponse> {
+  const resolvedOrganisationId = requireResolvedOrganisationId(organisationId);
+  const response = await fetch(
+    `${API_BASE_URL}/organisations/${encodeURIComponent(resolvedOrganisationId)}/profile`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      headers: organisationHeaders(),
+      body: JSON.stringify({
+        name: payload.name,
+        organisation_type: payload.organisationType,
+        description: payload.description,
+        website_url: payload.websiteUrl,
+        logo_url: payload.logoUrl,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await readApiError(response, "Unable to update organisation profile."));
+  }
+
+  return (await response.json()) as OrganisationResponse;
 }
 
 export async function updateOrganisationSettings(

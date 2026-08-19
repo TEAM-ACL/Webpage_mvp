@@ -53,6 +53,64 @@ describe("organisation service tenant identity", () => {
     );
   });
 
+  it("sends organisation profile updates to the tenant profile endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: "organisation-123",
+        name: "VisionTech Growth Academy",
+        slug: "visiontech-growth-academy",
+        organisation_type: "training_provider",
+        description: "Practical AI readiness programmes.",
+        website_url: "https://academy.example.com",
+        logo_url: "https://academy.example.com/logo.png",
+        status: "active",
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { updateOrganisationProfile } = await import("./organisation");
+
+    const profile = await updateOrganisationProfile("  organisation-123  ", {
+      name: "VisionTech Growth Academy",
+      organisationType: "training_provider",
+      description: "Practical AI readiness programmes.",
+      websiteUrl: "https://academy.example.com",
+      logoUrl: "https://academy.example.com/logo.png",
+    });
+
+    expect(profile.website_url).toBe("https://academy.example.com");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/organisations/organisation-123/profile",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({
+          name: "VisionTech Growth Academy",
+          organisation_type: "training_provider",
+          description: "Practical AI readiness programmes.",
+          website_url: "https://academy.example.com",
+          logo_url: "https://academy.example.com/logo.png",
+        }),
+      }),
+    );
+  });
+
+  it("surfaces organisation profile update failures from the backend", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      text: async () => JSON.stringify({
+        error: {
+          message: "Organisation administrator access is required.",
+        },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { updateOrganisationProfile } = await import("./organisation");
+
+    await expect(
+      updateOrganisationProfile("organisation-123", { name: "Member Edit" }),
+    ).rejects.toThrow("Organisation administrator access is required.");
+  });
+
   it("rejects a malformed active-organisation response instead of inventing an ID", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
