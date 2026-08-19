@@ -26,6 +26,7 @@ import {
   getInstitutionalAIInsight,
   getOrganisationMemberInterventions,
   getOrganisationOpportunityRecommendations,
+  getOrganisationReportSummary,
   publishOrganisationConfiguration,
   refreshInstitutionalAIInsight,
   restorePublishedOrganisationConfiguration,
@@ -49,6 +50,7 @@ import type {
   OrganisationMemberInterventionRecord,
   OrganisationMemberOpportunityRecommendationRecord,
   OrganisationNavigationConfigItem,
+  OrganisationReportResponse,
   OrganisationSettings,
 } from "../../types/organisation";
 
@@ -105,6 +107,7 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
   const [opportunityRecommendations, setOpportunityRecommendations] = useState<OrganisationMemberOpportunityRecommendationRecord[]>([]);
   const [recordsError, setRecordsError] = useState<string | null>(null);
   const [areRecordsLoading, setAreRecordsLoading] = useState(false);
+  const [report, setReport] = useState<OrganisationReportResponse | null>(null);
   const queryAction = buildModuleQueryAction(moduleKey, location.search);
 
   const loadInsight = useCallback(async () => {
@@ -135,9 +138,10 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
     let isMounted = true;
 
     async function loadModuleRecords(): Promise<void> {
-      if (!organisationId || !["interventions", "opportunities"].includes(moduleKey)) {
+      if (!organisationId || !["interventions", "opportunities", "reports"].includes(moduleKey)) {
         setInterventions([]);
         setOpportunityRecommendations([]);
+        setReport(null);
         setRecordsError(null);
         setAreRecordsLoading(false);
         return;
@@ -151,6 +155,17 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
           if (isMounted) {
             setInterventions(records);
             setOpportunityRecommendations([]);
+            setReport(null);
+          }
+          return;
+        }
+
+        if (moduleKey === "reports") {
+          const reportSummary = await getOrganisationReportSummary(organisationId);
+          if (isMounted) {
+            setReport(reportSummary);
+            setInterventions([]);
+            setOpportunityRecommendations([]);
           }
           return;
         }
@@ -159,6 +174,7 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
         if (isMounted) {
           setOpportunityRecommendations(records);
           setInterventions([]);
+          setReport(null);
         }
       } catch (error) {
         if (isMounted) {
@@ -284,6 +300,12 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
               ) : moduleKey === "opportunities" ? (
                 <OpportunityRecommendationRecordsPanel
                   records={opportunityRecommendations}
+                  isLoading={areRecordsLoading}
+                  error={recordsError}
+                />
+              ) : moduleKey === "reports" ? (
+                <ReportSummaryPanel
+                  report={report}
                   isLoading={areRecordsLoading}
                   error={recordsError}
                 />
@@ -1545,6 +1567,105 @@ function OpportunityRecommendationRecordsPanel({
         </article>
       ))}
     </LiveRecordsPanel>
+  );
+}
+
+function ReportSummaryPanel({
+  report,
+  isLoading,
+  error,
+}: {
+  report: OrganisationReportResponse | null;
+  isLoading: boolean;
+  error: string | null;
+}): JSX.Element {
+  function handleExportCsv(): void {
+    if (!report) return;
+    const rows = [
+      ["Section", "Label", "Value", "Note"],
+      ...report.csv_rows.map((row) => [
+        row.section,
+        row.label,
+        row.value,
+        row.note || "",
+      ]),
+    ];
+    const csv = rows.map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${report.organisation_name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "organisation"}-report.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <section className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--organisation-action)]">Live Report</p>
+          <h2 className="mt-2 text-xl font-black tracking-tight text-[var(--color-on-surface)]">Tenant progress summary</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--color-on-surface-variant)]">
+            Generate a current snapshot from members, cohorts, interventions, and opportunity recommendations.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleExportCsv}
+          disabled={!report || isLoading}
+          className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--organisation-action)] px-4 text-sm font-black text-[var(--organisation-on-action)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Export CSV
+        </button>
+      </div>
+
+      {isLoading ? (
+        <p className="mt-5 rounded-2xl bg-[var(--color-surface-container-low)] px-4 py-3 text-sm font-semibold text-[var(--color-on-surface-variant)]">
+          Loading report summary...
+        </p>
+      ) : error ? (
+        <p className="mt-5 rounded-2xl border border-[var(--color-warning)] bg-[var(--color-warning-container)] px-4 py-3 text-sm font-semibold text-[var(--color-warning)]">
+          {error}
+        </p>
+      ) : report ? (
+        <div className="mt-5 space-y-5">
+          <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-5">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]">
+              Generated {formatDateTime(report.generated_at)}
+            </p>
+            <h3 className="mt-2 text-lg font-black text-[var(--color-on-surface)]">{report.title}</h3>
+            <p className="mt-2 text-sm leading-6 text-[var(--color-on-surface-variant)]">{report.summary}</p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            {report.metrics.map((metric) => (
+              <div key={metric.label} className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--color-on-surface-variant)]">{metric.label}</p>
+                <p className="mt-2 text-2xl font-black text-[var(--color-on-surface)]">{metric.value}</p>
+                <p className="mt-1 text-xs leading-5 text-[var(--color-on-surface-variant)]">{metric.note}</p>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5">
+            <h3 className="font-black text-[var(--color-on-surface)]">Highlights</h3>
+            <div className="mt-3 space-y-2">
+              {report.highlights.map((highlight) => (
+                <p key={highlight} className="text-sm leading-6 text-[var(--color-on-surface-variant)]">
+                  {highlight}
+                </p>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-5 rounded-2xl border border-dashed border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5">
+          <h3 className="font-black text-[var(--color-on-surface)]">No report available yet</h3>
+          <p className="mt-1 text-sm leading-6 text-[var(--color-on-surface-variant)]">
+            Report data will appear once the tenant summary endpoint returns a snapshot.
+          </p>
+        </div>
+      )}
+    </section>
   );
 }
 

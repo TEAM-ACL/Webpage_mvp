@@ -142,4 +142,30 @@ describe("organisation service tenant identity", () => {
       expect.objectContaining({ method: "GET" }),
     );
   });
+
+  it("loads report summaries from the tenant report endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        organisation_id: "organisation-123",
+        organisation_name: "VisionTech Pilot Institution",
+        generated_at: "2026-08-19T10:00:00Z",
+        title: "Tenant progress report",
+        summary: "Report summary.",
+        metrics: [],
+        highlights: [],
+        csv_rows: [],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { getOrganisationReportSummary } = await import("./organisation");
+
+    const report = await getOrganisationReportSummary(" organisation-123 ");
+
+    expect(report.title).toBe("Tenant progress report");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/organisations/organisation-123/reports/summary",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
 });

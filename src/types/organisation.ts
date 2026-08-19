@@ -125,6 +125,30 @@ export interface OrganisationMemberOpportunityRecommendationRecord {
   created_at: string | null;
 }
 
+export interface OrganisationReportMetric {
+  label: string;
+  value: string;
+  note: string;
+}
+
+export interface OrganisationReportRow {
+  section: string;
+  label: string;
+  value: string;
+  note: string | null;
+}
+
+export interface OrganisationReportResponse {
+  organisation_id: string;
+  organisation_name: string;
+  generated_at: string;
+  title: string;
+  summary: string;
+  metrics: OrganisationReportMetric[];
+  highlights: string[];
+  csv_rows: OrganisationReportRow[];
+}
+
 export type InsightPriority = "low" | "medium" | "high" | "critical";
 
 export interface InstitutionalInsightEvidence {
