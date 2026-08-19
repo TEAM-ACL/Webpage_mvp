@@ -233,4 +233,79 @@ describe("organisation service tenant identity", () => {
       }),
     );
   });
+
+  it("loads tenant opportunities from the organisation endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        items: [
+          {
+            id: "opportunity-1",
+            organisation_id: "organisation-123",
+            title: "Junior Cloud Internship",
+            description: "Support cloud operations.",
+            required_skills: ["Cloud"],
+            opportunity_type: "internship",
+            status: "open",
+            closing_date: null,
+            external_url: null,
+            created_at: null,
+          },
+        ],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { getOrganisationOpportunities } = await import("./organisation");
+
+    const opportunities = await getOrganisationOpportunities(" organisation-123 ");
+
+    expect(opportunities).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/organisations/organisation-123/opportunities",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("creates tenant opportunities against the organisation endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: "opportunity-1",
+        organisation_id: "organisation-123",
+        title: "Junior Cloud Internship",
+        description: "Support cloud operations.",
+        required_skills: ["Cloud"],
+        opportunity_type: "internship",
+        status: "open",
+        closing_date: null,
+        external_url: null,
+        created_at: null,
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { createOrganisationOpportunity } = await import("./organisation");
+
+    await createOrganisationOpportunity(" organisation-123 ", {
+      title: "Junior Cloud Internship",
+      description: "Support cloud operations.",
+      requiredSkills: ["Cloud"],
+      opportunityType: "internship",
+      externalUrl: "https://example.com/opportunity",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/organisations/organisation-123/opportunities",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          title: "Junior Cloud Internship",
+          description: "Support cloud operations.",
+          required_skills: ["Cloud"],
+          opportunity_type: "internship",
+          status: "open",
+          external_url: "https://example.com/opportunity",
+        }),
+      }),
+    );
+  });
 });
