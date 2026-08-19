@@ -3,6 +3,7 @@ import type {
   AssignMemberToCohortRequest,
   CreateMemberInterventionRequest,
   CreateOrganisationCohortRequest,
+  CreateOrganisationOpportunityRequest,
   InstitutionalAIInsightResponse,
   ActiveOrganisation,
   InviteOrganisationMemberRequest,
@@ -14,6 +15,7 @@ import type {
   OrganisationMemberInterventionRecord,
   OrganisationMemberOpportunityRecommendationRecord,
   OrganisationOverviewResponse,
+  OrganisationOpportunityRecord,
   OrganisationReportResponse,
   PublicOrganisationProfile,
   OrganisationSettings,
@@ -821,6 +823,51 @@ export async function getOrganisationOpportunityRecommendations(
 
   const body = (await response.json()) as { items?: OrganisationMemberOpportunityRecommendationRecord[] };
   return body.items ?? [];
+}
+
+export async function getOrganisationOpportunities(
+  organisationId: string,
+): Promise<OrganisationOpportunityRecord[]> {
+  const response = await fetch(`${API_BASE_URL}${organisationDataEndpoint("opportunities", organisationId)}`, {
+    method: "GET",
+    credentials: "include",
+    headers: organisationHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Unable to load organisation opportunities.");
+  }
+
+  const body = (await response.json()) as { items?: OrganisationOpportunityRecord[] };
+  return body.items ?? [];
+}
+
+export async function createOrganisationOpportunity(
+  organisationId: string,
+  payload: CreateOrganisationOpportunityRequest,
+): Promise<OrganisationOpportunityRecord> {
+  const response = await fetch(`${API_BASE_URL}${organisationDataEndpoint("opportunities", organisationId)}`, {
+    method: "POST",
+    credentials: "include",
+    headers: organisationHeaders(),
+    body: JSON.stringify({
+      title: payload.title,
+      description: payload.description,
+      required_skills: payload.requiredSkills,
+      opportunity_type: payload.opportunityType,
+      status: payload.status ?? "open",
+      closing_date: payload.closingDate,
+      external_url: payload.externalUrl,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Unable to create organisation opportunity.");
+  }
+
+  return (await response.json()) as OrganisationOpportunityRecord;
 }
 
 export async function getOrganisationReportSummary(

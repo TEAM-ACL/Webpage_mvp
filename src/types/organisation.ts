@@ -133,6 +133,39 @@ export interface OrganisationMemberOpportunityRecommendationRecord {
   created_at: string | null;
 }
 
+export type OrganisationOpportunityType =
+  | "internship"
+  | "project"
+  | "hackathon"
+  | "training"
+  | "collaboration"
+  | "job";
+
+export type OrganisationOpportunityStatus = "open" | "closed" | "paused";
+
+export interface CreateOrganisationOpportunityRequest {
+  title: string;
+  description: string;
+  requiredSkills: string[];
+  opportunityType: OrganisationOpportunityType;
+  status?: OrganisationOpportunityStatus;
+  closingDate?: string | null;
+  externalUrl?: string | null;
+}
+
+export interface OrganisationOpportunityRecord {
+  id: string;
+  organisation_id: string;
+  title: string;
+  description: string;
+  required_skills: string[];
+  opportunity_type: OrganisationOpportunityType;
+  status: OrganisationOpportunityStatus;
+  closing_date: string | null;
+  external_url: string | null;
+  created_at: string | null;
+}
+
 export interface OrganisationReportMetric {
   label: string;
   value: string;

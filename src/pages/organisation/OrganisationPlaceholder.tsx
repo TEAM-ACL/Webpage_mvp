@@ -24,10 +24,12 @@ import {
 } from "../../data/organisationModules";
 import {
   createOrganisationCohort,
+  createOrganisationOpportunity,
   getInstitutionalAIInsight,
   getOrganisationCohorts,
   getOrganisationMemberInterventions,
   getOrganisationOpportunityRecommendations,
+  getOrganisationOpportunities,
   getOrganisationReportSummary,
   publishOrganisationConfiguration,
   refreshInstitutionalAIInsight,
@@ -53,6 +55,7 @@ import type {
   OrganisationMemberInterventionRecord,
   OrganisationMemberOpportunityRecommendationRecord,
   OrganisationNavigationConfigItem,
+  OrganisationOpportunityRecord,
   OrganisationReportResponse,
   OrganisationSettings,
 } from "../../types/organisation";
@@ -111,6 +114,7 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
   const [recordsError, setRecordsError] = useState<string | null>(null);
   const [areRecordsLoading, setAreRecordsLoading] = useState(false);
   const [cohorts, setCohorts] = useState<OrganisationCohortOverview[]>([]);
+  const [opportunities, setOpportunities] = useState<OrganisationOpportunityRecord[]>([]);
   const [report, setReport] = useState<OrganisationReportResponse | null>(null);
   const queryAction = buildModuleQueryAction(moduleKey, location.search);
 
@@ -144,6 +148,7 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
     async function loadModuleRecords(): Promise<void> {
       if (!organisationId || !["cohorts", "interventions", "opportunities", "reports"].includes(moduleKey)) {
         setCohorts([]);
+        setOpportunities([]);
         setInterventions([]);
         setOpportunityRecommendations([]);
         setReport(null);
@@ -159,6 +164,7 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
           const records = await getOrganisationCohorts(organisationId);
           if (isMounted) {
             setCohorts(records);
+            setOpportunities([]);
             setInterventions([]);
             setOpportunityRecommendations([]);
             setReport(null);
@@ -170,6 +176,7 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
           const records = await getOrganisationMemberInterventions(organisationId);
           if (isMounted) {
             setCohorts([]);
+            setOpportunities([]);
             setInterventions(records);
             setOpportunityRecommendations([]);
             setReport(null);
@@ -182,15 +189,20 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
           if (isMounted) {
             setReport(reportSummary);
             setCohorts([]);
+            setOpportunities([]);
             setInterventions([]);
             setOpportunityRecommendations([]);
           }
           return;
         }
 
-        const records = await getOrganisationOpportunityRecommendations(organisationId);
+        const [publishedOpportunities, recommendationRecords] = await Promise.all([
+          getOrganisationOpportunities(organisationId),
+          getOrganisationOpportunityRecommendations(organisationId),
+        ]);
         if (isMounted) {
-          setOpportunityRecommendations(records);
+          setOpportunities(publishedOpportunities);
+          setOpportunityRecommendations(recommendationRecords);
           setCohorts([]);
           setInterventions([]);
           setReport(null);
@@ -231,6 +243,30 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
         showSuccess(`${cohort.name} cohort created.`);
       } catch (error) {
         showError(readError(error, "Unable to create organisation cohort."));
+      }
+      return;
+    }
+    if (moduleKey === "opportunities" && action.href.includes("create=true") && organisationId) {
+      const title = window.prompt("Opportunity title", "Junior Cloud Internship");
+      if (!title) return;
+      const description = window.prompt("Opportunity description", "Support cloud operations with a partner team.");
+      if (!description) return;
+      try {
+        const opportunity = await createOrganisationOpportunity(organisationId, {
+          title,
+          description,
+          requiredSkills: ["Project evidence", "Communication"],
+          opportunityType: "internship",
+          status: "open",
+        });
+        setOpportunities((currentOpportunities) =>
+          currentOpportunities.some((currentOpportunity) => currentOpportunity.id === opportunity.id)
+            ? currentOpportunities
+            : [opportunity, ...currentOpportunities],
+        );
+        showSuccess(`${opportunity.title} opportunity published.`);
+      } catch (error) {
+        showError(readError(error, "Unable to publish organisation opportunity."));
       }
       return;
     }
@@ -344,10 +380,12 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
                   error={recordsError}
                 />
               ) : moduleKey === "opportunities" ? (
-                <OpportunityRecommendationRecordsPanel
-                  records={opportunityRecommendations}
+                <OpportunityRecordsPanel
+                  opportunities={opportunities}
+                  recommendations={opportunityRecommendations}
                   isLoading={areRecordsLoading}
                   error={recordsError}
+                  onCreate={() => void handleAction(content.primaryAction)}
                 />
               ) : moduleKey === "reports" ? (
                 <ReportSummaryPanel
@@ -1659,41 +1697,114 @@ function InterventionRecordsPanel({
   );
 }
 
-function OpportunityRecommendationRecordsPanel({
-  records,
+function OpportunityRecordsPanel({
+  opportunities,
+  recommendations,
   isLoading,
   error,
+  onCreate,
 }: {
-  records: OrganisationMemberOpportunityRecommendationRecord[];
+  opportunities: OrganisationOpportunityRecord[];
+  recommendations: OrganisationMemberOpportunityRecommendationRecord[];
   isLoading: boolean;
   error: string | null;
+  onCreate: () => void;
 }): JSX.Element {
+  if (isLoading || error) {
+    return (
+      <LiveRecordsPanel
+        eyebrow="Live Opportunity Records"
+        title="Published opportunities"
+        description="Published opportunities and member recommendations are listed here for tenant matching review."
+        isLoading={isLoading}
+        error={error}
+        emptyTitle="No opportunity activity yet"
+        emptyDescription="Publish an opportunity or recommend one from a member drawer to create live records."
+      >
+        {[]}
+      </LiveRecordsPanel>
+    );
+  }
+
   return (
-    <LiveRecordsPanel
-      eyebrow="Live Opportunity Records"
-      title="Member recommendations"
-      description="Opportunity recommendations shared from member actions are listed here for matching review."
-      isLoading={isLoading}
-      error={error}
-      emptyTitle="No opportunity recommendations yet"
-      emptyDescription="Recommend an opportunity from a member drawer to create a live matching record."
-    >
-      {records.map((record) => (
-        <article key={record.id} className="grid gap-3 border-t border-[var(--color-outline-variant)] py-4 first:border-t-0 md:grid-cols-[1fr_0.7fr_0.5fr] md:items-start">
-          <div>
-            <h3 className="font-black text-[var(--color-on-surface)]">{record.title}</h3>
-            {record.note ? (
-              <p className="mt-1 text-sm leading-6 text-[var(--color-on-surface-variant)]">{record.note}</p>
-            ) : null}
+    <section className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--organisation-action)]">Live Opportunity Records</p>
+          <h2 className="mt-2 text-xl font-black tracking-tight text-[var(--color-on-surface)]">Published opportunities</h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--color-on-surface-variant)]">
+            Publish tenant opportunities, then use member recommendations to prepare targeted follow-up.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onCreate}
+          className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--organisation-action)] px-4 text-sm font-black text-[var(--organisation-on-action)] transition hover:opacity-90"
+        >
+          Add Opportunity
+        </button>
+      </div>
+
+      {opportunities.length > 0 ? (
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          {opportunities.map((opportunity) => (
+            <article key={opportunity.id} className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="font-black text-[var(--color-on-surface)]">{opportunity.title}</h3>
+                <span className="rounded-full bg-[var(--color-info-container)] px-3 py-1 text-xs font-bold text-[var(--color-info)]">
+                  {formatRecordLabel(opportunity.status)}
+                </span>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-[var(--color-on-surface-variant)]">{opportunity.description}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {[
+                  formatRecordLabel(opportunity.opportunity_type),
+                  ...(opportunity.required_skills || []),
+                ].map((tag) => renderTag(tag))}
+              </div>
+              <p className="mt-4 text-xs leading-5 text-[var(--color-on-surface-variant)]">
+                {opportunity.closing_date ? `Closes ${opportunity.closing_date}` : "No closing date set"}
+                {opportunity.external_url ? ` - ${opportunity.external_url}` : ""}
+              </p>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-5 rounded-2xl border border-dashed border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5">
+          <h3 className="font-black text-[var(--color-on-surface)]">No opportunities published yet</h3>
+          <p className="mt-1 text-sm leading-6 text-[var(--color-on-surface-variant)]">
+            Add an opportunity to make this tenant pipeline trackable.
+          </p>
+        </div>
+      )}
+
+      <div className="mt-6 border-t border-[var(--color-outline-variant)] pt-5">
+        <h3 className="font-black text-[var(--color-on-surface)]">Member recommendations</h3>
+        {recommendations.length > 0 ? (
+          <div className="mt-3">
+            {recommendations.map((record) => (
+              <article key={record.id} className="grid gap-3 border-t border-[var(--color-outline-variant)] py-4 first:border-t-0 md:grid-cols-[1fr_0.7fr_0.5fr] md:items-start">
+                <div>
+                  <h4 className="font-black text-[var(--color-on-surface)]">{record.title}</h4>
+                  {record.note ? (
+                    <p className="mt-1 text-sm leading-6 text-[var(--color-on-surface-variant)]">{record.note}</p>
+                  ) : null}
+                </div>
+                <div className="text-sm text-[var(--color-on-surface-variant)]">
+                  <p className="font-bold text-[var(--color-on-surface)]">Member</p>
+                  <p className="mt-1 break-all">{record.user_id}</p>
+                </div>
+                <RecordStatus status={record.status} createdAt={record.created_at} />
+              </article>
+            ))}
           </div>
-          <div className="text-sm text-[var(--color-on-surface-variant)]">
-            <p className="font-bold text-[var(--color-on-surface)]">Member</p>
-            <p className="mt-1 break-all">{record.user_id}</p>
-          </div>
-          <RecordStatus status={record.status} createdAt={record.created_at} />
-        </article>
-      ))}
-    </LiveRecordsPanel>
+        ) : (
+          <p className="mt-3 rounded-2xl bg-[var(--color-surface-container-low)] px-4 py-3 text-sm text-[var(--color-on-surface-variant)]">
+            No member recommendations yet.
+          </p>
+        )}
+      </div>
+    </section>
   );
 }
 
