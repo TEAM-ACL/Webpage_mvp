@@ -82,4 +82,64 @@ describe("organisation service tenant identity", () => {
       "No active organisation is connected to this account.",
     );
   });
+
+  it("loads intervention records from the tenant readback endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        items: [
+          {
+            id: "intervention-1",
+            organisation_id: "organisation-123",
+            user_id: "member-1",
+            type: "low_readiness",
+            reason: "Needs support.",
+            recommended_action: "Assign a project.",
+            risk_level: "medium",
+            status: "open",
+            created_at: null,
+          },
+        ],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { getOrganisationMemberInterventions } = await import("./organisation");
+
+    const records = await getOrganisationMemberInterventions(" organisation-123 ");
+
+    expect(records).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/organisations/organisation-123/interventions",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("loads opportunity recommendation records from the tenant readback endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        items: [
+          {
+            id: "opportunity-recommendation-1",
+            organisation_id: "organisation-123",
+            user_id: "member-1",
+            title: "Recommended opportunity",
+            note: null,
+            status: "recommended",
+            created_at: null,
+          },
+        ],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { getOrganisationOpportunityRecommendations } = await import("./organisation");
+
+    const records = await getOrganisationOpportunityRecommendations(" organisation-123 ");
+
+    expect(records).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/organisations/organisation-123/opportunity-recommendations",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
 });

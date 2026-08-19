@@ -24,6 +24,8 @@ import {
 } from "../../data/organisationModules";
 import {
   getInstitutionalAIInsight,
+  getOrganisationMemberInterventions,
+  getOrganisationOpportunityRecommendations,
   publishOrganisationConfiguration,
   refreshInstitutionalAIInsight,
   restorePublishedOrganisationConfiguration,
@@ -44,6 +46,8 @@ import type {
   OrganisationBranding,
   OrganisationConfiguration,
   OrganisationHomepageSection,
+  OrganisationMemberInterventionRecord,
+  OrganisationMemberOpportunityRecommendationRecord,
   OrganisationNavigationConfigItem,
   OrganisationSettings,
 } from "../../types/organisation";
@@ -97,6 +101,10 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
   const [isAiRefreshing, setIsAiRefreshing] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
+  const [interventions, setInterventions] = useState<OrganisationMemberInterventionRecord[]>([]);
+  const [opportunityRecommendations, setOpportunityRecommendations] = useState<OrganisationMemberOpportunityRecommendationRecord[]>([]);
+  const [recordsError, setRecordsError] = useState<string | null>(null);
+  const [areRecordsLoading, setAreRecordsLoading] = useState(false);
   const queryAction = buildModuleQueryAction(moduleKey, location.search);
 
   const loadInsight = useCallback(async () => {
@@ -122,6 +130,53 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
     setSelectedPrompt(null);
     void loadInsight();
   }, [loadInsight, moduleKey]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadModuleRecords(): Promise<void> {
+      if (!organisationId || !["interventions", "opportunities"].includes(moduleKey)) {
+        setInterventions([]);
+        setOpportunityRecommendations([]);
+        setRecordsError(null);
+        setAreRecordsLoading(false);
+        return;
+      }
+
+      setAreRecordsLoading(true);
+      setRecordsError(null);
+      try {
+        if (moduleKey === "interventions") {
+          const records = await getOrganisationMemberInterventions(organisationId);
+          if (isMounted) {
+            setInterventions(records);
+            setOpportunityRecommendations([]);
+          }
+          return;
+        }
+
+        const records = await getOrganisationOpportunityRecommendations(organisationId);
+        if (isMounted) {
+          setOpportunityRecommendations(records);
+          setInterventions([]);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setRecordsError(readError(error, "Unable to load organisation records."));
+        }
+      } finally {
+        if (isMounted) {
+          setAreRecordsLoading(false);
+        }
+      }
+    }
+
+    void loadModuleRecords();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [moduleKey, organisationId]);
 
   function handleAction(action: OrganisationModuleAction): void {
     navigate(toTenantPath(action.href, getOrganisationPath));
@@ -216,7 +271,25 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
       ) : (
         <>
           {queryAction ? <ModuleQueryActionBanner action={queryAction} /> : null}
-          <OrganisationModuleView content={content} onAction={handleAction} />
+          <OrganisationModuleView
+            content={content}
+            onAction={handleAction}
+            liveRecords={
+              moduleKey === "interventions" ? (
+                <InterventionRecordsPanel
+                  records={interventions}
+                  isLoading={areRecordsLoading}
+                  error={recordsError}
+                />
+              ) : moduleKey === "opportunities" ? (
+                <OpportunityRecommendationRecordsPanel
+                  records={opportunityRecommendations}
+                  isLoading={areRecordsLoading}
+                  error={recordsError}
+                />
+              ) : null
+            }
+          />
         </>
       )}
       {organisation ? <div className="mt-6">
@@ -1304,9 +1377,11 @@ function toTenantPath(
 function OrganisationModuleView({
   content,
   onAction,
+  liveRecords,
 }: {
   content: OrganisationModuleContent;
   onAction: (action: OrganisationModuleAction) => void;
+  liveRecords?: ReactNode;
 }): JSX.Element {
   return (
     <div className="space-y-6">
@@ -1342,6 +1417,8 @@ function OrganisationModuleView({
           </div>
         </div>
       </section>
+
+      {liveRecords}
 
       <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
         <section className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
@@ -1389,6 +1466,140 @@ function OrganisationModuleView({
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+function InterventionRecordsPanel({
+  records,
+  isLoading,
+  error,
+}: {
+  records: OrganisationMemberInterventionRecord[];
+  isLoading: boolean;
+  error: string | null;
+}): JSX.Element {
+  return (
+    <LiveRecordsPanel
+      eyebrow="Live Support Records"
+      title="Created interventions"
+      description="Interventions created from member actions are stored here for tenant-level follow-up."
+      isLoading={isLoading}
+      error={error}
+      emptyTitle="No interventions created yet"
+      emptyDescription="Create an intervention from a member profile or support alert to start tracking live cases."
+    >
+      {records.map((record) => (
+        <article key={record.id} className="grid gap-3 border-t border-[var(--color-outline-variant)] py-4 first:border-t-0 md:grid-cols-[1fr_0.7fr_0.5fr] md:items-start">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-black text-[var(--color-on-surface)]">{formatRecordLabel(record.type)}</h3>
+              <span className="rounded-full bg-[var(--color-warning-container)] px-3 py-1 text-xs font-bold text-[var(--color-warning)]">{record.risk_level}</span>
+            </div>
+            <p className="mt-1 text-sm leading-6 text-[var(--color-on-surface-variant)]">{record.reason}</p>
+            <p className="mt-2 text-sm font-semibold text-[var(--organisation-action)]">{record.recommended_action}</p>
+          </div>
+          <div className="text-sm text-[var(--color-on-surface-variant)]">
+            <p className="font-bold text-[var(--color-on-surface)]">Member</p>
+            <p className="mt-1 break-all">{record.user_id}</p>
+          </div>
+          <RecordStatus status={record.status} createdAt={record.created_at} />
+        </article>
+      ))}
+    </LiveRecordsPanel>
+  );
+}
+
+function OpportunityRecommendationRecordsPanel({
+  records,
+  isLoading,
+  error,
+}: {
+  records: OrganisationMemberOpportunityRecommendationRecord[];
+  isLoading: boolean;
+  error: string | null;
+}): JSX.Element {
+  return (
+    <LiveRecordsPanel
+      eyebrow="Live Opportunity Records"
+      title="Member recommendations"
+      description="Opportunity recommendations shared from member actions are listed here for matching review."
+      isLoading={isLoading}
+      error={error}
+      emptyTitle="No opportunity recommendations yet"
+      emptyDescription="Recommend an opportunity from a member drawer to create a live matching record."
+    >
+      {records.map((record) => (
+        <article key={record.id} className="grid gap-3 border-t border-[var(--color-outline-variant)] py-4 first:border-t-0 md:grid-cols-[1fr_0.7fr_0.5fr] md:items-start">
+          <div>
+            <h3 className="font-black text-[var(--color-on-surface)]">{record.title}</h3>
+            {record.note ? (
+              <p className="mt-1 text-sm leading-6 text-[var(--color-on-surface-variant)]">{record.note}</p>
+            ) : null}
+          </div>
+          <div className="text-sm text-[var(--color-on-surface-variant)]">
+            <p className="font-bold text-[var(--color-on-surface)]">Member</p>
+            <p className="mt-1 break-all">{record.user_id}</p>
+          </div>
+          <RecordStatus status={record.status} createdAt={record.created_at} />
+        </article>
+      ))}
+    </LiveRecordsPanel>
+  );
+}
+
+function LiveRecordsPanel({
+  eyebrow,
+  title,
+  description,
+  isLoading,
+  error,
+  emptyTitle,
+  emptyDescription,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  isLoading: boolean;
+  error: string | null;
+  emptyTitle: string;
+  emptyDescription: string;
+  children: ReactNode;
+}): JSX.Element {
+  const hasRecords = Array.isArray(children) ? children.length > 0 : Boolean(children);
+  return (
+    <section className="rounded-3xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-6 shadow-sm">
+      <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--organisation-action)]">{eyebrow}</p>
+      <h2 className="mt-2 text-xl font-black tracking-tight text-[var(--color-on-surface)]">{title}</h2>
+      <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--color-on-surface-variant)]">{description}</p>
+      {isLoading ? (
+        <p className="mt-5 rounded-2xl bg-[var(--color-surface-container-low)] px-4 py-3 text-sm font-semibold text-[var(--color-on-surface-variant)]">
+          Loading live records...
+        </p>
+      ) : error ? (
+        <p className="mt-5 rounded-2xl border border-[var(--color-warning)] bg-[var(--color-warning-container)] px-4 py-3 text-sm font-semibold text-[var(--color-warning)]">
+          {error}
+        </p>
+      ) : hasRecords ? (
+        <div className="mt-5">{children}</div>
+      ) : (
+        <div className="mt-5 rounded-2xl border border-dashed border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5">
+          <h3 className="font-black text-[var(--color-on-surface)]">{emptyTitle}</h3>
+          <p className="mt-1 text-sm leading-6 text-[var(--color-on-surface-variant)]">{emptyDescription}</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function RecordStatus({ status, createdAt }: { status: string; createdAt: string | null }): JSX.Element {
+  return (
+    <div className="text-sm text-[var(--color-on-surface-variant)] md:text-right">
+      <span className="inline-flex rounded-full bg-[var(--color-info-container)] px-3 py-1 text-xs font-bold text-[var(--color-info)]">
+        {formatRecordLabel(status)}
+      </span>
+      {createdAt ? <p className="mt-2">{formatDateTime(createdAt)}</p> : null}
     </div>
   );
 }
@@ -1450,6 +1661,10 @@ function renderTag(tag: string): ReactNode {
 
 function formatRole(role: string): string {
   return role.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function formatRecordLabel(value: string): string {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
 function formatDateTime(value: string): string {
