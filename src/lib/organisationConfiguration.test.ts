@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  DEFAULT_ORGANISATION_BRANDING,
   editableConfigurationFingerprint,
+  normaliseOrganisationBrandingForSave,
   normaliseOrganisationSettingsForSave,
+  resetOrganisationBranding,
   validateOrganisationConfiguration,
 } from "./organisationConfiguration";
 import type {
@@ -74,6 +77,32 @@ describe("organisation configuration", () => {
     };
 
     expect(validateOrganisationConfiguration(configuration)).toMatch(/contrast ratio/i);
+  });
+
+  it("normalises brand assets and colours before saving", () => {
+    const result = normaliseOrganisationBrandingForSave({
+      ...branding,
+      logoUrl: " https://example.com/logo.svg ",
+      faviconUrl: " ",
+      primaryColour: "#ABCDEF",
+      secondaryColour: "#2563EB",
+    });
+
+    expect(result.logoUrl).toBe("https://example.com/logo.svg");
+    expect(result.faviconUrl).toBeNull();
+    expect(result.primaryColour).toBe("#abcdef");
+    expect(result.secondaryColour).toBe("#2563eb");
+  });
+
+  it("resets editable branding to the VisionTech defaults", () => {
+    const result = resetOrganisationBranding({
+      ...branding,
+      logoUrl: "https://example.com/custom-logo.png",
+      primaryColour: "#dc2626",
+      themeMode: "dark",
+    });
+
+    expect(result).toEqual(DEFAULT_ORGANISATION_BRANDING);
   });
 
   it("does not treat server publication metadata as an editable change", () => {

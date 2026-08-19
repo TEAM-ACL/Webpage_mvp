@@ -15,6 +15,30 @@ const requiredNavigationKeys = new Set<OrganisationNavigationKey>(["overview", "
 const terminologyKeys = new Set(["members", "cohorts", "opportunities", "interventions"]);
 const supportedAssetExtensions = [".gif", ".ico", ".jpeg", ".jpg", ".png", ".svg", ".webp"];
 
+export const DEFAULT_ORGANISATION_BRANDING: OrganisationBranding = {
+  logoUrl: null,
+  faviconUrl: null,
+  primaryColour: "#1f0954",
+  secondaryColour: "#2563eb",
+  accentColour: "#7c3aed",
+  backgroundColour: "#ffffff",
+  textColour: "#111827",
+  fontFamily: "Inter",
+  borderRadius: "medium",
+  themeMode: "light",
+  loginBannerUrl: null,
+  dashboardBannerUrl: null,
+};
+
+export function resetOrganisationBranding(
+  current: OrganisationBranding,
+): OrganisationBranding {
+  return {
+    ...current,
+    ...DEFAULT_ORGANISATION_BRANDING,
+  };
+}
+
 export function normaliseOrganisationSettingsForSave(
   settings: OrganisationSettings,
 ): OrganisationSettings {

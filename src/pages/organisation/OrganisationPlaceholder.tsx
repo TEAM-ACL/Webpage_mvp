@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowRight, Info, LockKeyhole } from "lucide-react";
+import { ArrowRight, Image as ImageIcon, Info, LockKeyhole, RotateCcw } from "lucide-react";
 import type { JSX, ReactNode } from "react";
 import OrganisationAIPanel from "../../components/organisation/OrganisationAIPanel";
 import OrganisationLayout from "../../components/organisation/OrganisationLayout";
@@ -37,9 +37,11 @@ import {
   saveOrganisationConfiguration,
 } from "../../services/organisation";
 import {
+  DEFAULT_ORGANISATION_BRANDING,
   editableConfigurationFingerprint,
   normaliseOrganisationBrandingForSave,
   normaliseOrganisationSettingsForSave,
+  resetOrganisationBranding,
   validateOrganisationConfiguration,
 } from "../../lib/organisationConfiguration";
 import { isOrganisationAdminRole, isPlatformAdminRole } from "../../lib/auth";
@@ -593,6 +595,10 @@ function OrganisationPersonalisationSettings({
       !== editableConfigurationFingerprint(savedConfiguration),
     [currentConfiguration, savedConfiguration],
   );
+  const validationMessage = useMemo(
+    () => validateOrganisationConfiguration(currentConfiguration),
+    [currentConfiguration],
+  );
   const isWorking = isSaving || isPublishing || isRestoring;
   const previewThemeVariables = useMemo(
     () => buildOrganisationPortalThemeVariables(branding, { prefix: "preview", systemMode }),
@@ -730,6 +736,10 @@ function OrganisationPersonalisationSettings({
   function handleDiscardLocalEdits(): void {
     setBranding(savedConfiguration.branding);
     setSettings(savedConfiguration.settings);
+  }
+
+  function resetBrandingDefaults(): void {
+    setBranding((current) => resetOrganisationBranding(current));
   }
 
   function updateFeatureFlag(key: string, enabled: boolean): void {
@@ -894,7 +904,7 @@ function OrganisationPersonalisationSettings({
             </button>
             <button
               type="button"
-              disabled={isWorking || !isDirty || !canManageSettings}
+              disabled={isWorking || !isDirty || Boolean(validationMessage) || !canManageSettings}
               onClick={() => void handleSave()}
               className="inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--organisation-action)] px-5 text-sm font-black text-[var(--organisation-on-action)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -908,6 +918,12 @@ function OrganisationPersonalisationSettings({
             You can view these settings, but only organisation administrators can update them.
           </div>
         )}
+
+        {validationMessage ? (
+          <div className="mt-5 rounded-2xl border border-[var(--color-error)] bg-[var(--color-error-container)] p-4 text-sm font-semibold text-[var(--color-error)]">
+            {validationMessage}
+          </div>
+        ) : null}
 
         <div className="mt-5 grid gap-3 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 md:grid-cols-[1fr_auto] md:items-center">
           <div>
@@ -936,7 +952,7 @@ function OrganisationPersonalisationSettings({
             </button>
             <button
               type="button"
-              disabled={isWorking || (!isDirty && settings.configurationStatus !== "draft") || !canManageSettings}
+              disabled={isWorking || (!isDirty && settings.configurationStatus !== "draft") || Boolean(validationMessage) || !canManageSettings}
               onClick={() => void handlePublish()}
               className="inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--organisation-action)] bg-[var(--color-surface-container-lowest)] px-5 text-sm font-black text-[var(--organisation-action)] transition hover:bg-[var(--color-surface-container-high)] disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -946,71 +962,132 @@ function OrganisationPersonalisationSettings({
         </div>
 
         <fieldset disabled={!canManageSettings}>
-        <div className="mt-6 grid gap-5 md:grid-cols-2">
-          <TextInput
-            label="Logo URL"
-            value={branding.logoUrl || ""}
-            placeholder="https://example.com/logo.png"
-            type="url"
-            maxLength={2000}
-            onChange={(value) => setBranding((current) => ({ ...current, logoUrl: value || null }))}
-          />
-          <TextInput
-            label="Dashboard Banner URL"
-            value={branding.dashboardBannerUrl || ""}
-            placeholder="https://example.com/banner.png"
-            type="url"
-            maxLength={2000}
-            onChange={(value) => setBranding((current) => ({ ...current, dashboardBannerUrl: value || null }))}
-          />
-          <ColourInput
-            label="Primary Colour"
-            value={branding.primaryColour}
-            description={colourFieldHints.primary}
-            onChange={(value) => setBranding((current) => ({ ...current, primaryColour: value }))}
-          />
-          <ColourInput
-            label="Secondary Colour"
-            value={branding.secondaryColour}
-            description={colourFieldHints.secondary}
-            onChange={(value) => setBranding((current) => ({ ...current, secondaryColour: value }))}
-          />
-          <ColourInput
-            label="Accent Colour"
-            value={branding.accentColour}
-            description={colourFieldHints.accent}
-            onChange={(value) => setBranding((current) => ({ ...current, accentColour: value }))}
-          />
-          <ColourInput
-            label="Text Colour"
-            value={branding.textColour}
-            description={colourFieldHints.text}
-            onChange={(value) => setBranding((current) => ({ ...current, textColour: value }))}
-          />
-          <ColourInput
-            label="Background Colour"
-            value={branding.backgroundColour}
-            description={colourFieldHints.background}
-            onChange={(value) => setBranding((current) => ({ ...current, backgroundColour: value }))}
-          />
-          <SelectInput
-            label="Theme Mode"
-            value={branding.themeMode}
-            options={["light", "dark", "system"]}
-            onChange={(value) => setBranding((current) => ({ ...current, themeMode: value as OrganisationBranding["themeMode"] }))}
-          />
-          <SelectInput
-            label="Border Radius"
-            value={branding.borderRadius}
-            options={["small", "medium", "large", "rounded"]}
-            onChange={(value) => setBranding((current) => ({ ...current, borderRadius: value as OrganisationBranding["borderRadius"] }))}
-          />
-        </div>
-        <div className="mt-4 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm leading-6 text-[var(--color-on-surface-variant)]">
-          <p className="font-black text-[var(--color-on-surface)]">Palette coverage</p>
-          <p className="mt-1">
-            These colours theme tenant-facing organisation areas, previews, headers, actions, navigation chips, and module highlights. Core VisionTech dashboard chrome keeps neutral system colours so readability and platform consistency stay intact.
-          </p>
+        <div className="mt-6 rounded-[var(--organisation-card-radius,1.5rem)] border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--organisation-action)]">Brand Assets</p>
+              <h3 className="mt-2 text-xl font-black text-[var(--color-on-surface)]">Logo, banner, and visual defaults</h3>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--color-on-surface-variant)]">
+                Use hosted image URLs for organisation assets. Supported image files are checked before save.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={resetBrandingDefaults}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 text-xs font-black text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-high)]"
+            >
+              <RotateCcw className="h-4 w-4" aria-hidden="true" />
+              Reset Branding
+            </button>
+          </div>
+
+          <div className="mt-5 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+            <BrandAssetPreview
+              label="Logo"
+              url={branding.logoUrl}
+              fallback={organisation.name.slice(0, 2).toUpperCase()}
+            />
+            <BrandAssetPreview
+              label="Dashboard Banner"
+              url={branding.dashboardBannerUrl}
+              fallback="Dashboard banner"
+              wide
+            />
+          </div>
+
+          <div className="mt-5 grid gap-5 md:grid-cols-2">
+            <TextInput
+              label="Logo URL"
+              value={branding.logoUrl || ""}
+              placeholder="https://example.com/logo.png"
+              type="url"
+              maxLength={2000}
+              onChange={(value) => setBranding((current) => ({ ...current, logoUrl: value || null }))}
+            />
+            <TextInput
+              label="Favicon URL"
+              value={branding.faviconUrl || ""}
+              placeholder="https://example.com/favicon.ico"
+              type="url"
+              maxLength={2000}
+              onChange={(value) => setBranding((current) => ({ ...current, faviconUrl: value || null }))}
+            />
+            <TextInput
+              label="Dashboard Banner URL"
+              value={branding.dashboardBannerUrl || ""}
+              placeholder="https://example.com/banner.png"
+              type="url"
+              maxLength={2000}
+              onChange={(value) => setBranding((current) => ({ ...current, dashboardBannerUrl: value || null }))}
+            />
+            <TextInput
+              label="Login Banner URL"
+              value={branding.loginBannerUrl || ""}
+              placeholder="https://example.com/login-banner.webp"
+              type="url"
+              maxLength={2000}
+              onChange={(value) => setBranding((current) => ({ ...current, loginBannerUrl: value || null }))}
+            />
+          </div>
+
+          <div className="mt-6 grid gap-5 md:grid-cols-2">
+            <ColourInput
+              label="Primary Colour"
+              value={branding.primaryColour}
+              description={colourFieldHints.primary}
+              defaultValue={DEFAULT_ORGANISATION_BRANDING.primaryColour}
+              onChange={(value) => setBranding((current) => ({ ...current, primaryColour: value }))}
+            />
+            <ColourInput
+              label="Secondary Colour"
+              value={branding.secondaryColour}
+              description={colourFieldHints.secondary}
+              defaultValue={DEFAULT_ORGANISATION_BRANDING.secondaryColour}
+              onChange={(value) => setBranding((current) => ({ ...current, secondaryColour: value }))}
+            />
+            <ColourInput
+              label="Accent Colour"
+              value={branding.accentColour}
+              description={colourFieldHints.accent}
+              defaultValue={DEFAULT_ORGANISATION_BRANDING.accentColour}
+              onChange={(value) => setBranding((current) => ({ ...current, accentColour: value }))}
+            />
+            <ColourInput
+              label="Text Colour"
+              value={branding.textColour}
+              description={colourFieldHints.text}
+              defaultValue={DEFAULT_ORGANISATION_BRANDING.textColour}
+              onChange={(value) => setBranding((current) => ({ ...current, textColour: value }))}
+            />
+            <ColourInput
+              label="Background Colour"
+              value={branding.backgroundColour}
+              description={colourFieldHints.background}
+              defaultValue={DEFAULT_ORGANISATION_BRANDING.backgroundColour}
+              onChange={(value) => setBranding((current) => ({ ...current, backgroundColour: value }))}
+            />
+            <div className="grid gap-5 sm:grid-cols-2">
+              <SelectInput
+                label="Theme Mode"
+                value={branding.themeMode}
+                options={["light", "dark", "system"]}
+                onChange={(value) => setBranding((current) => ({ ...current, themeMode: value as OrganisationBranding["themeMode"] }))}
+              />
+              <SelectInput
+                label="Border Radius"
+                value={branding.borderRadius}
+                options={["small", "medium", "large", "rounded"]}
+                onChange={(value) => setBranding((current) => ({ ...current, borderRadius: value as OrganisationBranding["borderRadius"] }))}
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-4 text-sm leading-6 text-[var(--color-on-surface-variant)]">
+            <p className="font-black text-[var(--color-on-surface)]">Palette coverage</p>
+            <p className="mt-1">
+              These colours theme tenant-facing organisation areas, previews, headers, actions, navigation chips, and module highlights. Core VisionTech dashboard chrome keeps neutral system colours so readability and platform consistency stay intact.
+            </p>
+          </div>
         </div>
 
         <div className="mt-8 rounded-[var(--organisation-card-radius,1.5rem)] border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5">
@@ -1153,7 +1230,7 @@ function OrganisationPersonalisationSettings({
                     <p className="text-sm font-black text-[var(--color-on-surface)]">{widget.label}</p>
                     <p className="mt-1 text-xs leading-5 text-[var(--color-on-surface-variant)]">
                       {configuredSection?.heading || configuredSection?.description
-                        ? `${configuredSection?.heading || widget.label} — ${configuredSection?.description || widget.description}`
+                        ? `${configuredSection?.heading || widget.label} - ${configuredSection?.description || widget.description}`
                         : "Default widget title only. Add a heading or description to display a custom section intro."}
                     </p>
                   </div>
@@ -1336,6 +1413,36 @@ function OrganisationPersonalisationSettings({
   );
 }
 
+function BrandAssetPreview({
+  label,
+  url,
+  fallback,
+  wide = false,
+}: {
+  label: string;
+  url: string | null;
+  fallback: string;
+  wide?: boolean;
+}): JSX.Element {
+  return (
+    <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]">{label}</p>
+        <ImageIcon className="h-4 w-4 text-[var(--organisation-action)]" aria-hidden="true" />
+      </div>
+      <div
+        className={`mt-3 flex items-center justify-center overflow-hidden rounded-2xl border border-dashed border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] text-sm font-black text-[var(--color-on-surface-variant)] ${wide ? "aspect-[16/5]" : "aspect-square max-h-44"}`}
+      >
+        {url ? (
+          <img src={url} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <span className="px-4 text-center">{fallback}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function NumberInput({
   label,
   value,
@@ -1398,11 +1505,13 @@ function ColourInput({
   label,
   value,
   description,
+  defaultValue,
   onChange,
 }: {
   label: string;
   value: string;
   description: string;
+  defaultValue: string;
   onChange: (value: string) => void;
 }): JSX.Element {
   return (
@@ -1434,6 +1543,14 @@ function ColourInput({
           onChange={(event) => onChange(event.target.value)}
           className="min-w-0 flex-1 bg-transparent px-3 text-sm font-bold text-[var(--color-on-surface)] outline-none"
         />
+      </div>
+      <div className="mt-2 flex items-center gap-2 text-xs font-semibold text-[var(--color-on-surface-variant)]">
+        <span
+          className="h-4 w-4 rounded-full border border-[var(--color-outline-variant)]"
+          style={{ backgroundColor: defaultValue }}
+          aria-hidden="true"
+        />
+        Default {defaultValue}
       </div>
     </div>
   );
