@@ -12,6 +12,7 @@ import type {
   OrganisationMemberInterventionRecord,
   OrganisationMemberOpportunityRecommendationRecord,
   OrganisationOverviewResponse,
+  OrganisationReportResponse,
   PublicOrganisationProfile,
   OrganisationSettings,
   OrganisationSettingsUpdate,
@@ -777,6 +778,23 @@ export async function getOrganisationOpportunityRecommendations(
 
   const body = (await response.json()) as { items?: OrganisationMemberOpportunityRecommendationRecord[] };
   return body.items ?? [];
+}
+
+export async function getOrganisationReportSummary(
+  organisationId: string,
+): Promise<OrganisationReportResponse> {
+  const response = await fetch(`${API_BASE_URL}${organisationDataEndpoint("reports/summary", organisationId)}`, {
+    method: "GET",
+    credentials: "include",
+    headers: organisationHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Unable to load organisation report.");
+  }
+
+  return (await response.json()) as OrganisationReportResponse;
 }
 
 export async function getInstitutionalAIInsight(organisationId?: string | null): Promise<InstitutionalAIInsightResponse> {
