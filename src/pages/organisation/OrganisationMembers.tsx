@@ -17,6 +17,8 @@ import { useOrganisation } from "../../context/OrganisationContext";
 import {
   assignMemberToCohort,
   createMemberIntervention,
+  createOrganisationCohort,
+  getOrganisationCohorts,
   getOrganisationMembers,
   getOrganisationOverview,
   inviteOrganisationMember,
@@ -39,6 +41,7 @@ export default function OrganisationMembers(): JSX.Element {
   const organisationId = organisation?.id;
   const [overview, setOverview] = useState<OrganisationOverviewResponse | null>(null);
   const [members, setMembers] = useState<OrganisationMember[]>([]);
+  const [cohortOptions, setCohortOptions] = useState<string[]>([]);
   const [filters, setFilters] = useState<MemberFiltersState>(defaultMemberFilters);
   const [selectedMember, setSelectedMember] = useState<OrganisationMember | null>(null);
   const [isMemberDrawerOpen, setIsMemberDrawerOpen] = useState(false);
@@ -51,9 +54,10 @@ export default function OrganisationMembers(): JSX.Element {
 
     async function loadMembers(): Promise<void> {
       setIsLoading(true);
-      const [overviewResult, membersResult] = await Promise.allSettled([
+      const [overviewResult, membersResult, cohortsResult] = await Promise.allSettled([
         getOrganisationOverview(organisationId),
         getOrganisationMembers(organisationId),
+        organisationId ? getOrganisationCohorts(organisationId) : Promise.resolve([]),
       ]);
 
       if (!isMounted) return;
@@ -62,6 +66,9 @@ export default function OrganisationMembers(): JSX.Element {
       }
       if (membersResult.status === "fulfilled") {
         setMembers(membersResult.value);
+      }
+      if (cohortsResult.status === "fulfilled") {
+        setCohortOptions(cohortsResult.value.map((cohort) => cohort.name));
       }
       setIsLoading(false);
     }
@@ -100,8 +107,14 @@ export default function OrganisationMembers(): JSX.Element {
   const tenantInviteUrl = `${window.location.origin}/org/${activeSlug}/signup`;
 
   const cohorts = useMemo(
-    () => Array.from(new Set(members.map((member) => member.cohortName).filter(Boolean))) as string[],
-    [members],
+    () =>
+      Array.from(
+        new Set([
+          ...cohortOptions,
+          ...members.map((member) => member.cohortName).filter(Boolean),
+        ]),
+      ) as string[],
+    [cohortOptions, members],
   );
   const goals = useMemo(
     () => Array.from(new Set(members.map((member) => member.goal).filter(Boolean))) as string[],
@@ -148,6 +161,20 @@ export default function OrganisationMembers(): JSX.Element {
       currentMember?.id === member.id ? updatedMember : currentMember,
     );
     setNotice(`${member.fullName} assigned to ${cohortName}.`);
+  }
+
+  async function handleCreateCohort(): Promise<void> {
+    const cohortName = window.prompt("Create cohort", "Digital Skills Cohort");
+    if (!cohortName || !organisationId) return;
+    const cohort = await createOrganisationCohort(organisationId, {
+      name: cohortName,
+      description: "Created from the organisation members dashboard.",
+      status: "active",
+    });
+    setCohortOptions((currentCohorts) =>
+      currentCohorts.includes(cohort.name) ? currentCohorts : [cohort.name, ...currentCohorts],
+    );
+    setNotice(`${cohort.name} cohort created.`);
   }
 
   async function handleCreateIntervention(member: OrganisationMember): Promise<void> {
@@ -233,7 +260,7 @@ export default function OrganisationMembers(): JSX.Element {
             <MailPlus className="mr-2 h-4 w-4" />
             Invite Member
           </button>
-          <button type="button" className={outlineButton} onClick={() => setNotice("Create Cohort will connect to the cohorts module next.")}>
+          <button type="button" className={outlineButton} onClick={handleCreateCohort}>
             <Plus className="mr-2 h-4 w-4" />
             Create Cohort
           </button>

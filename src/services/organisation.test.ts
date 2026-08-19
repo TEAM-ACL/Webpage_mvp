@@ -168,4 +168,69 @@ describe("organisation service tenant identity", () => {
       expect.objectContaining({ method: "GET" }),
     );
   });
+
+  it("loads cohorts from the tenant cohort endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        items: [
+          {
+            cohort_id: "cohort-1",
+            name: "Digital Skills Cohort",
+            member_count: 0,
+            average_completion: 0,
+            average_readiness: 0,
+            start_date: null,
+            end_date: null,
+            status: "active",
+          },
+        ],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { getOrganisationCohorts } = await import("./organisation");
+
+    const cohorts = await getOrganisationCohorts(" organisation-123 ");
+
+    expect(cohorts).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/organisations/organisation-123/cohorts",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("creates cohorts against the tenant cohort endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        cohort_id: "cohort-1",
+        name: "Digital Skills Cohort",
+        member_count: 0,
+        average_completion: 0,
+        average_readiness: 0,
+        start_date: null,
+        end_date: null,
+        status: "active",
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { createOrganisationCohort } = await import("./organisation");
+
+    await createOrganisationCohort(" organisation-123 ", {
+      name: "Digital Skills Cohort",
+      description: "Created from members.",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/organisations/organisation-123/cohorts",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          name: "Digital Skills Cohort",
+          description: "Created from members.",
+          status: "active",
+        }),
+      }),
+    );
+  });
 });
