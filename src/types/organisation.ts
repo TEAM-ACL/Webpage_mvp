@@ -399,6 +399,7 @@ export type PublicOrganisationProfile = {
   slug: string;
   organisationType: string | null;
   description: string | null;
+  websiteUrl?: string | null;
   logoUrl: string | null;
   branding: OrganisationBranding;
   settings: OrganisationSettings;

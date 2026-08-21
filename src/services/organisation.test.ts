@@ -111,6 +111,33 @@ describe("organisation service tenant identity", () => {
     ).rejects.toThrow("Organisation administrator access is required.");
   });
 
+  it("maps public organisation website URLs from the profile endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: "organisation-123",
+        name: "VisionTech Growth Academy",
+        slug: "visiontech-growth-academy",
+        organisation_type: "training_provider",
+        description: "Practical AI readiness programmes.",
+        website_url: "https://academy.example.com",
+        logo_url: null,
+        branding: { primary_colour: "#2563eb" },
+        settings: { welcome_heading: "Welcome" },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { getPublicOrganisationProfile } = await import("./organisation");
+
+    const profile = await getPublicOrganisationProfile("visiontech-growth-academy");
+
+    expect(profile.websiteUrl).toBe("https://academy.example.com");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/organisations/public/visiontech-growth-academy",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
   it("rejects a malformed active-organisation response instead of inventing an ID", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
