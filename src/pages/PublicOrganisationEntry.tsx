@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type JSX } from "react";
-import { ArrowLeft, ArrowRight, Building2, CheckCircle2, Sparkles, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, CheckCircle2, ExternalLink, Sparkles, Users } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import {
@@ -135,6 +135,17 @@ export default function PublicOrganisationEntry(): JSX.Element {
                   <p className="max-w-3xl text-xl leading-9 text-[var(--tenant-on-surface-variant)]">
                     {profile.settings.welcomeMessage || profile.description || "Access your organisation workspace for guided learning, opportunity readiness, support, and measurable progress."}
                   </p>
+                  {profile.websiteUrl ? (
+                    <a
+                      href={profile.websiteUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-[var(--organisation-card-radius,1rem)] border border-[var(--tenant-outline-variant)] bg-[var(--tenant-surface-container-lowest)] px-4 py-3 text-sm font-black text-[var(--tenant-text)] shadow-sm transition hover:border-[var(--tenant-action)] hover:text-[var(--tenant-action)]"
+                    >
+                      Visit Website
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  ) : null}
                 </div>
                 <div className="flex flex-wrap gap-4">
                   <Link to={loginPath} state={{ redirectTo }} className="inline-flex items-center gap-2 rounded-2xl bg-[var(--tenant-action)] px-6 py-4 text-sm font-black text-[var(--tenant-on-action)] shadow-xl transition hover:opacity-90">

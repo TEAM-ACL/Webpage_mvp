@@ -135,6 +135,7 @@ type PublicOrganisationBackendResponse = {
   slug: string;
   organisation_type: string | null;
   description: string | null;
+  website_url?: string | null;
   logo_url: string | null;
   branding?: OrganisationBrandingBackendResponse | null;
   settings?: OrganisationSettingsBackendResponse | null;
@@ -272,6 +273,7 @@ export async function getPublicOrganisationProfile(slug: string): Promise<Public
     slug: data.slug,
     organisationType: data.organisation_type,
     description: data.description,
+    websiteUrl: data.website_url ?? null,
     logoUrl: data.logo_url,
     branding: mapOrganisationBranding(data.branding),
     settings: mapOrganisationSettings(data.settings),
