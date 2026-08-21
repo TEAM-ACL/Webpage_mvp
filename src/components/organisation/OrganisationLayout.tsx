@@ -34,6 +34,7 @@ export default function OrganisationLayout({
   const { isDark } = useTheme();
   const branding = displayOrganisation.branding;
   const settings = displayOrganisation.settings;
+  const organisationLogoUrl = branding?.logoUrl || displayOrganisation.logoUrl;
   const shellStyle = {
     ...buildOrganisationThemeVariables(branding, { mode: isDark ? "dark" : "light" }),
     "--color-primary": "var(--organisation-action)",
@@ -51,7 +52,7 @@ export default function OrganisationLayout({
           organisationType={organisationType}
           administratorRole={administratorRole}
           status={status}
-          logoUrl={branding?.logoUrl}
+          logoUrl={organisationLogoUrl}
           primaryColour={branding?.primaryColour}
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
@@ -63,7 +64,7 @@ export default function OrganisationLayout({
             actions={actions}
             organisationName={organisationName}
             organisationType={organisationType}
-            logoUrl={branding?.logoUrl}
+            logoUrl={organisationLogoUrl}
             bannerUrl={branding?.dashboardBannerUrl}
             welcomeHeading={settings?.welcomeHeading}
             welcomeMessage={settings?.welcomeMessage}
