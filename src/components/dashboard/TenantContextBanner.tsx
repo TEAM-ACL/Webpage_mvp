@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Building2 } from "lucide-react";
+import { ArrowRight, Building2, ExternalLink } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
 import { buildOrganisationThemeVariables } from "../../lib/organisationTheme";
@@ -89,14 +89,27 @@ export default function TenantContextBanner({ className = "mb-6" }: TenantContex
             ) : null}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate(`/org/${tenantOrganisationSlug}`)}
-          className="inline-flex h-11 w-fit items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 text-sm font-bold text-[var(--color-on-surface)] transition hover:border-[var(--tenant-action)] hover:bg-[var(--color-surface-container-low)]"
-        >
-          View organisation page
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {tenantProfile?.websiteUrl ? (
+            <a
+              href={tenantProfile.websiteUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-11 w-fit items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 text-sm font-bold text-[var(--color-on-surface)] transition hover:border-[var(--tenant-action)] hover:bg-[var(--color-surface-container-low)]"
+            >
+              Visit website
+              <ExternalLink className="ml-2 h-4 w-4" />
+            </a>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => navigate(`/org/${tenantOrganisationSlug}`)}
+            className="inline-flex h-11 w-fit items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 text-sm font-bold text-[var(--color-on-surface)] transition hover:border-[var(--tenant-action)] hover:bg-[var(--color-surface-container-low)]"
+          >
+            View organisation page
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </button>
+        </div>
       </div>
     </section>
   );
