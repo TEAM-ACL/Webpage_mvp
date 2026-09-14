@@ -38,6 +38,7 @@ import { ToastProvider } from './context/ToastContext';
 import ResetPassword from './pages/ResetPassword';
 import { RequireAdmin, RequireAuth, RequireOnboardingComplete, RequireOrganisationAdmin, RedirectIfOnboarded } from './components/ProtectedRoute';
 import { hasOrganisationDashboardAccessForUser } from './lib/auth';
+import { buildLegacyOrganisationRedirectPath } from './config/organisationTenant';
 
 function AuthHashBridge() {
   const navigate = useNavigate();
@@ -103,7 +104,17 @@ function AuthHashBridge() {
 
 function OrganisationIndexRedirect() {
   const { organisationBasePath } = useOrganisation();
-  return <Navigate to={organisationBasePath} replace />;
+  const location = useLocation();
+  return (
+    <Navigate
+      to={buildLegacyOrganisationRedirectPath(
+        location.pathname,
+        location.search,
+        organisationBasePath,
+      )}
+      replace
+    />
+  );
 }
 
 function TenantLoginRedirect() {
