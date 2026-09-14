@@ -1,18 +1,14 @@
 import type { JSX } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, BriefcaseBusiness, Building2, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, BriefcaseBusiness, Building2 } from "lucide-react";
+import BrandLogo from "../components/BrandLogo";
 
 export default function OrganizationAuth(): JSX.Element {
   return (
     <main className="grid min-h-screen bg-white lg:grid-cols-[0.95fr_1.05fr]">
       <section className="relative hidden overflow-hidden bg-[#12063a] px-12 py-10 text-white lg:flex lg:flex-col lg:justify-between">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(216,207,252,0.24),transparent_34%),radial-gradient(circle_at_82%_12%,rgba(96,165,250,0.14),transparent_32%)]" />
-        <Link to="/" className="relative inline-flex items-center gap-3 font-headline text-2xl font-bold tracking-tighter text-white">
-          <span className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/10">
-            <Sparkles className="h-5 w-5" />
-          </span>
-          VisionTech
-        </Link>
+        <BrandLogo className="relative w-52" imageClassName="max-h-20" />
         <div className="relative max-w-xl">
           <p className="font-label text-xs font-black uppercase tracking-[0.28em] text-[#d8cffc]">Organisation Access</p>
           <h1 className="mt-5 font-headline text-5xl font-black leading-tight tracking-tight">
@@ -33,7 +29,7 @@ export default function OrganizationAuth(): JSX.Element {
             <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-primary">
               <ArrowLeft className="h-4 w-4" /> Home
             </Link>
-            <Link to="/" className="font-headline text-2xl font-bold tracking-tighter text-primary lg:hidden">VisionTech</Link>
+            <BrandLogo className="w-32 lg:hidden" imageClassName="max-h-12" />
           </div>
 
           <div className="mb-8">
