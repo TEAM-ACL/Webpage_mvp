@@ -58,7 +58,7 @@ export function Header() {
   return (
     <header className="fixed top-0 w-full z-50 shadow-[0_12px_40px_rgba(25,28,29,0.08)]" style={{ backgroundColor: '#1f0954' }}>
       <nav className="flex justify-between items-center px-6 md:px-8 h-20 w-full max-w-7xl mx-auto">
-        <BrandLogo className="w-32 shrink-0 sm:w-40" imageClassName="max-h-12" />
+        <BrandLogo variant="light" className="w-32 shrink-0 sm:w-40" imageClassName="max-h-12" />
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center space-x-8">
@@ -260,7 +260,7 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-6 md:px-8">
         <div className="grid grid-cols-1 gap-10 mb-14 lg:grid-cols-[1.45fr_1fr_1fr_1fr_1.15fr]">
           <div>
-            <BrandLogo className="mb-5 w-44" imageClassName="max-h-16" />
+            <BrandLogo variant="light" className="mb-5 w-44" imageClassName="max-h-16" />
             <p className="text-white/80 max-w-sm font-sans leading-relaxed">
               AI-powered career intelligence for learners, mentors, and organisations turning potential into opportunity readiness.
             </p>
