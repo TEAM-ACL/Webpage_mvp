@@ -2,6 +2,7 @@ import type { JSX } from "react";
 import { useState } from "react";
 import { ArrowLeft, Building2, Mail, Lock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import BrandLogo from "../components/BrandLogo";
 import { api, storeSession } from "../lib/api";
 import { setAdminFlag } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
@@ -91,7 +92,7 @@ export default function OrganizationSignup(): JSX.Element {
           <Link to="/organization-auth" className="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors text-sm font-semibold">
             <ArrowLeft className="h-4 w-4" /> Organization Access
           </Link>
-          <Link to="/" className="text-2xl font-bold tracking-tighter text-primary font-headline">VisionTech</Link>
+          <BrandLogo className="w-32 sm:w-40" imageClassName="max-h-12" />
         </div>
       </header>
 

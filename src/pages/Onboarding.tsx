@@ -17,6 +17,7 @@ import {
   Layers3,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import BrandLogo from "../components/BrandLogo";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { toUserMessage } from "../lib/userErrors";
@@ -986,8 +987,8 @@ export default function OnboardingPage(): JSX.Element {
     <main className="min-h-screen bg-gradient-to-b from-[var(--color-surface)] via-white to-[var(--color-surface-container-low)] text-[var(--color-on-surface)]">
       <header className="sticky top-0 z-30 border-b border-[var(--color-outline-variant)]/80 bg-white/85 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <div>
-            <p className="text-sm font-semibold text-[var(--color-on-surface)]">VisionTech</p>
+          <div className="flex flex-col gap-1">
+            <BrandLogo className="w-32" imageClassName="max-h-12" />
             <p className="text-xs text-[var(--color-on-surface-variant)]">Personalise your intelligent journey</p>
           </div>
 

@@ -7,6 +7,7 @@ import { useOrganisation } from "../../context/OrganisationContext";
 import { useTheme } from "../../context/ThemeContext";
 import { hasOrganisationDashboardAccess, isAdmin as checkAdmin } from "../../lib/auth";
 import { getTenantSlugFromSearch, withTenantQuery } from "../../lib/tenantNavigation";
+import BrandLogo from "../BrandLogo";
 
 type NavItem = { label: string; href: string };
 
@@ -52,15 +53,7 @@ export default function DashboardTopNav() {
     <header className="sticky top-0 z-30 border-b border-[var(--color-outline-variant)] bg-[color:var(--color-surface-container-lowest)]/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--color-primary)] text-sm font-bold text-white">
-              VT
-            </div>
-            <div>
-              <p className="text-sm font-semibold leading-none text-[var(--color-on-surface)]">VisionTech</p>
-              <p className="mt-1 text-xs text-[var(--color-on-surface-variant)]">Intelligence Platform</p>
-            </div>
-          </Link>
+          <BrandLogo className="w-32 shrink-0 sm:w-40" imageClassName="max-h-12" />
 
           <nav className="hidden items-center gap-2 md:flex">
             {navItems.map((item) => {

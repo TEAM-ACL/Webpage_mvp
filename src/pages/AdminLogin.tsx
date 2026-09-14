@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "motion/react";
+import BrandLogo from "../components/BrandLogo";
 import { api, storeSession } from "../lib/api";
 import { hasOrganisationDashboardAccess, isBootstrapPlatformAdminEmail, setAdminFlag } from "../lib/auth";
 import { useAuth } from "../context/AuthContext";
@@ -70,7 +71,7 @@ export default function AdminLogin(): JSX.Element {
           <Link to="/login" className="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors text-sm font-semibold">
             <ArrowLeft className="h-4 w-4" /> User Login
           </Link>
-          <Link to="/" className="text-2xl font-bold tracking-tighter text-primary font-headline">VisionTech</Link>
+          <BrandLogo className="w-32 sm:w-40" imageClassName="max-h-12" />
         </div>
       </header>
 
