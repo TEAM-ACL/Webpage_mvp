@@ -71,6 +71,28 @@ export function buildVerifiedOrganisationPath(
   return verifiedSlug ? buildOrganisationPath(verifiedSlug, path) : "/organisation";
 }
 
+export function buildLegacyOrganisationRedirectPath(
+  pathname: string,
+  search: string,
+  organisationBasePath: string,
+): string {
+  const [, root, maybeSection] = pathname.split("/");
+  const legacySections = new Set<OrganisationNavigationKey>([
+    "members",
+    "cohorts",
+    "interventions",
+    "opportunities",
+    "reports",
+    "settings",
+  ]);
+
+  const sectionPath = root === "organisation" && legacySections.has(maybeSection as OrganisationNavigationKey)
+    ? `/${maybeSection}`
+    : "";
+
+  return `${organisationBasePath}${sectionPath}${search}`;
+}
+
 export function normaliseNavigation(
   configuredItems?: Partial<Omit<OrganisationNavigationItem, "icon">>[],
   featureFlags: Record<string, boolean> = {},
