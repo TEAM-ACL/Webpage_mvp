@@ -184,7 +184,7 @@ export default function SignUp(): JSX.Element {
     <main className="grid min-h-screen bg-white lg:grid-cols-[0.95fr_1.05fr]">
       <section className="relative hidden overflow-hidden bg-[#12063a] px-12 py-10 text-white lg:flex lg:flex-col lg:justify-between">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(216,207,252,0.24),transparent_34%),radial-gradient(circle_at_82%_12%,rgba(96,165,250,0.14),transparent_32%)]" />
-        <BrandLogo className="relative w-52" imageClassName="max-h-20" />
+        <BrandLogo variant="light" className="relative w-52" imageClassName="max-h-20" />
         <div className="relative max-w-xl">
           <p className="font-label text-xs font-black uppercase tracking-[0.28em] text-[#d8cffc]">VisionTech AI Community</p>
           <h1 className="mt-5 font-headline text-5xl font-black leading-tight tracking-tight">
