@@ -199,6 +199,40 @@ describe("organisation service tenant identity", () => {
     );
   });
 
+  it("returns an empty live member list without substituting preview members", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ items: [] }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { getOrganisationMembers } = await import("./organisation");
+
+    const members = await getOrganisationMembers(" organisation-123 ");
+
+    expect(members).toEqual([]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/organisations/organisation-123/members",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("surfaces member loading failures instead of returning preview members", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      text: async () => JSON.stringify({
+        error: {
+          message: "Organisation membership is required.",
+        },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { getOrganisationMembers } = await import("./organisation");
+
+    await expect(getOrganisationMembers("organisation-123")).rejects.toThrow(
+      "Organisation membership is required.",
+    );
+  });
+
   it("loads opportunity recommendation records from the tenant readback endpoint", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

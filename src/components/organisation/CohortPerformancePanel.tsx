@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import type { OrganisationCohortPerformance } from "../../data/mockOrganisationOverview";
+import type { OrganisationCohortPerformance } from "../../types/organisation";
 
 export default function CohortPerformancePanel({
   cohorts,
@@ -20,7 +20,11 @@ export default function CohortPerformancePanel({
         </button>
       </div>
       <div className="mt-5 space-y-4">
-        {cohorts.map((cohort) => (
+        {cohorts.length === 0 ? (
+          <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
+            No active cohorts have been created yet.
+          </div>
+        ) : cohorts.map((cohort) => (
           <article key={cohort.id} className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4">
             <div className="flex items-start justify-between gap-4">
               <div>

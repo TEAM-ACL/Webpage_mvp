@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import type { OrganisationOpportunityActivity } from "../../data/mockOrganisationOverview";
+import type { OrganisationOpportunityActivity } from "../../types/organisation";
 
 export default function OpportunityActivityPanel({
   opportunities,
@@ -20,7 +20,11 @@ export default function OpportunityActivityPanel({
         </button>
       </div>
       <div className="mt-5 space-y-3">
-        {opportunities.map((opportunity) => (
+        {opportunities.length === 0 ? (
+          <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
+            No open opportunities are currently published for this organisation.
+          </div>
+        ) : opportunities.map((opportunity) => (
           <article key={opportunity.id} className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4">
             <div className="flex items-start justify-between gap-4">
               <div>

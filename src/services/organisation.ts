@@ -24,7 +24,6 @@ import type {
   OrganisationSettingsUpdate,
   OrganisationSummaryResponse,
 } from "../types/organisation";
-import { mockInstitutionalInsight } from "../data/mockInstitutionalInsight";
 import { FALLBACK_ORGANISATION_SLUG, slugifyOrganisationName } from "../config/organisationTenant";
 import {
   FALLBACK_ORGANISATION_ID,
@@ -546,85 +545,6 @@ export async function publishOrganisationSettings(organisationId: string): Promi
   return mapOrganisationSettings((await response.json()) as OrganisationSettingsBackendResponse);
 }
 
-const mockMembers: OrganisationMember[] = [
-  {
-    id: "member-1",
-    fullName: "Sarah James",
-    email: "sarah.james@example.com",
-    goal: "Cloud Support Engineer",
-    cohortName: "Cloud Career Cohort",
-    readinessScore: 68,
-    pathwayProgress: 45,
-    lastActiveAt: "2026-07-09T10:00:00Z",
-    status: "active",
-    needsSupport: false,
-    currentPathway: "Cloud support readiness",
-    skillGaps: ["Troubleshooting notes", "Interview confidence"],
-    activeProjects: ["Cloud support portfolio"],
-    overdueTasks: 1,
-    recentActivity: ["Completed onboarding", "Started workspace project"],
-    assignedOpportunities: ["Junior Cloud Support Sprint"],
-    openInterventions: [],
-  },
-  {
-    id: "member-2",
-    fullName: "Jayden Smith",
-    email: "jayden.smith@example.com",
-    goal: "Digital Skills Bootcamp",
-    cohortName: "Digital Skills Bootcamp",
-    readinessScore: 42,
-    pathwayProgress: 31,
-    lastActiveAt: "2026-06-25T14:30:00Z",
-    status: "inactive",
-    needsSupport: true,
-    currentPathway: "Digital workplace foundation",
-    skillGaps: ["Workspace consistency", "Project evidence"],
-    activeProjects: [],
-    overdueTasks: 4,
-    recentActivity: ["Missed two workspace tasks"],
-    assignedOpportunities: [],
-    openInterventions: ["No activity for 16 days"],
-  },
-  {
-    id: "member-3",
-    fullName: "Priya Nair",
-    email: "priya.nair@example.com",
-    goal: "Graduate Employability",
-    cohortName: "Graduate Employability Cohort",
-    readinessScore: 81,
-    pathwayProgress: 76,
-    lastActiveAt: "2026-07-10T09:15:00Z",
-    status: "active",
-    needsSupport: false,
-    currentPathway: "Interview and opportunity readiness",
-    skillGaps: ["Advanced portfolio evidence"],
-    activeProjects: ["Graduate evidence portfolio"],
-    overdueTasks: 0,
-    recentActivity: ["Completed interview readiness stage"],
-    assignedOpportunities: ["Graduate mentorship circle"],
-    openInterventions: [],
-  },
-  {
-    id: "member-4",
-    fullName: "Lewis Carter",
-    email: "lewis.carter@example.com",
-    goal: "Software Project Portfolio",
-    cohortName: null,
-    readinessScore: 24,
-    pathwayProgress: 12,
-    lastActiveAt: null,
-    status: "invited",
-    needsSupport: true,
-    currentPathway: "Onboarding",
-    skillGaps: ["Complete profile", "Choose career goal"],
-    activeProjects: [],
-    overdueTasks: 0,
-    recentActivity: ["Invitation sent"],
-    assignedOpportunities: [],
-    openInterventions: ["Incomplete onboarding"],
-  },
-];
-
 function mapBackendMember(member: {
   user_id: string;
   name: string;
@@ -674,11 +594,11 @@ export async function getOrganisationMembers(organisationId?: string | null): Pr
   });
 
   if (!response.ok) {
-    return mockMembers;
+    throw new Error(await readApiError(response, "Unable to load organisation members."));
   }
 
   const body = (await response.json()) as { items?: Array<Parameters<typeof mapBackendMember>[0]> };
-  return body.items?.map(mapBackendMember) ?? mockMembers;
+  return body.items?.map(mapBackendMember) ?? [];
 }
 
 export async function getOrganisationMemberById(memberId: string): Promise<OrganisationMember | null> {
@@ -941,51 +861,29 @@ export async function getOrganisationReportSummary(
 }
 
 export async function getInstitutionalAIInsight(organisationId?: string | null): Promise<InstitutionalAIInsightResponse> {
-  try {
-    const response = await fetch(`${API_BASE_URL}${organisationDataEndpoint("ai-insight", organisationId)}`, {
-      method: "GET",
-      credentials: "include",
-      headers: organisationHeaders(),
-    });
+  const response = await fetch(`${API_BASE_URL}${organisationDataEndpoint("ai-insight", organisationId)}`, {
+    method: "GET",
+    credentials: "include",
+    headers: organisationHeaders(),
+  });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || "Unable to load institutional AI insight");
-    }
-
-    return (await response.json()) as InstitutionalAIInsightResponse;
-  } catch (error) {
-    if (error instanceof TypeError) {
-      return { insight: mockInstitutionalInsight };
-    }
-    throw error;
+  if (!response.ok) {
+    throw new Error(await readApiError(response, "Unable to load institutional AI insight."));
   }
+
+  return (await response.json()) as InstitutionalAIInsightResponse;
 }
 
 export async function refreshInstitutionalAIInsight(organisationId?: string | null): Promise<InstitutionalAIInsightResponse> {
-  try {
-    const response = await fetch(`${API_BASE_URL}${organisationDataEndpoint("ai-insight/refresh", organisationId)}`, {
-      method: "POST",
-      credentials: "include",
-      headers: organisationHeaders(),
-    });
+  const response = await fetch(`${API_BASE_URL}${organisationDataEndpoint("ai-insight/refresh", organisationId)}`, {
+    method: "POST",
+    credentials: "include",
+    headers: organisationHeaders(),
+  });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || "Unable to refresh institutional AI insight");
-    }
-
-    return (await response.json()) as InstitutionalAIInsightResponse;
-  } catch (error) {
-    if (error instanceof TypeError) {
-      return {
-        insight: {
-          ...mockInstitutionalInsight,
-          id: `mock-insight-${Date.now()}`,
-          generatedAt: new Date().toISOString(),
-        },
-      };
-    }
-    throw error;
+  if (!response.ok) {
+    throw new Error(await readApiError(response, "Unable to refresh institutional AI insight."));
   }
+
+  return (await response.json()) as InstitutionalAIInsightResponse;
 }
