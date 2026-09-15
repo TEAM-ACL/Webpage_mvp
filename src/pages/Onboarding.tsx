@@ -988,7 +988,7 @@ export default function OnboardingPage(): JSX.Element {
       <header className="sticky top-0 z-30 border-b border-[var(--color-outline-variant)]/80 bg-white/85 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-1">
-            <BrandLogo className="w-32 sm:w-36" />
+            <BrandLogo className="w-36 sm:w-40" />
             <p className="text-xs text-[var(--color-on-surface-variant)]">Personalise your intelligent journey</p>
           </div>
 
