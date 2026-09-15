@@ -71,7 +71,7 @@ export default function AdminLogin(): JSX.Element {
           <Link to="/login" className="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors text-sm font-semibold">
             <ArrowLeft className="h-4 w-4" /> User Login
           </Link>
-          <BrandLogo className="w-40 sm:w-52" imageClassName="max-h-12" />
+          <BrandLogo className="w-32 sm:w-36" />
         </div>
       </header>
 
