@@ -57,6 +57,49 @@ export interface OrganisationActivity {
   createdAt: string;
 }
 
+export type OrganisationOverviewMetrics = {
+  totalMembers: number;
+  activeMembers: number;
+  activeCohorts: number;
+  averageReadiness: number;
+  openInterventions: number;
+  activeOpportunities: number;
+};
+
+export type OrganisationHealthMetric = {
+  label: string;
+  value: number;
+  tone: "indigo" | "emerald" | "amber" | "sky" | "rose";
+};
+
+export type OrganisationPriorityAction = {
+  id: string;
+  title: string;
+  description: string;
+  priority: "low" | "medium" | "high" | "critical";
+  actionType: "review_members" | "create_intervention" | "create_cohort" | "review_opportunities";
+  affectedCount?: number;
+  recommendedResponse: string;
+};
+
+export type OrganisationCohortPerformance = {
+  id: string;
+  name: string;
+  memberCount: number;
+  averageReadiness: number;
+  pathwayCompletion: number;
+  needSupport: number;
+  status: "Active" | "Planning" | "Completed";
+};
+
+export type OrganisationOpportunityActivity = {
+  id: string;
+  title: string;
+  closingLabel: string;
+  strongMatches: number;
+  expressionsOfInterest: number;
+};
+
 export interface OrganisationOverviewResponse {
   summary: OrganisationSummary;
   recentActivity: OrganisationActivity[];

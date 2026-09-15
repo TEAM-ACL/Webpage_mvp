@@ -16,18 +16,12 @@ import type { OrganisationHomepageWidgetType } from "../config/organisationHomep
 import { useAuth } from "../context/AuthContext";
 import { useOrganisation } from "../context/OrganisationContext";
 import {
-  mockCohortPerformance,
-  mockOpportunityActivity,
-  mockOrganisationHealth,
-  mockOrganisationMetrics,
-  mockPriorityActions,
-  mockRecentActivity,
-  mockSupportMembers,
-  type OrganisationPriorityAction,
-} from "../data/mockOrganisationOverview";
-import {
   getInstitutionalAIInsight,
+  getOrganisationCohorts,
+  getOrganisationMemberInterventions,
   getOrganisationMembers,
+  getOrganisationOpportunities,
+  getOrganisationOpportunityRecommendations,
   getOrganisationOverview,
   refreshInstitutionalAIInsight,
 } from "../services/organisation";
@@ -35,8 +29,17 @@ import type {
   InstitutionalAIInsight,
   InstitutionalRecommendedAction,
   OrganisationActivity,
+  OrganisationCohortOverview,
+  OrganisationCohortPerformance,
+  OrganisationHealthMetric,
   OrganisationMember,
+  OrganisationMemberInterventionRecord,
+  OrganisationMemberOpportunityRecommendationRecord,
+  OrganisationOpportunityActivity,
+  OrganisationOpportunityRecord,
   OrganisationOverviewResponse,
+  OrganisationOverviewMetrics,
+  OrganisationPriorityAction,
 } from "../types/organisation";
 
 export default function Organisation(): JSX.Element {
@@ -45,12 +48,16 @@ export default function Organisation(): JSX.Element {
   const { organisation, getOrganisationPath } = useOrganisation();
   const organisationId = organisation?.id;
   const [overview, setOverview] = useState<OrganisationOverviewResponse | null>(null);
-  const [supportMembers, setSupportMembers] = useState<OrganisationMember[]>(mockSupportMembers);
+  const [supportMembers, setSupportMembers] = useState<OrganisationMember[]>([]);
+  const [cohorts, setCohorts] = useState<OrganisationCohortOverview[]>([]);
+  const [opportunities, setOpportunities] = useState<OrganisationOpportunityRecord[]>([]);
+  const [opportunityRecommendations, setOpportunityRecommendations] = useState<OrganisationMemberOpportunityRecommendationRecord[]>([]);
+  const [interventions, setInterventions] = useState<OrganisationMemberInterventionRecord[]>([]);
   const [insight, setInsight] = useState<InstitutionalAIInsight | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInsightRefreshing, setIsInsightRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-const [insightError, setInsightError] = useState<string | null>(null);
+  const [insightError, setInsightError] = useState<string | null>(null);
   const [selectedAiPrompt, setSelectedAiPrompt] = useState<string | null>(null);
 
   const loadOverview = useCallback(async () => {
@@ -58,29 +65,74 @@ const [insightError, setInsightError] = useState<string | null>(null);
     setError(null);
     setInsightError(null);
 
-    const [overviewResult, membersResult, insightResult] = await Promise.allSettled([
+    const [
+      overviewResult,
+      membersResult,
+      cohortsResult,
+      opportunitiesResult,
+      recommendationsResult,
+      interventionsResult,
+      insightResult,
+    ] = await Promise.allSettled([
       getOrganisationOverview(organisationId),
       getOrganisationMembers(organisationId),
+      organisationId ? getOrganisationCohorts(organisationId) : Promise.resolve([]),
+      organisationId ? getOrganisationOpportunities(organisationId) : Promise.resolve([]),
+      organisationId ? getOrganisationOpportunityRecommendations(organisationId) : Promise.resolve([]),
+      organisationId ? getOrganisationMemberInterventions(organisationId) : Promise.resolve([]),
       getInstitutionalAIInsight(organisationId),
     ]);
+    const loadErrors: string[] = [];
 
     if (overviewResult.status === "fulfilled") {
       setOverview(overviewResult.value);
     } else {
-      setError(readError(overviewResult.reason, "Unable to load organisation overview."));
+      setOverview(null);
+      loadErrors.push(readError(overviewResult.reason, "Unable to load organisation overview."));
     }
 
     if (membersResult.status === "fulfilled") {
       const flaggedMembers = membersResult.value.filter((member) => member.needsSupport);
       setSupportMembers(flaggedMembers.length > 0 ? flaggedMembers.slice(0, 3) : []);
+    } else {
+      setSupportMembers([]);
+      loadErrors.push(readError(membersResult.reason, "Unable to load organisation members."));
+    }
+
+    if (cohortsResult.status === "fulfilled") {
+      setCohorts(cohortsResult.value);
+    } else {
+      setCohorts([]);
+      loadErrors.push(readError(cohortsResult.reason, "Unable to load organisation cohorts."));
+    }
+
+    if (opportunitiesResult.status === "fulfilled") {
+      setOpportunities(opportunitiesResult.value);
+    } else {
+      setOpportunities([]);
+      loadErrors.push(readError(opportunitiesResult.reason, "Unable to load organisation opportunities."));
+    }
+
+    if (recommendationsResult.status === "fulfilled") {
+      setOpportunityRecommendations(recommendationsResult.value);
+    } else {
+      setOpportunityRecommendations([]);
+    }
+
+    if (interventionsResult.status === "fulfilled") {
+      setInterventions(interventionsResult.value);
+    } else {
+      setInterventions([]);
     }
 
     if (insightResult.status === "fulfilled") {
       setInsight(insightResult.value.insight);
     } else {
+      setInsight(null);
       setInsightError(readError(insightResult.reason, "Unable to load institutional AI insight."));
     }
 
+    setError(loadErrors.length > 0 ? loadErrors.join(" ") : null);
     setIsLoading(false);
   }, [organisationId]);
 
@@ -93,7 +145,7 @@ const [insightError, setInsightError] = useState<string | null>(null);
   const administratorRole = organisation?.role || profile?.role || user?.role || "Organisation Admin";
   const metrics = useMemo(() => {
     if (!overview) {
-      return mockOrganisationMetrics;
+      return emptyOrganisationMetrics;
     }
 
     return {
@@ -101,13 +153,13 @@ const [insightError, setInsightError] = useState<string | null>(null);
       activeMembers: overview.summary.activeMembers,
       activeCohorts: overview.summary.activeCohorts,
       averageReadiness: overview.summary.averageReadiness,
-      openInterventions: overview.summary.membersNeedingSupport,
-      activeOpportunities: mockOrganisationMetrics.activeOpportunities,
+      openInterventions: interventions.length || overview.summary.membersNeedingSupport,
+      activeOpportunities: opportunities.filter((opportunity) => opportunity.status === "open").length,
     };
-  }, [overview]);
+  }, [interventions.length, opportunities, overview]);
   const healthMetrics = useMemo(() => {
     if (!overview || overview.summary.totalMembers === 0) {
-      return mockOrganisationHealth;
+      return buildHealthMetrics(emptyOrganisationMetrics);
     }
 
     const engagement = Math.round((overview.summary.activeMembers / overview.summary.totalMembers) * 100);
@@ -123,7 +175,22 @@ const [insightError, setInsightError] = useState<string | null>(null);
       { label: "Opportunity Engagement", value: Math.max(overview.summary.averageReadiness - 5, 0), tone: "rose" as const },
     ];
   }, [overview]);
-  const recentActivity: OrganisationActivity[] = overview?.recentActivity?.length ? overview.recentActivity : mockRecentActivity;
+  const priorityActions = useMemo(
+    () => buildPriorityActions(metrics, supportMembers, opportunities, interventions, insight),
+    [insight, interventions, metrics, opportunities, supportMembers],
+  );
+  const cohortPerformance = useMemo(
+    () => cohorts.map(mapCohortPerformance).slice(0, 3),
+    [cohorts],
+  );
+  const opportunityActivity = useMemo(
+    () => opportunities
+      .filter((opportunity) => opportunity.status === "open")
+      .map((opportunity) => mapOpportunityActivity(opportunity, opportunityRecommendations))
+      .slice(0, 3),
+    [opportunities, opportunityRecommendations],
+  );
+  const recentActivity: OrganisationActivity[] = overview?.recentActivity ?? [];
   const hasNoMembers = !isLoading && metrics.totalMembers === 0;
   const homepageWidgets: Record<OrganisationHomepageWidgetType, JSX.Element> = {
     metrics: (
@@ -165,18 +232,18 @@ const [insightError, setInsightError] = useState<string | null>(null);
     health_priority: (
       <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
         <OrganisationHealthCard metrics={healthMetrics} />
-        <PriorityActionsPanel actions={mockPriorityActions} onAction={handlePriorityAction} />
+        <PriorityActionsPanel actions={priorityActions} onAction={handlePriorityAction} />
       </div>
     ),
     cohorts_support: (
       <div className="grid gap-6 xl:grid-cols-2">
-        <CohortPerformancePanel cohorts={mockCohortPerformance} onOpenCohorts={() => navigate(getOrganisationPath("cohorts"))} />
+        <CohortPerformancePanel cohorts={cohortPerformance} onOpenCohorts={() => navigate(getOrganisationPath("cohorts"))} />
         <SupportMembersTable members={supportMembers} onReviewPeople={() => navigate(getOrganisationPath("members?filter=needs-support"))} />
       </div>
     ),
     opportunities_activity: (
       <div className="grid gap-6 xl:grid-cols-2">
-        <OpportunityActivityPanel opportunities={mockOpportunityActivity} onOpenOpportunities={() => navigate(getOrganisationPath("opportunities"))} />
+        <OpportunityActivityPanel opportunities={opportunityActivity} onOpenOpportunities={() => navigate(getOrganisationPath("opportunities"))} />
         <OrganisationActivityFeed activity={recentActivity} />
       </div>
     ),
@@ -235,7 +302,7 @@ const [insightError, setInsightError] = useState<string | null>(null);
       <div className="space-y-6">
         {error && (
           <section className="rounded-3xl border border-[var(--color-warning)] bg-[var(--color-warning-container)] p-5 text-sm text-[var(--color-warning)]">
-            Backend overview data is unavailable, so professional preview data is shown. {error}
+            Some live organisation data could not be loaded. Empty states are shown for unavailable sections. {error}
           </section>
         )}
 
@@ -299,6 +366,132 @@ function activeMemberPercent(metrics: { totalMembers: number; activeMembers: num
     return 0;
   }
   return Math.round((metrics.activeMembers / metrics.totalMembers) * 100);
+}
+
+const emptyOrganisationMetrics: OrganisationOverviewMetrics = {
+  totalMembers: 0,
+  activeMembers: 0,
+  activeCohorts: 0,
+  averageReadiness: 0,
+  openInterventions: 0,
+  activeOpportunities: 0,
+};
+
+function buildHealthMetrics(metrics: OrganisationOverviewMetrics): OrganisationHealthMetric[] {
+  const engagement = activeMemberPercent(metrics);
+  const supportHealth = metrics.totalMembers === 0
+    ? 0
+    : Math.round(((metrics.totalMembers - metrics.openInterventions) / metrics.totalMembers) * 100);
+
+  return [
+    { label: "Engagement", value: clampPercent(engagement), tone: "indigo" },
+    { label: "Readiness", value: clampPercent(metrics.averageReadiness), tone: "emerald" },
+    { label: "Pathway Progress", value: clampPercent(metrics.averageReadiness - 4), tone: "sky" },
+    { label: "Project Evidence", value: clampPercent(supportHealth - 16), tone: "amber" },
+    { label: "Opportunity Engagement", value: clampPercent(metrics.activeOpportunities > 0 ? metrics.averageReadiness - 5 : 0), tone: "rose" },
+  ];
+}
+
+function buildPriorityActions(
+  metrics: OrganisationOverviewMetrics,
+  supportMembers: OrganisationMember[],
+  opportunities: OrganisationOpportunityRecord[],
+  interventions: OrganisationMemberInterventionRecord[],
+  insight: InstitutionalAIInsight | null,
+): OrganisationPriorityAction[] {
+  const actions: OrganisationPriorityAction[] = [];
+
+  if (supportMembers.length > 0 || metrics.openInterventions > 0) {
+    actions.push({
+      id: "priority-support",
+      title: "Review people needing support",
+      description: insight?.mainConcern || "Members are flagged by readiness, inactivity, or open intervention signals.",
+      priority: supportMembers.length > 3 || metrics.openInterventions > 5 ? "high" : "medium",
+      actionType: "review_members",
+      affectedCount: Math.max(supportMembers.length, metrics.openInterventions),
+      recommendedResponse: interventions.length > 0 ? "Review open interventions" : "Create targeted intervention",
+    });
+  }
+
+  if (metrics.activeCohorts === 0 && metrics.totalMembers > 0) {
+    actions.push({
+      id: "priority-cohort",
+      title: "Create a cohort for active members",
+      description: "Members are present, but no active cohorts are currently being tracked.",
+      priority: "medium",
+      actionType: "create_cohort",
+      affectedCount: metrics.totalMembers,
+      recommendedResponse: "Create cohort",
+    });
+  }
+
+  if (opportunities.filter((opportunity) => opportunity.status === "open").length === 0) {
+    actions.push({
+      id: "priority-opportunities",
+      title: "Publish an opportunity",
+      description: "No open opportunities are available for members to act on.",
+      priority: metrics.totalMembers > 0 ? "medium" : "low",
+      actionType: "review_opportunities",
+      recommendedResponse: "Review opportunities",
+    });
+  }
+
+  return actions;
+}
+
+function mapCohortPerformance(cohort: OrganisationCohortOverview): OrganisationCohortPerformance {
+  return {
+    id: cohort.cohort_id,
+    name: cohort.name,
+    memberCount: cohort.member_count,
+    averageReadiness: cohort.average_readiness,
+    pathwayCompletion: cohort.average_completion,
+    needSupport: Math.max(0, cohort.member_count - Math.round((cohort.member_count * cohort.average_readiness) / 100)),
+    status: cohort.status === "planning" ? "Planning" : cohort.status === "completed" ? "Completed" : "Active",
+  };
+}
+
+function mapOpportunityActivity(
+  opportunity: OrganisationOpportunityRecord,
+  recommendations: OrganisationMemberOpportunityRecommendationRecord[],
+): OrganisationOpportunityActivity {
+  const relatedRecommendations = recommendations.filter((recommendation) =>
+    recommendation.title.trim().toLowerCase() === opportunity.title.trim().toLowerCase(),
+  );
+
+  return {
+    id: opportunity.id,
+    title: opportunity.title,
+    closingLabel: buildClosingLabel(opportunity),
+    strongMatches: relatedRecommendations.length,
+    expressionsOfInterest: relatedRecommendations.filter((recommendation) => recommendation.status !== "dismissed").length,
+  };
+}
+
+function buildClosingLabel(opportunity: OrganisationOpportunityRecord): string {
+  if (opportunity.status !== "open") {
+    return `${opportunity.status.charAt(0).toUpperCase()}${opportunity.status.slice(1)} opportunity`;
+  }
+  if (!opportunity.closing_date) {
+    return "Open opportunity";
+  }
+
+  const closingTime = new Date(opportunity.closing_date).getTime();
+  if (Number.isNaN(closingTime)) {
+    return "Open opportunity";
+  }
+  const days = Math.ceil((closingTime - Date.now()) / (1000 * 60 * 60 * 24));
+  if (days < 0) {
+    return "Closing date passed";
+  }
+  if (days === 0) {
+    return "Closing today";
+  }
+  return `Closing in ${days} day${days === 1 ? "" : "s"}`;
+}
+
+function clampPercent(value: number): number {
+  return Math.max(0, Math.min(100, Math.round(value)));
 }
 
 function formatRole(role: string): string {

@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import type { OrganisationHealthMetric } from "../../data/mockOrganisationOverview";
+import type { OrganisationHealthMetric } from "../../types/organisation";
 
 const barClasses: Record<OrganisationHealthMetric["tone"], string> = {
   indigo: "bg-indigo-600",

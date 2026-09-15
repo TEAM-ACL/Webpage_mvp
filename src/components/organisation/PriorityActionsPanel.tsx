@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { AlertTriangle, ChevronRight } from "lucide-react";
-import type { OrganisationPriorityAction } from "../../data/mockOrganisationOverview";
+import type { OrganisationPriorityAction } from "../../types/organisation";
 
 const priorityClasses: Record<OrganisationPriorityAction["priority"], string> = {
   low: "bg-[var(--color-surface-container-high)] text-[var(--color-on-surface-variant)]",
@@ -26,7 +26,11 @@ export default function PriorityActionsPanel({
         <AlertTriangle className="text-[var(--color-error)]" />
       </div>
       <div className="mt-5 space-y-3">
-        {actions.map((action) => (
+        {actions.length === 0 ? (
+          <div className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4 text-sm text-[var(--color-on-surface-variant)]">
+            No priority actions are currently flagged for this organisation.
+          </div>
+        ) : actions.map((action) => (
           <article key={action.id} className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
