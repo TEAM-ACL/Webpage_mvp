@@ -17,15 +17,21 @@ export default function BrandLogo({
   to = "/",
   variant = "default",
 }: BrandLogoProps): JSX.Element {
-  const frameClass = variant === "light"
-    ? "rounded-md bg-white/95 p-1.5 shadow-[0_0_0_1px_rgba(255,255,255,0.72),0_10px_28px_rgba(0,0,0,0.2)]"
-    : "drop-shadow-[0_1px_2px_rgba(0,12,40,0.2)]";
+  const imageStyle = variant === "light"
+    ? {
+        filter:
+          "brightness(1.18) contrast(1.12) saturate(1.08) drop-shadow(0 0 1px rgba(255,255,255,0.96)) drop-shadow(0 0 4px rgba(255,255,255,0.66)) drop-shadow(0 8px 18px rgba(0,0,0,0.28))",
+      }
+    : {
+        filter: "drop-shadow(0 1px 2px rgba(0,12,40,0.2))",
+      };
   const content = (
-    <span className={`inline-flex w-full items-center ${frameClass}`}>
+    <span className="inline-flex w-full items-center">
       <img
         src={visionTechLogo}
         alt={alt}
         className={`block h-auto w-full object-contain ${imageClassName}`}
+        style={imageStyle}
       />
     </span>
   );
