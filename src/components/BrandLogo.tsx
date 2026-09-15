@@ -17,21 +17,35 @@ export default function BrandLogo({
   to = "/",
   variant = "default",
 }: BrandLogoProps): JSX.Element {
-  const imageStyle = variant === "light"
+  const foregroundStyle = variant === "light"
     ? {
         filter:
-          "brightness(1.18) contrast(1.12) saturate(1.08) drop-shadow(0 0 1px rgba(255,255,255,0.96)) drop-shadow(0 0 4px rgba(255,255,255,0.66)) drop-shadow(0 8px 18px rgba(0,0,0,0.28))",
+          "brightness(1.28) contrast(1.18) saturate(1.12) drop-shadow(0 8px 18px rgba(0,0,0,0.32))",
       }
     : {
         filter: "drop-shadow(0 1px 2px rgba(0,12,40,0.2))",
       };
+  const keylineStyle = {
+    filter:
+      "brightness(0) invert(1) opacity(0.96) drop-shadow(0 0 1px rgba(255,255,255,1)) drop-shadow(0 0 5px rgba(255,255,255,0.88))",
+    transform: "scale(1.018)",
+  };
   const content = (
-    <span className="inline-flex w-full items-center">
+    <span className="relative inline-flex w-full items-center">
+      {variant === "light" && (
+        <img
+          src={visionTechLogo}
+          alt=""
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-0 block h-auto w-full object-contain ${imageClassName}`}
+          style={keylineStyle}
+        />
+      )}
       <img
         src={visionTechLogo}
         alt={alt}
-        className={`block h-auto w-full object-contain ${imageClassName}`}
-        style={imageStyle}
+        className={`relative block h-auto w-full object-contain ${imageClassName}`}
+        style={foregroundStyle}
       />
     </span>
   );
