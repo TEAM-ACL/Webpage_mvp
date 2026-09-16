@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type JSX } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type JSX } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Download, MailPlus, Plus, Users } from "lucide-react";
 import EmptyState from "../../components/organisation/EmptyState";
@@ -46,8 +46,12 @@ export default function OrganisationMembers(): JSX.Element {
   const [selectedMember, setSelectedMember] = useState<OrganisationMember | null>(null);
   const [isMemberDrawerOpen, setIsMemberDrawerOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [isCreateCohortOpen, setIsCreateCohortOpen] = useState(false);
+  const [cohortAssignmentMember, setCohortAssignmentMember] = useState<OrganisationMember | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -66,6 +70,8 @@ export default function OrganisationMembers(): JSX.Element {
       }
       if (membersResult.status === "fulfilled") {
         setMembers(membersResult.value);
+      } else {
+        setActionError(readError(membersResult.reason, "Unable to load organisation members."));
       }
       if (cohortsResult.status === "fulfilled") {
         setCohortOptions(cohortsResult.value.map((cohort) => cohort.name));
@@ -125,9 +131,18 @@ export default function OrganisationMembers(): JSX.Element {
 
   async function handleInvite(payload: InviteOrganisationMemberRequest): Promise<void> {
     if (!organisationId) return;
-    const invitedMember = await inviteOrganisationMember(organisationId, payload);
-    setMembers((currentMembers) => [invitedMember, ...currentMembers]);
-    setNotice(`${invitedMember.fullName} has been invited. Share the tenant signup link if email delivery is not connected yet.`);
+    setPendingAction("invite-member");
+    setActionError(null);
+    try {
+      const invitedMember = await inviteOrganisationMember(organisationId, payload);
+      setMembers((currentMembers) => [invitedMember, ...currentMembers]);
+      setNotice(`${invitedMember.fullName} has been invited. Share the tenant signup link if email delivery is not connected yet.`);
+    } catch (error) {
+      setActionError(readError(error, "Unable to invite member."));
+      throw error;
+    } finally {
+      setPendingAction(null);
+    }
   }
 
   function handleClearSupportFilter(): void {
@@ -148,80 +163,127 @@ export default function OrganisationMembers(): JSX.Element {
     setSelectedMember(null);
   }
 
-  async function handleAssignToCohort(member: OrganisationMember): Promise<void> {
-    const cohortName = window.prompt("Assign to cohort", member.cohortName || cohorts[0] || "Cloud Career Cohort");
-    if (!cohortName || !organisationId) return;
-    const updatedMember = await assignMemberToCohort(organisationId, member.id, { cohortName });
-    setMembers((currentMembers) =>
-      currentMembers.map((currentMember) =>
-        currentMember.id === member.id ? updatedMember : currentMember,
-      ),
-    );
-    setSelectedMember((currentMember) =>
-      currentMember?.id === member.id ? updatedMember : currentMember,
-    );
-    setNotice(`${member.fullName} assigned to ${cohortName}.`);
+  function handleAssignToCohort(member: OrganisationMember): void {
+    setActionError(null);
+    setCohortAssignmentMember(member);
   }
 
-  async function handleCreateCohort(): Promise<void> {
-    const cohortName = window.prompt("Create cohort", "Digital Skills Cohort");
-    if (!cohortName || !organisationId) return;
-    const cohort = await createOrganisationCohort(organisationId, {
-      name: cohortName,
-      description: "Created from the organisation members dashboard.",
-      status: "active",
-    });
-    setCohortOptions((currentCohorts) =>
-      currentCohorts.includes(cohort.name) ? currentCohorts : [cohort.name, ...currentCohorts],
-    );
-    setNotice(`${cohort.name} cohort created.`);
+  async function handleSubmitCohortAssignment(cohortName: string): Promise<void> {
+    if (!cohortAssignmentMember || !organisationId) return;
+    setPendingAction("assign-cohort");
+    setActionError(null);
+    try {
+      const updatedMember = await assignMemberToCohort(organisationId, cohortAssignmentMember.id, { cohortName });
+      setMembers((currentMembers) =>
+        currentMembers.map((currentMember) =>
+          currentMember.id === cohortAssignmentMember.id ? updatedMember : currentMember,
+        ),
+      );
+      setSelectedMember((currentMember) =>
+        currentMember?.id === cohortAssignmentMember.id ? updatedMember : currentMember,
+      );
+      setCohortOptions((currentCohorts) =>
+        currentCohorts.includes(cohortName) ? currentCohorts : [cohortName, ...currentCohorts],
+      );
+      setNotice(`${cohortAssignmentMember.fullName} assigned to ${cohortName}.`);
+      setCohortAssignmentMember(null);
+    } catch (error) {
+      setActionError(readError(error, "Unable to assign member to cohort."));
+      throw error;
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  function handleCreateCohort(): void {
+    setActionError(null);
+    setIsCreateCohortOpen(true);
+  }
+
+  async function handleSubmitCreateCohort(cohortName: string, description: string): Promise<void> {
+    if (!organisationId) return;
+    setPendingAction("create-cohort");
+    setActionError(null);
+    try {
+      const cohort = await createOrganisationCohort(organisationId, {
+        name: cohortName,
+        description: description || "Created from the organisation members dashboard.",
+        status: "active",
+      });
+      setCohortOptions((currentCohorts) =>
+        currentCohorts.includes(cohort.name) ? currentCohorts : [cohort.name, ...currentCohorts],
+      );
+      setNotice(`${cohort.name} cohort created.`);
+      setIsCreateCohortOpen(false);
+    } catch (error) {
+      setActionError(readError(error, "Unable to create cohort."));
+      throw error;
+    } finally {
+      setPendingAction(null);
+    }
   }
 
   async function handleCreateIntervention(member: OrganisationMember): Promise<void> {
     if (!organisationId) return;
-    await createMemberIntervention(organisationId, member.id, {
-      type: member.status === "inactive" ? "inactive_member" : "low_readiness",
-      reason: member.status === "inactive" ? "No recent workspace activity." : "Readiness score requires support.",
-      recommendedAction: "Assign a short practical project and schedule mentor feedback.",
-      riskLevel: member.readinessScore < 50 ? "medium" : "low",
-    });
-    setMembers((currentMembers) =>
-      currentMembers.map((currentMember) =>
-        currentMember.id === member.id
-          ? {
-              ...currentMember,
-              needsSupport: true,
-              openInterventions: [
-                ...(currentMember.openInterventions || []),
-                "Practical project support intervention",
-              ],
-            }
-          : currentMember,
-      ),
-    );
-    setNotice(`Support intervention created for ${member.fullName}.`);
+    setPendingAction(`intervention:${member.id}`);
+    setActionError(null);
+    try {
+      await createMemberIntervention(organisationId, member.id, {
+        type: member.status === "inactive" ? "inactive_member" : "low_readiness",
+        reason: member.status === "inactive" ? "No recent workspace activity." : "Readiness score requires support.",
+        recommendedAction: "Assign a short practical project and schedule mentor feedback.",
+        riskLevel: member.readinessScore < 50 ? "medium" : "low",
+      });
+      setMembers((currentMembers) =>
+        currentMembers.map((currentMember) =>
+          currentMember.id === member.id
+            ? {
+                ...currentMember,
+                needsSupport: true,
+                openInterventions: [
+                  ...(currentMember.openInterventions || []),
+                  "Practical project support intervention",
+                ],
+              }
+            : currentMember,
+        ),
+      );
+      setNotice(`Support intervention created for ${member.fullName}.`);
+    } catch (error) {
+      setActionError(readError(error, "Unable to create support intervention."));
+    } finally {
+      setPendingAction(null);
+    }
   }
 
   async function handleRecommendOpportunity(member: OrganisationMember): Promise<void> {
     if (!organisationId) return;
-    const recommendation = await recommendMemberOpportunity(organisationId, member.id, {
-      title: "Recommended opportunity",
-      note: "Prepared from the organisation members dashboard.",
-    });
-    setMembers((currentMembers) =>
-      currentMembers.map((currentMember) =>
-        currentMember.id === member.id
-          ? {
-              ...currentMember,
-              assignedOpportunities: [
-                ...(currentMember.assignedOpportunities || []),
-                recommendation.title,
-              ],
-            }
-          : currentMember,
-      ),
-    );
-    setNotice(`Opportunity recommendation prepared for ${member.fullName}.`);
+    setPendingAction(`opportunity:${member.id}`);
+    setActionError(null);
+    try {
+      const recommendation = await recommendMemberOpportunity(organisationId, member.id, {
+        title: "Recommended opportunity",
+        note: "Prepared from the organisation members dashboard.",
+      });
+      setMembers((currentMembers) =>
+        currentMembers.map((currentMember) =>
+          currentMember.id === member.id
+            ? {
+                ...currentMember,
+                assignedOpportunities: [
+                  ...(currentMember.assignedOpportunities || []),
+                  recommendation.title,
+                ],
+              }
+            : currentMember,
+        ),
+      );
+      setNotice(`Opportunity recommendation prepared for ${member.fullName}.`);
+    } catch (error) {
+      setActionError(readError(error, "Unable to recommend opportunity."));
+    } finally {
+      setPendingAction(null);
+    }
   }
 
   function handleExportMembers(): void {
@@ -294,6 +356,12 @@ export default function OrganisationMembers(): JSX.Element {
             </section>
           )}
 
+          {actionError && (
+            <section className="mb-6 rounded-3xl border border-[var(--color-error)] bg-[var(--color-error-container)] p-4 text-sm font-semibold text-[var(--color-error)]">
+              {actionError}
+            </section>
+          )}
+
           {filters.support === "needs-support" ? (
             <section className="mb-6 flex flex-col gap-3 rounded-3xl border border-[var(--color-warning)] bg-[var(--color-warning-container)] p-4 text-sm text-[var(--color-warning)] sm:flex-row sm:items-center sm:justify-between">
               <span className="font-semibold">Showing members who need support or intervention.</span>
@@ -350,9 +418,146 @@ export default function OrganisationMembers(): JSX.Element {
             onRecommendOpportunity={handleRecommendOpportunity}
             onAssignToCohort={handleAssignToCohort}
           />
+          <CohortDialog
+            mode="create"
+            isOpen={isCreateCohortOpen}
+            title="Create Cohort"
+            description="Create a tenant-scoped cohort that can be used for member filtering and assignments."
+            submitLabel="Create Cohort"
+            existingCohorts={cohorts}
+            isSubmitting={pendingAction === "create-cohort"}
+            onClose={() => setIsCreateCohortOpen(false)}
+            onSubmit={handleSubmitCreateCohort}
+          />
+          <CohortDialog
+            mode="assign"
+            isOpen={Boolean(cohortAssignmentMember)}
+            title="Assign to Cohort"
+            description={cohortAssignmentMember ? `Assign ${cohortAssignmentMember.fullName} to an existing or new cohort.` : ""}
+            submitLabel="Assign Member"
+            initialName={cohortAssignmentMember?.cohortName || cohorts[0] || ""}
+            existingCohorts={cohorts}
+            isSubmitting={pendingAction === "assign-cohort"}
+            onClose={() => setCohortAssignmentMember(null)}
+            onSubmit={(cohortName) => handleSubmitCohortAssignment(cohortName)}
+          />
         </>
       )}
     </OrganisationLayout>
+  );
+}
+
+type CohortDialogProps = {
+  mode: "create" | "assign";
+  isOpen: boolean;
+  title: string;
+  description: string;
+  submitLabel: string;
+  initialName?: string;
+  existingCohorts: string[];
+  isSubmitting: boolean;
+  onClose: () => void;
+  onSubmit: (cohortName: string, description: string) => Promise<void>;
+};
+
+function CohortDialog({
+  mode,
+  isOpen,
+  title,
+  description,
+  submitLabel,
+  initialName = "",
+  existingCohorts,
+  isSubmitting,
+  onClose,
+  onSubmit,
+}: CohortDialogProps): JSX.Element | null {
+  const [cohortName, setCohortName] = useState(initialName);
+  const [cohortDescription, setCohortDescription] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setCohortName(initialName);
+      setCohortDescription("");
+      setError(null);
+    }
+  }, [initialName, isOpen]);
+
+  if (!isOpen) return null;
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+    const cleanName = cohortName.trim();
+    if (!cleanName) {
+      setError("Enter a cohort name.");
+      return;
+    }
+    setError(null);
+    try {
+      await onSubmit(cleanName, cohortDescription.trim());
+    } catch (submitError) {
+      setError(readError(submitError, mode === "create" ? "Unable to create cohort." : "Unable to assign cohort."));
+    }
+  }
+
+  return (
+    <>
+      <button type="button" aria-label={`Close ${title} modal overlay`} className="fixed inset-0 z-40 bg-slate-950/40" onClick={onClose} />
+      <div className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-3xl bg-[var(--color-surface-container-lowest)] p-6 shadow-2xl">
+        <h2 className="text-xl font-bold text-[var(--color-on-surface)]">{title}</h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--color-on-surface-variant)]">{description}</p>
+        <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
+          <label className="block">
+            <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]">Cohort Name</span>
+            <input
+              value={cohortName}
+              onChange={(event) => setCohortName(event.target.value)}
+              list="organisation-cohort-options"
+              className="mt-2 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 py-3 text-sm text-[var(--color-on-surface)] outline-none focus:border-[var(--organisation-action)]"
+              placeholder="Digital Skills Cohort"
+              required
+            />
+            <datalist id="organisation-cohort-options">
+              {existingCohorts.map((cohort) => (
+                <option key={cohort} value={cohort} />
+              ))}
+            </datalist>
+          </label>
+
+          {mode === "create" ? (
+            <label className="block">
+              <span className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]">Description</span>
+              <textarea
+                value={cohortDescription}
+                onChange={(event) => setCohortDescription(event.target.value)}
+                className="mt-2 min-h-24 w-full rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 py-3 text-sm text-[var(--color-on-surface)] outline-none focus:border-[var(--organisation-action)]"
+                placeholder="Describe the cohort focus, audience, or programme."
+              />
+            </label>
+          ) : null}
+
+          {error ? (
+            <p className="rounded-2xl border border-[var(--color-error)] bg-[var(--color-error-container)] px-4 py-3 text-sm font-semibold text-[var(--color-error)]">
+              {error}
+            </p>
+          ) : null}
+
+          <div className="flex flex-wrap justify-end gap-3 pt-2">
+            <button type="button" className="rounded-2xl border border-[var(--color-outline-variant)] px-4 py-3 text-sm font-semibold" onClick={onClose}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="rounded-2xl bg-[var(--organisation-action)] px-4 py-3 text-sm font-semibold text-[var(--organisation-on-action)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmitting ? "Saving..." : submitLabel}
+            </button>
+          </div>
+        </form>
+      </div>
+    </>
   );
 }
 
@@ -363,4 +568,8 @@ function buildMemberMetrics(members: OrganisationMember[]): Array<{ label: strin
     { label: "Inactive Members", value: members.filter((member) => member.status === "inactive").length, note: "Members needing re-engagement" },
     { label: "Need Support", value: members.filter((member) => member.needsSupport).length, note: "Members flagged for intervention" },
   ];
+}
+
+function readError(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
 }
