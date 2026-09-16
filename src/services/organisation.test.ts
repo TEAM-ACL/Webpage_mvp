@@ -385,6 +385,47 @@ describe("organisation service tenant identity", () => {
     );
   });
 
+  it("loads tenant opportunity matches from the organisation endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        organisation_id: "organisation-123",
+        user_id: "user-1",
+        generated_at: "2026-09-16T09:00:00Z",
+        policy_name: "rule_based_opportunity_matching",
+        policy_version: "2026-09-14.v1",
+        items: [
+          {
+            opportunity_id: "opportunity-1",
+            title: "Junior Cloud Internship",
+            match_score: 91,
+            matched_strengths: ["Matches required skill: Cloud"],
+            missing_requirements: ["SQL"],
+            improvement_actions: ["Add evidence or complete an external resource for SQL."],
+            explanation_factors: [
+              {
+                signal: "required_skill_match",
+                label: "Profile skills match required opportunity skills",
+                value: ["Cloud"],
+                weight: 12,
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { getOrganisationOpportunityMatches } = await import("./organisation");
+
+    const matches = await getOrganisationOpportunityMatches(" organisation-123 ");
+
+    expect(matches.items[0].match_score).toBe(91);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/organisations/organisation-123/opportunity-matches",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
   it("creates tenant opportunities against the organisation endpoint", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

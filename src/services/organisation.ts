@@ -15,6 +15,7 @@ import type {
   OrganisationMemberInterventionRecord,
   OrganisationMemberOpportunityRecommendationRecord,
   OrganisationOverviewResponse,
+  OrganisationOpportunityMatchesResponse,
   OrganisationOpportunityRecord,
   OrganisationReportResponse,
   PublicOrganisationProfile,
@@ -814,6 +815,23 @@ export async function getOrganisationOpportunities(
 
   const body = (await response.json()) as { items?: OrganisationOpportunityRecord[] };
   return body.items ?? [];
+}
+
+export async function getOrganisationOpportunityMatches(
+  organisationId: string,
+): Promise<OrganisationOpportunityMatchesResponse> {
+  const response = await fetch(`${API_BASE_URL}${organisationDataEndpoint("opportunity-matches", organisationId)}`, {
+    method: "GET",
+    credentials: "include",
+    headers: organisationHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Unable to load organisation opportunity matches.");
+  }
+
+  return (await response.json()) as OrganisationOpportunityMatchesResponse;
 }
 
 export async function createOrganisationOpportunity(
