@@ -104,6 +104,13 @@ export function hasOrganisationDashboardAccessForUser(
   return hasOrganisationDashboardAccess(role) || isBootstrapPlatformAdminEmail(email);
 }
 
+export function hasPlatformAdminAccessForUser(
+  role: string | null | undefined,
+  email: string | null | undefined,
+): boolean {
+  return isPlatformAdminRole(role) || isBootstrapPlatformAdminEmail(email);
+}
+
 export function signOut(): void {
   clearSession();
   setOnboardingComplete(false);

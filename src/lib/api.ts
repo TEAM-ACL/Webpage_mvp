@@ -1,5 +1,7 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
+let sessionRefreshPromise: Promise<boolean> | null = null;
+
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export type BackendProfileResponse = {
@@ -61,17 +63,27 @@ async function request<T>(
     token?: string | null;
   } = {},
 ): Promise<T> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  const bearer = token ?? getAccessToken();
-  if (bearer) headers.Authorization = `Bearer ${bearer}`;
+  const send = () => {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const bearer = token ?? getAccessToken();
+    if (bearer) headers.Authorization = `Bearer ${bearer}`;
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-    // allow httpOnly cookie-based sessions set by the API
-    credentials: "include",
-  });
+    return fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      // Allow HttpOnly cookie-based sessions set by the API.
+      credentials: "include",
+    });
+  };
+
+  let response = await send();
+  if (response.status === 401 && canRefreshSession(path)) {
+    const refreshed = await refreshBrowserSession();
+    if (refreshed) {
+      response = await send();
+    }
+  }
 
   if (!response.ok) {
     let message = response.statusText;
@@ -96,6 +108,46 @@ async function request<T>(
   // handle empty responses
   if (response.status === 204) return {} as T;
   return (await response.json()) as T;
+}
+
+function canRefreshSession(path: string): boolean {
+  return ![
+    "/auth/login",
+    "/auth/register",
+    "/auth/refresh",
+    "/auth/password-reset/request",
+    "/auth/password-reset/confirm",
+    "/auth/email-verification/resend",
+  ].includes(path);
+}
+
+async function refreshBrowserSession(): Promise<boolean> {
+  if (!sessionRefreshPromise) {
+    sessionRefreshPromise = performSessionRefresh().finally(() => {
+      sessionRefreshPromise = null;
+    });
+  }
+  return sessionRefreshPromise;
+}
+
+async function performSessionRefresh(): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+    });
+    if (!response.ok) {
+      clearSession();
+      return false;
+    }
+
+    storeSession((await response.json()) as AuthSessionResponse);
+    return true;
+  } catch {
+    clearSession();
+    return false;
+  }
 }
 
 export type AuthSessionResponse = {
@@ -177,12 +229,10 @@ export const api = {
     });
   },
   logout() {
-    const token = getAccessToken();
-    return request<void>("/auth/logout", { method: "POST", token });
+    return request<void>("/auth/logout", { method: "POST" });
   },
   me() {
-    const token = getAccessToken();
-    return request("/auth/me", { token });
+    return request("/auth/me");
   },
   getMyProfile() {
     return request<BackendProfileResponse>("/me/profile").then(mapBackendProfile);
@@ -257,9 +307,17 @@ export const api = {
 };
 
 export function storeSession(session: AuthSessionResponse) {
-  // Cache tokens when provided (for bearer fallback) and user profile
-  if (session.access_token) sessionStorage.setItem("access_token", session.access_token);
-  if (session.refresh_token) sessionStorage.setItem("refresh_token", session.refresh_token);
+  // Callback tokens are a bearer fallback; normal API auth uses HttpOnly cookies.
+  if (session.access_token) {
+    sessionStorage.setItem("access_token", session.access_token);
+  } else {
+    sessionStorage.removeItem("access_token");
+  }
+  if (session.refresh_token) {
+    sessionStorage.setItem("refresh_token", session.refresh_token);
+  } else {
+    sessionStorage.removeItem("refresh_token");
+  }
   sessionStorage.setItem("user", JSON.stringify(session.user));
 }
 

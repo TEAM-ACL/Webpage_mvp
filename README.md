@@ -40,6 +40,9 @@ Notes:
 ## Auth & Profile Flow (current)
 The backend is the source of truth for auth and onboarding/profile state.
 
+Supabase authentication is brokered by the backend so access and refresh tokens can stay in
+HttpOnly cookies. The direct Supabase browser client is reserved for public Data API calls.
+
 - Login / Signup: `/auth/login`, `/auth/register`
 - Profile fetch: `GET /me/profile`
 - Onboarding upsert: `PUT /me/profile/onboarding`
@@ -47,6 +50,7 @@ The backend is the source of truth for auth and onboarding/profile state.
 Frontend behaviour:
 - `AuthContext` bootstraps `/auth/me` then `/me/profile`
 - Route guards, login redirects, and dashboard personalization all rely on backend `is_onboarding_complete`
+- Expired access-cookie sessions are refreshed once through `/auth/refresh`, which rotates the Supabase tokens before retrying the protected request
 - `sessionStorage` is now cache-only (not the source of truth) for onboarding/profile
 - Signup: POST `/auth/register` with email/password/display_name/etc. Success stores `access_token` (if returned) and redirects to `/workspace`.
 - Login: POST `/auth/login` with email/password. Success stores `access_token` (if returned) and redirects to `/dashboard`.
