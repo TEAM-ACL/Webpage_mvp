@@ -2,6 +2,7 @@ import type { JSX } from "react";
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Building2, Lock, Mail } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import AuthBrandFrame from "../components/AuthBrandFrame";
 import BrandLogo from "../components/BrandLogo";
 import { api, storeSession } from "../lib/api";
 import { setAdminFlag } from "../lib/auth";
@@ -131,21 +132,17 @@ export default function Login(): JSX.Element {
 
   return (
     <main className="grid min-h-screen bg-white lg:grid-cols-[0.95fr_1.05fr]">
-      <section className="relative hidden overflow-hidden bg-[#12063a] px-12 py-10 text-white lg:flex lg:flex-col lg:justify-between">
+      <section className="relative hidden overflow-hidden bg-[#12063a] px-12 py-10 text-white lg:flex lg:items-center lg:justify-center">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(216,207,252,0.24),transparent_34%),radial-gradient(circle_at_82%_12%,rgba(96,165,250,0.14),transparent_32%)]" />
-        <BrandLogo variant="light" className="relative w-80" />
-        <div className="relative max-w-xl">
-          <p className="font-label text-xs font-black uppercase tracking-[0.28em] text-[#d8cffc]">Welcome Back</p>
-          <h1 className="mt-5 font-headline text-5xl font-black leading-tight tracking-tight">
-            Continue your intelligence journey.
-          </h1>
-          <p className="mt-6 text-lg leading-8 text-white/78">
-            Return to your AI insight, workspace actions, network, and opportunity readiness from one focused account.
-          </p>
-        </div>
-        <Link to="/organization-auth" className="relative inline-flex w-fit items-center gap-2 text-sm font-bold text-white/80 transition hover:text-white">
-          Organisation access <ArrowRight className="h-4 w-4" />
-        </Link>
+        <AuthBrandFrame
+          eyebrow="Welcome Back"
+          title="Continue your intelligence journey."
+          body="Return to your AI insight, workspace actions, network, and opportunity readiness from one focused account."
+        >
+          <Link to="/organization-auth" className="inline-flex w-fit items-center gap-2 text-sm font-bold text-white/80 transition hover:text-white">
+            Organisation access <ArrowRight className="h-4 w-4" />
+          </Link>
+        </AuthBrandFrame>
       </section>
 
       <section className="flex min-h-screen items-center justify-center px-6 py-10 md:px-10 lg:px-16">
