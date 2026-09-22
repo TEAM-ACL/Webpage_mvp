@@ -209,6 +209,32 @@ export interface OrganisationOpportunityRecord {
   created_at: string | null;
 }
 
+export interface OrganisationOpportunityMatchFactor {
+  signal: string;
+  label: string;
+  value: unknown;
+  weight: number;
+}
+
+export interface OrganisationOpportunityMatch {
+  opportunity_id: string;
+  title: string;
+  match_score: number;
+  matched_strengths: string[];
+  missing_requirements: string[];
+  improvement_actions: string[];
+  explanation_factors: OrganisationOpportunityMatchFactor[];
+}
+
+export interface OrganisationOpportunityMatchesResponse {
+  organisation_id: string;
+  user_id: string;
+  generated_at: string;
+  policy_name: string;
+  policy_version: string;
+  items: OrganisationOpportunityMatch[];
+}
+
 export interface OrganisationReportMetric {
   label: string;
   value: string;

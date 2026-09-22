@@ -53,7 +53,7 @@ export default function DashboardTopNav() {
     <header className="sticky top-0 z-30 border-b border-[var(--color-outline-variant)] bg-[color:var(--color-surface-container-lowest)]/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8">
-          <BrandLogo className="w-36 shrink-0 sm:w-40" />
+          <BrandLogo className="h-14 w-14 shrink-0 sm:h-16 sm:w-16" imageClassName="h-full w-full" />
 
           <nav className="hidden items-center gap-2 md:flex">
             {navItems.map((item) => {

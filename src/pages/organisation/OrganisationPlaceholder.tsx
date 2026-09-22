@@ -28,6 +28,7 @@ import {
   getInstitutionalAIInsight,
   getOrganisationCohorts,
   getOrganisationMemberInterventions,
+  getOrganisationOpportunityMatches,
   getOrganisationOpportunityRecommendations,
   getOrganisationOpportunities,
   getOrganisationReportSummary,
@@ -58,6 +59,7 @@ import type {
   OrganisationMemberInterventionRecord,
   OrganisationMemberOpportunityRecommendationRecord,
   OrganisationNavigationConfigItem,
+  OrganisationOpportunityMatchesResponse,
   OrganisationOpportunityRecord,
   OrganisationReportResponse,
   OrganisationSettings,
@@ -123,6 +125,8 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
   const [interventions, setInterventions] = useState<OrganisationMemberInterventionRecord[]>([]);
   const [opportunityRecommendations, setOpportunityRecommendations] = useState<OrganisationMemberOpportunityRecommendationRecord[]>([]);
+  const [opportunityMatches, setOpportunityMatches] = useState<OrganisationOpportunityMatchesResponse | null>(null);
+  const [opportunityMatchesError, setOpportunityMatchesError] = useState<string | null>(null);
   const [recordsError, setRecordsError] = useState<string | null>(null);
   const [areRecordsLoading, setAreRecordsLoading] = useState(false);
   const [cohorts, setCohorts] = useState<OrganisationCohortOverview[]>([]);
@@ -163,6 +167,8 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
         setOpportunities([]);
         setInterventions([]);
         setOpportunityRecommendations([]);
+        setOpportunityMatches(null);
+        setOpportunityMatchesError(null);
         setReport(null);
         setRecordsError(null);
         setAreRecordsLoading(false);
@@ -179,6 +185,8 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
             setOpportunities([]);
             setInterventions([]);
             setOpportunityRecommendations([]);
+            setOpportunityMatches(null);
+            setOpportunityMatchesError(null);
             setReport(null);
           }
           return;
@@ -191,6 +199,8 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
             setOpportunities([]);
             setInterventions(records);
             setOpportunityRecommendations([]);
+            setOpportunityMatches(null);
+            setOpportunityMatchesError(null);
             setReport(null);
           }
           return;
@@ -204,17 +214,37 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
             setOpportunities([]);
             setInterventions([]);
             setOpportunityRecommendations([]);
+            setOpportunityMatches(null);
+            setOpportunityMatchesError(null);
           }
           return;
         }
 
-        const [publishedOpportunities, recommendationRecords] = await Promise.all([
+        const [publishedOpportunities, recommendationRecords, matchRecords] = await Promise.allSettled([
           getOrganisationOpportunities(organisationId),
           getOrganisationOpportunityRecommendations(organisationId),
+          getOrganisationOpportunityMatches(organisationId),
         ]);
         if (isMounted) {
-          setOpportunities(publishedOpportunities);
-          setOpportunityRecommendations(recommendationRecords);
+          if (publishedOpportunities.status === "fulfilled") {
+            setOpportunities(publishedOpportunities.value);
+          } else {
+            setOpportunities([]);
+            setRecordsError(readError(publishedOpportunities.reason, "Unable to load organisation opportunities."));
+          }
+          if (recommendationRecords.status === "fulfilled") {
+            setOpportunityRecommendations(recommendationRecords.value);
+          } else {
+            setOpportunityRecommendations([]);
+            setRecordsError(readError(recommendationRecords.reason, "Unable to load opportunity recommendations."));
+          }
+          if (matchRecords.status === "fulfilled") {
+            setOpportunityMatches(matchRecords.value);
+            setOpportunityMatchesError(null);
+          } else {
+            setOpportunityMatches(null);
+            setOpportunityMatchesError(readError(matchRecords.reason, "Unable to load opportunity matches."));
+          }
           setCohorts([]);
           setInterventions([]);
           setReport(null);
@@ -395,6 +425,8 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
                 <OpportunityRecordsPanel
                   opportunities={opportunities}
                   recommendations={opportunityRecommendations}
+                  matches={opportunityMatches}
+                  matchesError={opportunityMatchesError}
                   isLoading={areRecordsLoading}
                   error={recordsError}
                   onCreate={() => void handleAction(content.primaryAction)}
@@ -1994,12 +2026,16 @@ function InterventionRecordsPanel({
 function OpportunityRecordsPanel({
   opportunities,
   recommendations,
+  matches,
+  matchesError,
   isLoading,
   error,
   onCreate,
 }: {
   opportunities: OrganisationOpportunityRecord[];
   recommendations: OrganisationMemberOpportunityRecommendationRecord[];
+  matches: OrganisationOpportunityMatchesResponse | null;
+  matchesError: string | null;
   isLoading: boolean;
   error: string | null;
   onCreate: () => void;
@@ -2071,6 +2107,61 @@ function OpportunityRecordsPanel({
           </p>
         </div>
       )}
+
+      <div className="mt-6 border-t border-[var(--color-outline-variant)] pt-5">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--organisation-action)]">AI Opportunity Matches</p>
+            <h3 className="mt-1 font-black text-[var(--color-on-surface)]">Ranked fit for the current profile</h3>
+          </div>
+          {matches ? (
+            <p className="text-xs font-semibold text-[var(--color-on-surface-variant)]">
+              Policy {matches.policy_version}
+            </p>
+          ) : null}
+        </div>
+
+        {matchesError ? (
+          <p className="mt-3 rounded-2xl border border-[var(--color-warning)] bg-[var(--color-warning-container)] px-4 py-3 text-sm font-semibold text-[var(--color-warning)]">
+            {matchesError}
+          </p>
+        ) : matches && matches.items.length > 0 ? (
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {matches.items.slice(0, 4).map((match) => (
+              <article key={match.opportunity_id} className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h4 className="font-black text-[var(--color-on-surface)]">{match.title}</h4>
+                    <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">
+                      {match.matched_strengths[0] || "Match generated from the current profile and opportunity details."}
+                    </p>
+                  </div>
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--organisation-action)] text-lg font-black text-[var(--organisation-on-action)]">
+                    {match.match_score}
+                  </div>
+                </div>
+                {match.missing_requirements.length > 0 ? (
+                  <div className="mt-4 rounded-2xl bg-[var(--color-warning-container)] px-4 py-3">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-warning)]">Missing requirements</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {match.missing_requirements.map((requirement) => renderTag(requirement))}
+                    </div>
+                  </div>
+                ) : null}
+                {match.improvement_actions.length > 0 ? (
+                  <p className="mt-3 text-sm font-semibold leading-6 text-[var(--organisation-action)]">
+                    {match.improvement_actions[0]}
+                  </p>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 rounded-2xl bg-[var(--color-surface-container-low)] px-4 py-3 text-sm text-[var(--color-on-surface-variant)]">
+            No ranked matches are available yet.
+          </p>
+        )}
+      </div>
 
       <div className="mt-6 border-t border-[var(--color-outline-variant)] pt-5">
         <h3 className="font-black text-[var(--color-on-surface)]">Member recommendations</h3>

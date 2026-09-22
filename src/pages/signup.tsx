@@ -2,6 +2,7 @@ import type { JSX } from "react";
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, AtSign, BriefcaseBusiness, Building2, Check, Circle, Lock, Sparkles, User } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import AuthBrandFrame from "../components/AuthBrandFrame";
 import BrandLogo from "../components/BrandLogo";
 import { api, storeSession } from "../lib/api";
 import { setOnboardingComplete } from "../lib/auth";
@@ -182,26 +183,22 @@ export default function SignUp(): JSX.Element {
 
   return (
     <main className="grid min-h-screen bg-white lg:grid-cols-[0.95fr_1.05fr]">
-      <section className="relative hidden overflow-hidden bg-[#12063a] px-12 py-10 text-white lg:flex lg:flex-col lg:justify-between">
+      <section className="relative hidden overflow-hidden bg-[#12063a] px-12 py-10 text-white lg:flex lg:items-center lg:justify-center">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(216,207,252,0.24),transparent_34%),radial-gradient(circle_at_82%_12%,rgba(96,165,250,0.14),transparent_32%)]" />
-        <BrandLogo variant="light" className="relative w-80" />
-        <div className="relative max-w-xl">
-          <p className="font-label text-xs font-black uppercase tracking-[0.28em] text-[#d8cffc]">VisionTech AI Community</p>
-          <h1 className="mt-5 font-headline text-5xl font-black leading-tight tracking-tight">
-            Transform ambition into direction, evidence, and opportunity.
-          </h1>
-          <p className="mt-6 text-lg leading-8 text-white/78">
-            Join a guided intelligence platform built for talent growth and organisational impact — without fragmented tools or unclear next steps.
-          </p>
-        </div>
-        <div className="relative grid gap-3 text-sm font-semibold text-white/80">
-          {["AI-guided career clarity", "Project evidence and readiness", "Mentors, networks, and opportunities"].map((item) => (
-            <div key={item} className="flex items-center gap-3">
-              <Sparkles className="h-4 w-4 text-[#d8cffc]" />
-              {item}
-            </div>
-          ))}
-        </div>
+        <AuthBrandFrame
+          eyebrow="VisionTech AI Community"
+          title="Transform ambition into direction, evidence, and opportunity."
+          body="Join a guided intelligence platform built for talent growth and organisational impact without fragmented tools or unclear next steps."
+        >
+          <div className="grid gap-3 text-sm font-semibold text-white/80">
+            {["AI-guided career clarity", "Project evidence and readiness", "Mentors, networks, and opportunities"].map((item) => (
+              <div key={item} className="flex items-center gap-3">
+                <Sparkles className="h-4 w-4 text-white/65" />
+                {item}
+              </div>
+            ))}
+          </div>
+        </AuthBrandFrame>
       </section>
 
       <section className="flex min-h-screen items-center justify-center px-6 py-10 md:px-10 lg:px-16">
