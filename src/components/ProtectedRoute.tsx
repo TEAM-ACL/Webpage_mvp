@@ -3,7 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import {
   hasOrganisationDashboardAccessForUser,
   hasOrganisationManagementMembership,
-  isAdmin,
+  hasPlatformAdminAccessForUser,
 } from "../lib/auth";
 import { resolveOrganisationDashboardAccess } from "../lib/organisationAccess";
 import { useAuth } from "../context/AuthContext";
@@ -46,10 +46,11 @@ export function RequireOnboardingComplete({ children }: Props): JSX.Element {
 }
 
 export function RequireAdmin({ children }: Props): JSX.Element {
-  const { user, loading } = useAuth();
-  if (loading) return <></>;
+  const { user, profile, loading, profileLoading } = useAuth();
+  if (loading || profileLoading) return <></>;
   if (!user) return <Navigate to="/login" replace />;
-  if (!isAdmin()) {
+  const role = profile?.role || user.role;
+  if (!hasPlatformAdminAccessForUser(role, user.email)) {
     return (
       <div className="min-h-[60vh] grid place-items-center px-6">
         <div className="max-w-md rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
