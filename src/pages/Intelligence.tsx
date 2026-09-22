@@ -41,7 +41,7 @@ import {
   respondToCollaborationRequest,
 } from "../services/collaboration";
 import type { CollaborationRequestItem } from "../types/collaboration";
-import { getRecommendedOpportunities } from "../services/opportunities";
+import { generateOpportunityMatches, getOpportunityMatches } from "../services/opportunities";
 import type { Opportunity, OpportunityType } from "../types/opportunities";
 import { getVerifiedSkills, refreshVerifiedSkills } from "../services/verifiedSkills";
 import type { SkillVerificationLevel, VerifiedSkill } from "../types/verifiedSkills";
@@ -525,6 +525,7 @@ export default function Intelligence(): JSX.Element {
   const [incomingRequests, setIncomingRequests] = useState<CollaborationRequestItem[]>([]);
   const [outgoingRequests, setOutgoingRequests] = useState<CollaborationRequestItem[]>([]);
   const [recommendedOpportunities, setRecommendedOpportunities] = useState<Opportunity[]>([]);
+  const [opportunityMatchesGeneratedAt, setOpportunityMatchesGeneratedAt] = useState<string | null>(null);
   const [verifiedSkills, setVerifiedSkills] = useState<VerifiedSkill[]>([]);
   const [opportunitiesNeedRefresh, setOpportunitiesNeedRefresh] = useState(false);
   const [skillsNeedRefresh, setSkillsNeedRefresh] = useState(false);
@@ -1914,8 +1915,9 @@ export default function Intelligence(): JSX.Element {
 
   const loadRecommendedOpportunities = async (): Promise<void> => {
     try {
-      const items = await getRecommendedOpportunities();
-      setRecommendedOpportunities(items);
+      const matchRun = await getOpportunityMatches();
+      setRecommendedOpportunities(matchRun.items);
+      setOpportunityMatchesGeneratedAt(matchRun.generated_at ?? null);
       setOpportunitiesNeedRefresh(false);
     } catch (error) {
       setActionFeedback({
@@ -1926,7 +1928,21 @@ export default function Intelligence(): JSX.Element {
   };
 
   const handleRefreshOpportunities = async (): Promise<void> => {
-    await loadRecommendedOpportunities();
+    try {
+      const matchRun = await generateOpportunityMatches({ force_refresh: true });
+      setRecommendedOpportunities(matchRun.items);
+      setOpportunityMatchesGeneratedAt(matchRun.generated_at ?? null);
+      setOpportunitiesNeedRefresh(false);
+      setActionFeedback({
+        type: "success",
+        message: "Opportunity matches refreshed from your latest profile intelligence.",
+      });
+    } catch (error) {
+      setActionFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : "Unable to refresh opportunity matches.",
+      });
+    }
   };
 
   const loadVerifiedSkills = async (): Promise<void> => {
@@ -4326,6 +4342,9 @@ export default function Intelligence(): JSX.Element {
               <p className="mt-2 text-sm text-indigo-900/75">
                 Opportunities aligned with your onboarding, learning, projects, and intelligence signals.
               </p>
+              <p className="mt-2 text-xs text-indigo-900/60">
+                Match run updated: {formatTimestamp(opportunityMatchesGeneratedAt)}
+              </p>
               <div className="mt-3 rounded-xl border border-indigo-200 bg-white/90 p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Opportunities For You</p>
                 <p className="mt-1 text-xs text-indigo-900/75">
@@ -4374,6 +4393,28 @@ export default function Intelligence(): JSX.Element {
                         Why recommended: {item.reason}
                       </p>
                     ) : null}
+                    {item.matched_strengths && item.matched_strengths.length > 0 ? (
+                      <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50/70 p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Matched strengths</p>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {item.matched_strengths.slice(0, 4).map((strength) => (
+                            <span key={`${item.id}-strength-${strength}`} className="rounded-full bg-white px-2 py-0.5 text-[11px] text-emerald-700">
+                              {strength}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                    {item.missing_requirements && item.missing_requirements.length > 0 ? (
+                      <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50/80 p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Missing requirements</p>
+                        <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-amber-900/80">
+                          {item.missing_requirements.slice(0, 3).map((gap) => (
+                            <li key={`${item.id}-gap-${gap}`}>{gap}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {item.required_skills.slice(0, 4).map((skill) => (
                         <span key={`${item.id}-${skill}`} className="rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] text-indigo-700">
@@ -4381,12 +4422,34 @@ export default function Intelligence(): JSX.Element {
                         </span>
                       ))}
                     </div>
+                    {item.match_factors && item.match_factors.length > 0 ? (
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        {item.match_factors.slice(0, 4).map((factor) => (
+                          <div key={`${item.id}-factor-${factor.label}`} className="rounded-xl border border-indigo-100 bg-white px-3 py-2">
+                            <p className="text-[11px] font-semibold text-indigo-900">{factor.label}</p>
+                            {typeof factor.score === "number" ? (
+                              <p className="mt-1 text-[11px] text-indigo-700">Score: {factor.score}</p>
+                            ) : null}
+                            {factor.evidence ? (
+                              <p className="mt-1 text-[11px] text-indigo-900/65">{factor.evidence}</p>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                     {item.recommended_actions && item.recommended_actions.length > 0 ? (
                       <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-indigo-900/80">
                         {item.recommended_actions.slice(0, 2).map((action) => (
                           <li key={`${item.id}-${action}`}>{action}</li>
                         ))}
                       </ul>
+                    ) : null}
+                    {(item.source_name || item.last_checked_at || item.expires_at) ? (
+                      <p className="mt-3 text-[11px] text-indigo-900/55">
+                        {item.source_name ? `Source: ${item.source_name}` : "Source tracked"}
+                        {item.last_checked_at ? ` | Checked: ${formatTimestamp(item.last_checked_at)}` : ""}
+                        {item.expires_at ? ` | Deadline: ${formatTimestamp(item.expires_at)}` : ""}
+                      </p>
                     ) : null}
                   </div>
                 ))}

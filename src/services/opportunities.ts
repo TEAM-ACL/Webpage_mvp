@@ -1,4 +1,10 @@
-import type { Opportunity, OpportunityStatus, OpportunityType } from "../types/opportunities";
+import type {
+  Opportunity,
+  OpportunityMatchRefreshPayload,
+  OpportunityMatchRun,
+  OpportunityStatus,
+  OpportunityType,
+} from "../types/opportunities";
 import { tenantAwareHeaders } from "../lib/tenantRequest";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -45,6 +51,11 @@ export async function getOpportunities(): Promise<Opportunity[]> {
 }
 
 export async function getRecommendedOpportunities(): Promise<Opportunity[]> {
+  const matchRun = await getOpportunityMatches();
+  return matchRun.items;
+}
+
+export async function getOpportunityMatches(): Promise<OpportunityMatchRun> {
   const response = await fetch(`${API_BASE_URL}/opportunities/recommended`, {
     method: "GET",
     credentials: "include",
@@ -54,6 +65,35 @@ export async function getRecommendedOpportunities(): Promise<Opportunity[]> {
     const errorText = await response.text();
     throw new Error(`Recommended opportunities request failed: ${errorText}`);
   }
-  const data = (await response.json()) as { items?: Opportunity[] } | Opportunity[];
-  return Array.isArray(data) ? data : (data.items ?? []);
+  const data = (await response.json()) as OpportunityMatchRun | { items?: Opportunity[] } | Opportunity[];
+  if (Array.isArray(data)) {
+    return { items: data };
+  }
+  return {
+    ...data,
+    items: data.items ?? [],
+  };
+}
+
+export async function generateOpportunityMatches(
+  payload: OpportunityMatchRefreshPayload = { force_refresh: true },
+): Promise<OpportunityMatchRun> {
+  const response = await fetch(`${API_BASE_URL}/opportunities/recommended`, {
+    method: "POST",
+    credentials: "include",
+    headers: opportunityHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Opportunity matching refresh failed: ${errorText}`);
+  }
+  const data = (await response.json()) as OpportunityMatchRun | { items?: Opportunity[] } | Opportunity[];
+  if (Array.isArray(data)) {
+    return { items: data };
+  }
+  return {
+    ...data,
+    items: data.items ?? [],
+  };
 }
