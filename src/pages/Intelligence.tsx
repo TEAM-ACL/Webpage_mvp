@@ -20,6 +20,7 @@ import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
 import TenantContextBanner from "../components/dashboard/TenantContextBanner";
 import { useAuth } from "../context/AuthContext";
+import { useOrganisation } from "../context/OrganisationContext";
 import type { CreateCustomPathwayPayload } from "../types/ai";
 import {
   createLearningProgress,
@@ -506,6 +507,7 @@ export default function Intelligence(): JSX.Element {
     markIntelligenceNeedsRefresh,
     recordRecommendationEvent,
   } = useAuth();
+  const { organisation } = useOrganisation();
   // ACL: local feedback state for intelligence actions on this page
   const [actionFeedback, setActionFeedback] = useState<{
     type: "success" | "error" | "info";
@@ -553,6 +555,7 @@ export default function Intelligence(): JSX.Element {
     current_skill_level: "",
     reason_for_interest: "",
   });
+  const activeOrganisationId = organisation?.id ?? profile?.organisationId ?? null;
   // ACL: ensure intelligence bootstrap runs once per stable page mount context
   const intelligenceBootstrapStarted = useRef(false);
 
@@ -1915,7 +1918,7 @@ export default function Intelligence(): JSX.Element {
 
   const loadRecommendedOpportunities = async (): Promise<void> => {
     try {
-      const matchRun = await getOpportunityMatches();
+      const matchRun = await getOpportunityMatches({ organisationId: activeOrganisationId });
       setRecommendedOpportunities(matchRun.items);
       setOpportunityMatchesGeneratedAt(matchRun.generated_at ?? null);
       setOpportunitiesNeedRefresh(false);
@@ -1929,7 +1932,10 @@ export default function Intelligence(): JSX.Element {
 
   const handleRefreshOpportunities = async (): Promise<void> => {
     try {
-      const matchRun = await generateOpportunityMatches({ force_refresh: true });
+      const matchRun = await generateOpportunityMatches(
+        { force_refresh: true },
+        { organisationId: activeOrganisationId },
+      );
       setRecommendedOpportunities(matchRun.items);
       setOpportunityMatchesGeneratedAt(matchRun.generated_at ?? null);
       setOpportunitiesNeedRefresh(false);
