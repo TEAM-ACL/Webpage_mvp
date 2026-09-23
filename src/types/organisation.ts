@@ -219,6 +219,12 @@ export interface OrganisationOpportunityMatchFactor {
 export interface OrganisationOpportunityMatch {
   opportunity_id: string;
   title: string;
+  description?: string | null;
+  required_skills?: string[];
+  opportunity_type?: OrganisationOpportunityType | null;
+  status?: OrganisationOpportunityStatus | null;
+  closing_date?: string | null;
+  external_url?: string | null;
   match_score: number;
   matched_strengths: string[];
   missing_requirements: string[];
