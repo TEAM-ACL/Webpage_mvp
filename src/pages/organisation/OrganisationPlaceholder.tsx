@@ -2130,9 +2130,9 @@ function OpportunityRecordsPanel({
             {matches.items.slice(0, 4).map((match) => (
               <article key={match.opportunity_id} className="rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-low)] p-5">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
+                  <div className="min-w-0">
                     <h4 className="font-black text-[var(--color-on-surface)]">{match.title}</h4>
-                    <p className="mt-1 text-sm text-[var(--color-on-surface-variant)]">
+                    <p className="mt-1 text-sm leading-6 text-[var(--color-on-surface-variant)]">
                       {match.matched_strengths[0] || "Match generated from the current profile and opportunity details."}
                     </p>
                   </div>
@@ -2140,12 +2140,54 @@ function OpportunityRecordsPanel({
                     {match.match_score}
                   </div>
                 </div>
+                {match.description ? (
+                  <p className="mt-4 text-sm leading-6 text-[var(--color-on-surface-variant)]">{match.description}</p>
+                ) : null}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {match.opportunity_type ? renderTag(formatRecordLabel(match.opportunity_type)) : null}
+                  {match.status ? renderTag(formatRecordLabel(match.status)) : null}
+                  {match.closing_date ? renderTag(`Closes ${match.closing_date}`) : null}
+                  {(match.required_skills || []).slice(0, 4).map((skill) => renderTag(skill))}
+                </div>
+                {match.external_url ? (
+                  <a
+                    href={match.external_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-4 inline-flex max-w-full items-center text-sm font-bold text-[var(--organisation-action)] underline-offset-4 hover:underline"
+                  >
+                    <span className="truncate">Open opportunity</span>
+                  </a>
+                ) : null}
+                {match.matched_strengths.length > 1 ? (
+                  <div className="mt-4">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-on-surface-variant)]">Why it ranks</p>
+                    <ul className="mt-2 space-y-1 text-sm leading-6 text-[var(--color-on-surface-variant)]">
+                      {match.matched_strengths.slice(1, 4).map((strength) => (
+                        <li key={strength}>{strength}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
                 {match.missing_requirements.length > 0 ? (
                   <div className="mt-4 rounded-2xl bg-[var(--color-warning-container)] px-4 py-3">
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--color-warning)]">Missing requirements</p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {match.missing_requirements.map((requirement) => renderTag(requirement))}
                     </div>
+                  </div>
+                ) : null}
+                {match.explanation_factors.length > 0 ? (
+                  <div className="mt-4 grid gap-2">
+                    {match.explanation_factors.slice(0, 3).map((factor) => (
+                      <div
+                        key={`${match.opportunity_id}-${factor.signal}`}
+                        className="flex items-center justify-between gap-3 rounded-2xl bg-[var(--color-surface-container-lowest)] px-3 py-2 text-xs ring-1 ring-[var(--color-outline-variant)]"
+                      >
+                        <span className="min-w-0 truncate font-semibold text-[var(--color-on-surface-variant)]">{factor.label}</span>
+                        <span className="shrink-0 font-black text-[var(--color-on-surface)]">+{factor.weight}</span>
+                      </div>
+                    ))}
                   </div>
                 ) : null}
                 {match.improvement_actions.length > 0 ? (
