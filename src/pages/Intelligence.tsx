@@ -259,6 +259,17 @@ function formatOpportunityTypeLabel(type: OpportunityType): string {
   return type.charAt(0).toUpperCase() + type.slice(1);
 }
 
+function formatOpportunityStatusLabel(status: string): string {
+  return status.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function formatOpportunityDeadline(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(parsed);
+}
+
 function getVerificationBadgeClassName(level: SkillVerificationLevel): string {
   if (level === "strongly_verified") return "bg-emerald-100 text-emerald-700";
   if (level === "verified") return "bg-blue-100 text-blue-700";
@@ -4367,10 +4378,34 @@ export default function Intelligence(): JSX.Element {
               <div className="mt-3 space-y-3">
                 {recommendedOpportunities.slice(0, 3).map((item) => (
                   <div key={item.id} className="rounded-xl border border-indigo-200 bg-white/90 p-3">
-                    <p className="text-sm font-semibold text-indigo-950">{item.title}</p>
-                    <p className="mt-1 text-xs text-indigo-900/70">
-                      {item.opportunity_type} - {item.status}
-                    </p>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-indigo-950">{item.title}</p>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
+                            {formatOpportunityTypeLabel(item.opportunity_type)}
+                          </span>
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                            {formatOpportunityStatusLabel(item.status)}
+                          </span>
+                          {formatOpportunityDeadline(item.expires_at) ? (
+                            <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-indigo-700 ring-1 ring-indigo-100">
+                              Deadline {formatOpportunityDeadline(item.expires_at)}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                      {item.source_url ? (
+                        <a
+                          href={item.source_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-indigo-200 bg-white px-3 text-[11px] font-bold text-indigo-700 transition hover:bg-indigo-50"
+                        >
+                          Open
+                        </a>
+                      ) : null}
+                    </div>
                     {typeof item.match_score === "number" ? (
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
@@ -4398,6 +4433,9 @@ export default function Intelligence(): JSX.Element {
                       <p className="mt-2 text-xs text-indigo-900/80">
                         Why recommended: {item.reason}
                       </p>
+                    ) : null}
+                    {item.description ? (
+                      <p className="mt-2 text-xs leading-5 text-indigo-900/70">{item.description}</p>
                     ) : null}
                     {item.matched_strengths && item.matched_strengths.length > 0 ? (
                       <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50/70 p-3">
@@ -4444,17 +4482,20 @@ export default function Intelligence(): JSX.Element {
                       </div>
                     ) : null}
                     {item.recommended_actions && item.recommended_actions.length > 0 ? (
-                      <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-indigo-900/80">
+                      <div className="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/70 p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-indigo-700">Next best actions</p>
+                        <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-indigo-900/80">
                         {item.recommended_actions.slice(0, 2).map((action) => (
                           <li key={`${item.id}-${action}`}>{action}</li>
                         ))}
-                      </ul>
+                        </ul>
+                      </div>
                     ) : null}
                     {(item.source_name || item.last_checked_at || item.expires_at) ? (
                       <p className="mt-3 text-[11px] text-indigo-900/55">
                         {item.source_name ? `Source: ${item.source_name}` : "Source tracked"}
                         {item.last_checked_at ? ` | Checked: ${formatTimestamp(item.last_checked_at)}` : ""}
-                        {item.expires_at ? ` | Deadline: ${formatTimestamp(item.expires_at)}` : ""}
+                        {item.expires_at ? ` | Deadline: ${formatOpportunityDeadline(item.expires_at) ?? item.expires_at}` : ""}
                       </p>
                     ) : null}
                   </div>
