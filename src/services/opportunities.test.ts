@@ -31,6 +31,10 @@ describe("opportunities service tenant match adapter", () => {
             status: "open",
             closing_date: "2026-10-01",
             external_url: "https://example.com/opportunity",
+            source_name: "Provider careers page",
+            source_checked_at: "2026-09-20T10:00:00Z",
+            source_freshness: "current",
+            source_age_days: 3,
             match_score: 91,
             matched_strengths: ["Matches required skill: Cloud support"],
             missing_requirements: ["SQL"],
@@ -68,8 +72,11 @@ describe("opportunities service tenant match adapter", () => {
       match_score: 91,
       confidence: "high",
       reason: "Matches required skill: Cloud support",
-      source_name: "Organisation opportunities",
+      source_name: "Provider careers page",
       source_url: "https://example.com/opportunity",
+      last_checked_at: "2026-09-20T10:00:00Z",
+      source_freshness: "current",
+      source_age_days: 3,
       expires_at: "2026-10-01",
     });
     expect(matchRun.items[0].match_factors).toEqual([

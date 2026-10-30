@@ -194,6 +194,7 @@ export interface CreateOrganisationOpportunityRequest {
   status?: OrganisationOpportunityStatus;
   closingDate?: string | null;
   externalUrl?: string | null;
+  sourceName?: string;
 }
 
 export interface OrganisationOpportunityRecord {
@@ -206,6 +207,8 @@ export interface OrganisationOpportunityRecord {
   status: OrganisationOpportunityStatus;
   closing_date: string | null;
   external_url: string | null;
+  source_name: string;
+  source_checked_at: string | null;
   created_at: string | null;
 }
 
@@ -225,6 +228,10 @@ export interface OrganisationOpportunityMatch {
   status?: OrganisationOpportunityStatus | null;
   closing_date?: string | null;
   external_url?: string | null;
+  source_name?: string;
+  source_checked_at?: string | null;
+  source_freshness?: "current" | "stale" | "unverified";
+  source_age_days?: number | null;
   match_score: number;
   matched_strengths: string[];
   missing_requirements: string[];

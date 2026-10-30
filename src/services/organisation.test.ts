@@ -483,6 +483,33 @@ describe("organisation service tenant identity", () => {
     );
   });
 
+  it("records a server-timestamped opportunity source verification", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: "opportunity-1",
+        organisation_id: "organisation-123",
+        source_name: "Provider careers page",
+        source_checked_at: "2026-10-30T22:00:00Z",
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { verifyOrganisationOpportunitySource } = await import("./organisation");
+
+    const result = await verifyOrganisationOpportunitySource(
+      "organisation-123", "opportunity/1", "Provider careers page",
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/organisations/organisation-123/opportunities/opportunity%2F1/source-verification",
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({ source_name: "Provider careers page" }),
+      }),
+    );
+    expect(result.source_checked_at).toBe("2026-10-30T22:00:00Z");
+  });
+
   it("resets organisation branding against the tenant branding endpoint", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

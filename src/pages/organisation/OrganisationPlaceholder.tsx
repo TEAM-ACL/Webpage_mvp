@@ -38,6 +38,7 @@ import {
   restorePublishedOrganisationConfiguration,
   saveOrganisationConfiguration,
   updateOrganisationProfile,
+  verifyOrganisationOpportunitySource,
 } from "../../services/organisation";
 import {
   DEFAULT_ORGANISATION_BRANDING,
@@ -290,6 +291,22 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
     }
   }
 
+  async function verifyOpportunitySource(opportunity: OrganisationOpportunityRecord): Promise<void> {
+    if (!organisationId) return;
+    try {
+      const verified = await verifyOrganisationOpportunitySource(
+        organisationId,
+        opportunity.id,
+        opportunity.source_name,
+      );
+      setOpportunities((current) => current.map((item) => item.id === verified.id ? verified : item));
+      setOpportunityMatches(null);
+      showSuccess("Source verified. Refresh matches to use the new verification time.");
+    } catch (error) {
+      showError(readError(error, "Unable to verify the opportunity source."));
+    }
+  }
+
   async function handleAction(action: OrganisationModuleAction): Promise<void> {
     if (moduleKey === "cohorts" && action.href.includes("create=true") && organisationId) {
       const cohortName = window.prompt("Create cohort", "Digital Skills Cohort");
@@ -455,6 +472,7 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
                   isLoading={areRecordsLoading}
                   error={recordsError}
                   onCreate={() => void handleAction(content.primaryAction)}
+                  onVerifySource={(opportunity) => void verifyOpportunitySource(opportunity)}
                 />
               ) : moduleKey === "reports" ? (
                 <ReportSummaryPanel
@@ -2058,6 +2076,7 @@ function OpportunityRecordsPanel({
   isLoading,
   error,
   onCreate,
+  onVerifySource,
 }: {
   opportunities: OrganisationOpportunityRecord[];
   recommendations: OrganisationMemberOpportunityRecommendationRecord[];
@@ -2068,6 +2087,7 @@ function OpportunityRecordsPanel({
   isLoading: boolean;
   error: string | null;
   onCreate: () => void;
+  onVerifySource: (opportunity: OrganisationOpportunityRecord) => void;
 }): JSX.Element {
   if (isLoading || error) {
     return (
@@ -2125,6 +2145,17 @@ function OpportunityRecordsPanel({
                 {opportunity.closing_date ? `Closes ${opportunity.closing_date}` : "No closing date set"}
                 {opportunity.external_url ? ` - ${opportunity.external_url}` : ""}
               </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="text-xs text-[var(--color-on-surface-variant)]">
+                  {opportunity.source_checked_at
+                    ? `Source checked ${new Date(opportunity.source_checked_at).toLocaleDateString()}`
+                    : "Source not verified"}
+                </span>
+                <button type="button" onClick={() => onVerifySource(opportunity)}
+                  className="rounded-full border border-[var(--color-outline-variant)] px-3 py-1 text-xs font-bold text-[var(--organisation-action)]">
+                  Verify source now
+                </button>
+              </div>
             </article>
           ))}
         </div>
