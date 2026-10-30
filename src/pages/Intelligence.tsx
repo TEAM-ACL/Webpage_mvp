@@ -4551,6 +4551,16 @@ export default function Intelligence(): JSX.Element {
                         Why recommended: {item.reason}
                       </p>
                     ) : null}
+                    {item.source_freshness && item.source_freshness !== "current" ? (
+                      <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                        <p className="font-semibold">
+                          {item.source_freshness === "stale" ? "Source check is out of date" : "Source has not been verified"}
+                        </p>
+                        <p className="mt-1">
+                          Confirm availability, deadline, and eligibility with the provider before applying.
+                        </p>
+                      </div>
+                    ) : null}
                     {item.description ? (
                       <p className="mt-2 text-xs leading-5 text-indigo-900/70">{item.description}</p>
                     ) : null}
@@ -4618,6 +4628,7 @@ export default function Intelligence(): JSX.Element {
                       <p className="mt-3 text-[11px] text-indigo-900/55">
                         {item.source_name ? `Source: ${item.source_name}` : "Source tracked"}
                         {item.last_checked_at ? ` | Checked: ${formatTimestamp(item.last_checked_at)}` : ""}
+                        {item.source_freshness ? ` | Freshness: ${item.source_freshness}` : ""}
                         {item.expires_at ? ` | Deadline: ${formatOpportunityDeadline(item.expires_at) ?? item.expires_at}` : ""}
                       </p>
                     ) : null}

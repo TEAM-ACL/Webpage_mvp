@@ -852,6 +852,7 @@ export async function createOrganisationOpportunity(
       status: payload.status ?? "open",
       closing_date: payload.closingDate,
       external_url: payload.externalUrl,
+      source_name: payload.sourceName,
     }),
   });
 
@@ -860,6 +861,27 @@ export async function createOrganisationOpportunity(
     throw new Error(errorText || "Unable to create organisation opportunity.");
   }
 
+  return (await response.json()) as OrganisationOpportunityRecord;
+}
+
+export async function verifyOrganisationOpportunitySource(
+  organisationId: string,
+  opportunityId: string,
+  sourceName?: string,
+): Promise<OrganisationOpportunityRecord> {
+  const response = await fetch(
+    `${API_BASE_URL}${organisationDataEndpoint(`opportunities/${encodeURIComponent(opportunityId)}/source-verification`, organisationId)}`,
+    {
+      method: "PUT",
+      credentials: "include",
+      headers: organisationHeaders(),
+      body: JSON.stringify({ source_name: sourceName }),
+    },
+  );
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || "Unable to verify the opportunity source.");
+  }
   return (await response.json()) as OrganisationOpportunityRecord;
 }
 

@@ -31,6 +31,8 @@ export interface Opportunity {
   source_name?: string | null;
   source_url?: string | null;
   last_checked_at?: string | null;
+  source_freshness?: "current" | "stale" | "unverified";
+  source_age_days?: number | null;
   expires_at?: string | null;
   created_at?: string;
   engagement_state?: "saved" | "dismissed" | null;

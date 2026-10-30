@@ -39,6 +39,10 @@ type OrganisationOpportunityMatchResponse = {
     status?: OpportunityStatus | null;
     closing_date?: string | null;
     external_url?: string | null;
+    source_name?: string;
+    source_checked_at?: string | null;
+    source_freshness?: "current" | "stale" | "unverified";
+    source_age_days?: number | null;
     created_at?: string | null;
     match_score: number;
     matched_strengths: string[];
@@ -252,8 +256,11 @@ function normaliseOrganisationMatches(matches: OrganisationOpportunityMatchRespo
           evidence: formatOpportunityMatchFactorEvidence(factor.value),
           weight: factor.weight,
         })),
-        source_name: "Organisation opportunities",
+        source_name: match.source_name ?? "Organisation supplied",
         source_url: match.external_url ?? null,
+        last_checked_at: match.source_checked_at ?? null,
+        source_freshness: match.source_freshness ?? "unverified",
+        source_age_days: match.source_age_days ?? null,
         expires_at: match.closing_date ?? null,
         created_at: match.created_at ?? null,
         engagement_state: match.engagement_state ?? null,
