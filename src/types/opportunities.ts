@@ -48,6 +48,8 @@ export type OpportunityMatchRun = {
   profile_insight_id?: string | null;
   profile_version?: string | null;
   items: Opportunity[];
+  status?: "empty" | "ready" | "stale";
+  stale_reasons?: string[];
 };
 
 export type OpportunityMatchRefreshPayload = {

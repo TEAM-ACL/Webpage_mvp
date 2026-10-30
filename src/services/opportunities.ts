@@ -22,7 +22,11 @@ type OpportunityMatchRequestOptions = {
 type OrganisationOpportunityMatchResponse = {
   organisation_id: string;
   user_id: string;
-  generated_at: string;
+  generated_at: string | null;
+  match_run_id?: string | null;
+  status?: "empty" | "ready" | "stale";
+  stale_reasons?: string[];
+  profile_version?: string | null;
   policy_name: string;
   policy_version: string;
   items: Array<{
@@ -119,7 +123,7 @@ export async function generateOpportunityMatches(
   options: OpportunityMatchRequestOptions = {},
 ): Promise<OpportunityMatchRun> {
   if (options.organisationId) {
-    return getOrganisationOpportunityMatches(options.organisationId);
+    return getOrganisationOpportunityMatches(options.organisationId, payload);
   }
 
   const response = await fetch(`${API_BASE_URL}/opportunities/recommended`, {
@@ -142,14 +146,18 @@ export async function generateOpportunityMatches(
   };
 }
 
-async function getOrganisationOpportunityMatches(organisationId: string): Promise<OpportunityMatchRun> {
+async function getOrganisationOpportunityMatches(
+  organisationId: string,
+  refresh?: OpportunityMatchRefreshPayload,
+): Promise<OpportunityMatchRun> {
   const cleanOrganisationId = organisationId.trim();
   const matchesResponse = await fetch(
     `${API_BASE_URL}/organisations/${encodeURIComponent(cleanOrganisationId)}/opportunity-matches`,
     {
-      method: "GET",
+      method: refresh ? "POST" : "GET",
       credentials: "include",
       headers: opportunityHeaders(),
+      ...(refresh ? { body: JSON.stringify({ force_refresh: refresh.force_refresh ?? false }) } : {}),
     },
   );
 
@@ -161,8 +169,12 @@ async function getOrganisationOpportunityMatches(organisationId: string): Promis
   const matches = (await matchesResponse.json()) as OrganisationOpportunityMatchResponse;
 
   return {
-    match_run_id: `${matches.organisation_id}:${matches.user_id}:${matches.generated_at}`,
-    generated_at: matches.generated_at,
+    match_run_id: matches.match_run_id ?? (matches.generated_at
+      ? `${matches.organisation_id}:${matches.user_id}:${matches.generated_at}` : undefined),
+    generated_at: matches.generated_at ?? undefined,
+    profile_version: matches.profile_version,
+    status: matches.status,
+    stale_reasons: matches.stale_reasons,
     items: matches.items.map((match) => {
       return {
         id: match.opportunity_id,

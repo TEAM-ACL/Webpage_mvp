@@ -819,11 +819,13 @@ export async function getOrganisationOpportunities(
 
 export async function getOrganisationOpportunityMatches(
   organisationId: string,
+  refresh = false,
 ): Promise<OrganisationOpportunityMatchesResponse> {
   const response = await fetch(`${API_BASE_URL}${organisationDataEndpoint("opportunity-matches", organisationId)}`, {
-    method: "GET",
+    method: refresh ? "POST" : "GET",
     credentials: "include",
     headers: organisationHeaders(),
+    ...(refresh ? { body: JSON.stringify({ force_refresh: true }) } : {}),
   });
 
   if (!response.ok) {

@@ -541,6 +541,9 @@ export default function Intelligence(): JSX.Element {
   const [opportunityMatchesGeneratedAt, setOpportunityMatchesGeneratedAt] = useState<string | null>(null);
   const [verifiedSkills, setVerifiedSkills] = useState<VerifiedSkill[]>([]);
   const [opportunitiesNeedRefresh, setOpportunitiesNeedRefresh] = useState(false);
+  const [opportunitiesLoading, setOpportunitiesLoading] = useState(false);
+  const [opportunitiesError, setOpportunitiesError] = useState<string | null>(null);
+  const opportunityRequest = useRef(0);
   const [skillsNeedRefresh, setSkillsNeedRefresh] = useState(false);
   const [verifiedSkillsLoading, setVerifiedSkillsLoading] = useState(false);
   const [verifiedSkillsError, setVerifiedSkillsError] = useState<string | null>(null);
@@ -1927,38 +1930,51 @@ export default function Intelligence(): JSX.Element {
     }
   };
 
-  const loadRecommendedOpportunities = async (): Promise<void> => {
-    try {
-      const matchRun = await getOpportunityMatches({ organisationId: activeOrganisationId });
-      setRecommendedOpportunities(matchRun.items);
-      setOpportunityMatchesGeneratedAt(matchRun.generated_at ?? null);
-      setOpportunitiesNeedRefresh(false);
-    } catch (error) {
-      setActionFeedback({
-        type: "error",
-        message: error instanceof Error ? error.message : "Unable to load recommended opportunities.",
-      });
+  useEffect(() => {
+    const request = ++opportunityRequest.current;
+    setRecommendedOpportunities([]);
+    setOpportunityMatchesGeneratedAt(null);
+    setOpportunitiesNeedRefresh(false);
+    setOpportunitiesError(null);
+    if (!user?.id || !onboardingComplete || profileLoading) {
+      setOpportunitiesLoading(false);
+      return;
     }
-  };
+    setOpportunitiesLoading(true);
+    void getOpportunityMatches({ organisationId: activeOrganisationId }).then((run) => {
+      if (request !== opportunityRequest.current) return;
+      setRecommendedOpportunities(run.items);
+      setOpportunityMatchesGeneratedAt(run.generated_at ?? null);
+      setOpportunitiesNeedRefresh(run.status === "stale");
+    }).catch((error) => {
+      if (request !== opportunityRequest.current) return;
+      setOpportunitiesError(error instanceof Error ? error.message : "Unable to load saved opportunities.");
+    }).finally(() => {
+      if (request === opportunityRequest.current) setOpportunitiesLoading(false);
+    });
+    return () => { opportunityRequest.current += 1; };
+  }, [user?.id, activeOrganisationId, onboardingComplete, profileLoading]);
 
   const handleRefreshOpportunities = async (): Promise<void> => {
+    if (opportunitiesLoading) return;
+    const request = ++opportunityRequest.current;
+    setOpportunitiesLoading(true);
+    setOpportunitiesError(null);
     try {
       const matchRun = await generateOpportunityMatches(
         { force_refresh: true },
         { organisationId: activeOrganisationId },
       );
+      if (request !== opportunityRequest.current) return;
       setRecommendedOpportunities(matchRun.items);
       setOpportunityMatchesGeneratedAt(matchRun.generated_at ?? null);
-      setOpportunitiesNeedRefresh(false);
-      setActionFeedback({
-        type: "success",
-        message: "Opportunity matches refreshed from your latest profile intelligence.",
-      });
+      setOpportunitiesNeedRefresh(matchRun.status === "stale");
+      setActionFeedback({ type: "success", message: "Opportunity matches refreshed and saved." });
     } catch (error) {
-      setActionFeedback({
-        type: "error",
-        message: error instanceof Error ? error.message : "Unable to refresh opportunity matches.",
-      });
+      if (request !== opportunityRequest.current) return;
+      setOpportunitiesError(error instanceof Error ? error.message : "Unable to refresh opportunity matches.");
+    } finally {
+      if (request === opportunityRequest.current) setOpportunitiesLoading(false);
     }
   };
 
@@ -2450,7 +2466,6 @@ export default function Intelligence(): JSX.Element {
       await loadLearningTracker();
       await loadProjects();
       await loadCollaborationRequests();
-      await loadRecommendedOpportunities();
       await loadVerifiedSkills();
       await loadCustomPathways();
     };
@@ -2472,7 +2487,6 @@ export default function Intelligence(): JSX.Element {
     loadLearningTracker,
     loadProjects,
     loadCollaborationRequests,
-    loadRecommendedOpportunities,
     loadVerifiedSkills,
     loadCustomPathways,
   ]);
@@ -2739,16 +2753,17 @@ export default function Intelligence(): JSX.Element {
             Opportunity recommendations may be outdated
           </p>
           <p className="mt-1 text-sm text-indigo-700">
-            Your evidence changed. Refresh opportunity routing to recalculate match scores and next actions.
+            Your profile, available opportunities, or matching guidance may have changed. Refresh to see current scores and next actions.
           </p>
           <button
             type="button"
             onClick={() => {
               void handleRefreshOpportunities();
             }}
+            disabled={opportunitiesLoading}
             className="mt-3 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
           >
-            Refresh opportunities
+            {opportunitiesLoading ? "Refreshing..." : "Refresh opportunities"}
           </button>
         </div>
       ) : null}
@@ -4357,11 +4372,22 @@ export default function Intelligence(): JSX.Element {
               <p className="text-sm font-semibold text-indigo-700">Recommended Opportunities</p>
               <h3 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Capability to opportunity</h3>
               <p className="mt-2 text-sm text-indigo-900/75">
-                Opportunities aligned with your onboarding, learning, projects, and intelligence signals.
+                Opportunities matched to your profile skills, interests, and goals.
               </p>
               <p className="mt-2 text-xs text-indigo-900/60">
-                Match run updated: {formatTimestamp(opportunityMatchesGeneratedAt)}
+                {opportunityMatchesGeneratedAt
+                  ? `Saved matches: ${formatTimestamp(opportunityMatchesGeneratedAt)}`
+                  : "No saved match run yet. Generate matches to get started."}
               </p>
+              <button
+                type="button"
+                disabled={opportunitiesLoading}
+                onClick={() => void handleRefreshOpportunities()}
+                className="mt-3 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+              >
+                {opportunitiesLoading ? "Loading matches..." : opportunityMatchesGeneratedAt ? "Refresh opportunities" : "Generate matches"}
+              </button>
+              {opportunitiesError ? <p role="alert" className="mt-3 text-sm text-red-700">{opportunitiesError}</p> : null}
               <div className="mt-3 rounded-xl border border-indigo-200 bg-white/90 p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Opportunities For You</p>
                 <p className="mt-1 text-xs text-indigo-900/75">
@@ -4502,7 +4528,9 @@ export default function Intelligence(): JSX.Element {
                 ))}
                 {recommendedOpportunities.length === 0 ? (
                   <p className={`text-sm ${subtle}`}>
-                    No recommended opportunities yet. Keep updating learning and projects to improve matching.
+                    {opportunitiesLoading ? "Loading saved matches..." : opportunityMatchesGeneratedAt
+                      ? "No open opportunities matched this run. Refresh after new opportunities are published."
+                      : "Generate your first matches using the button above."}
                   </p>
                 ) : null}
               </div>

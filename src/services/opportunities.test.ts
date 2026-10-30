@@ -120,4 +120,57 @@ describe("opportunities service tenant match adapter", () => {
       expires_at: null,
     });
   });
+
+  it("preserves saved run identity and stale metadata on retrieval", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({
+      organisation_id: "org-1", user_id: "user-1", match_run_id: "saved-run-1",
+      generated_at: "2026-10-30T10:00:00Z", status: "stale",
+      profile_version: "profile-v1", stale_reasons: ["profile_changed"], items: [],
+    }) });
+    vi.stubGlobal("fetch", fetchMock);
+    const { getOpportunityMatches } = await import("./opportunities");
+    expect(await getOpportunityMatches({ organisationId: "org-1" })).toMatchObject({
+      match_run_id: "saved-run-1", status: "stale", profile_version: "profile-v1",
+      stale_reasons: ["profile_changed"],
+    });
+    expect(fetchMock.mock.calls[0][1].method).toBe("GET");
+    expect(fetchMock.mock.calls[0][1].body).toBeUndefined();
+  });
+
+  it("represents a missing saved run without inventing an identifier", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({
+      organisation_id: "org-1", user_id: "user-1", match_run_id: null,
+      generated_at: null, status: "empty", items: [],
+    }) }));
+    const { getOpportunityMatches } = await import("./opportunities");
+    const result = await getOpportunityMatches({ organisationId: "org-1" });
+    expect(result).toMatchObject({ status: "empty", items: [] });
+    expect(result.match_run_id).toBeUndefined();
+    expect(result.generated_at).toBeUndefined();
+  });
+
+  it.each([true, false])("uses POST for tenant refresh with force_refresh=%s", async (forceRefresh) => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({
+      organisation_id: "org-1", user_id: "user-1", match_run_id: "new-run",
+      generated_at: "2026-10-30T10:00:00Z", status: "ready", items: [],
+    }) });
+    vi.stubGlobal("fetch", fetchMock);
+    const { generateOpportunityMatches } = await import("./opportunities");
+    const result = await generateOpportunityMatches(
+      { force_refresh: forceRefresh }, { organisationId: " org-1 " },
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/organisations/org-1/opportunity-matches",
+      expect.objectContaining({ method: "POST", credentials: "include", body: JSON.stringify({ force_refresh: forceRefresh }) }),
+    );
+    expect(result.match_run_id).toBe("new-run");
+  });
+
+  it("surfaces refresh failures without a fallback generation or GET", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, text: async () => "Membership inactive" });
+    vi.stubGlobal("fetch", fetchMock);
+    const { generateOpportunityMatches } = await import("./opportunities");
+    await expect(generateOpportunityMatches({}, { organisationId: "org-1" })).rejects.toThrow("Membership inactive");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });

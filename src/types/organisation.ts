@@ -235,7 +235,10 @@ export interface OrganisationOpportunityMatch {
 export interface OrganisationOpportunityMatchesResponse {
   organisation_id: string;
   user_id: string;
-  generated_at: string;
+  generated_at: string | null;
+  match_run_id?: string | null;
+  status?: "empty" | "ready" | "stale";
+  stale_reasons?: string[];
   policy_name: string;
   policy_version: string;
   items: OrganisationOpportunityMatch[];
