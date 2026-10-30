@@ -33,6 +33,8 @@ export interface Opportunity {
   last_checked_at?: string | null;
   expires_at?: string | null;
   created_at?: string;
+  engagement_state?: "saved" | "dismissed" | null;
+  engagement_updated_at?: string | null;
 }
 
 export type OpportunityMatchFactor = {

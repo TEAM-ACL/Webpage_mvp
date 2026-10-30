@@ -173,4 +173,24 @@ describe("opportunities service tenant match adapter", () => {
     await expect(generateOpportunityMatches({}, { organisationId: "org-1" })).rejects.toThrow("Membership inactive");
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it("persists a saved opportunity and returns the updated match list", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({
+      organisation_id: "org-1", user_id: "user-1", status: "ready", items: [{
+        opportunity_id: "opportunity-1", title: "Cloud placement", match_score: 80,
+        matched_strengths: [], missing_requirements: [], improvement_actions: [],
+        explanation_factors: [], engagement_state: "saved",
+      }],
+    }) });
+    vi.stubGlobal("fetch", fetchMock);
+    const { setOpportunityEngagement } = await import("./opportunities");
+
+    const result = await setOpportunityEngagement("org-1", "opportunity/1", "saved");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/organisations/org-1/opportunity-matches/opportunity%2F1/engagement",
+      expect.objectContaining({ method: "PUT", body: JSON.stringify({ state: "saved" }) }),
+    );
+    expect(result.items[0].engagement_state).toBe("saved");
+  });
 });

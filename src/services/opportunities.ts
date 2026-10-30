@@ -49,6 +49,8 @@ type OrganisationOpportunityMatchResponse = {
       value: unknown;
       weight: number;
     }>;
+    engagement_state?: "saved" | "dismissed" | null;
+    engagement_updated_at?: string | null;
   }>;
 };
 
@@ -167,7 +169,33 @@ async function getOrganisationOpportunityMatches(
   }
 
   const matches = (await matchesResponse.json()) as OrganisationOpportunityMatchResponse;
+  return normaliseOrganisationMatches(matches);
+}
 
+export async function setOpportunityEngagement(
+  organisationId: string,
+  opportunityId: string,
+  state: "saved" | "dismissed" | null,
+): Promise<OpportunityMatchRun> {
+  const response = await fetch(
+    `${API_BASE_URL}/organisations/${encodeURIComponent(organisationId.trim())}/opportunity-matches/${encodeURIComponent(opportunityId)}/engagement`,
+    {
+      method: "PUT",
+      credentials: "include",
+      headers: opportunityHeaders(),
+      body: JSON.stringify({ state }),
+    },
+  );
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Opportunity engagement update failed: ${errorText}`);
+  }
+  return normaliseOrganisationMatches(
+    (await response.json()) as OrganisationOpportunityMatchResponse,
+  );
+}
+
+function normaliseOrganisationMatches(matches: OrganisationOpportunityMatchResponse): OpportunityMatchRun {
   return {
     match_run_id: matches.match_run_id ?? (matches.generated_at
       ? `${matches.organisation_id}:${matches.user_id}:${matches.generated_at}` : undefined),
@@ -200,6 +228,8 @@ async function getOrganisationOpportunityMatches(
         source_url: match.external_url ?? null,
         expires_at: match.closing_date ?? null,
         created_at: match.created_at ?? null,
+        engagement_state: match.engagement_state ?? null,
+        engagement_updated_at: match.engagement_updated_at ?? null,
       };
     }),
   };
