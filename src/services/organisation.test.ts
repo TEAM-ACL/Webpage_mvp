@@ -426,6 +426,20 @@ describe("organisation service tenant identity", () => {
     );
   });
 
+  it("explicitly refreshes and preserves the saved tenant match run", async () => {
+    const saved = { organisation_id: "organisation-123", user_id: "user-1",
+      match_run_id: "saved-123", generated_at: "2026-10-30T10:00:00Z",
+      status: "ready", stale_reasons: [], items: [] };
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => saved });
+    vi.stubGlobal("fetch", fetchMock);
+    const { getOrganisationOpportunityMatches } = await import("./organisation");
+    expect(await getOrganisationOpportunityMatches(" organisation-123 ", true)).toEqual(saved);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/organisations/organisation-123/opportunity-matches",
+      expect.objectContaining({ method: "POST", credentials: "include", body: '{"force_refresh":true}' }),
+    );
+  });
+
   it("creates tenant opportunities against the organisation endpoint", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

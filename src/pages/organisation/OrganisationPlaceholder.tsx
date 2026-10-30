@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Image as ImageIcon, Info, LockKeyhole, RotateCcw } from "lucide-react";
 import type { JSX, ReactNode } from "react";
@@ -126,6 +126,8 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
   const [interventions, setInterventions] = useState<OrganisationMemberInterventionRecord[]>([]);
   const [opportunityRecommendations, setOpportunityRecommendations] = useState<OrganisationMemberOpportunityRecommendationRecord[]>([]);
   const [opportunityMatches, setOpportunityMatches] = useState<OrganisationOpportunityMatchesResponse | null>(null);
+  const matchRequest = useRef(0);
+  const [matchesRefreshing, setMatchesRefreshing] = useState(false);
   const [opportunityMatchesError, setOpportunityMatchesError] = useState<string | null>(null);
   const [recordsError, setRecordsError] = useState<string | null>(null);
   const [areRecordsLoading, setAreRecordsLoading] = useState(false);
@@ -160,6 +162,9 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
 
   useEffect(() => {
     let isMounted = true;
+    matchRequest.current += 1;
+    setMatchesRefreshing(false);
+    setOpportunityMatches(null);
 
     async function loadModuleRecords(): Promise<void> {
       if (!organisationId || !["cohorts", "interventions", "opportunities", "reports"].includes(moduleKey)) {
@@ -264,8 +269,26 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
 
     return () => {
       isMounted = false;
+      matchRequest.current += 1;
     };
-  }, [moduleKey, organisationId]);
+  }, [moduleKey, organisationId, user?.id]);
+
+  async function refreshOpportunityMatches(): Promise<void> {
+    if (!organisationId || matchesRefreshing) return;
+    const request = ++matchRequest.current;
+    setMatchesRefreshing(true);
+    setOpportunityMatchesError(null);
+    try {
+      const run = await getOrganisationOpportunityMatches(organisationId, true);
+      if (request === matchRequest.current) setOpportunityMatches(run);
+    } catch (error) {
+      if (request === matchRequest.current) {
+        setOpportunityMatchesError(readError(error, "Unable to refresh opportunity matches."));
+      }
+    } finally {
+      if (request === matchRequest.current) setMatchesRefreshing(false);
+    }
+  }
 
   async function handleAction(action: OrganisationModuleAction): Promise<void> {
     if (moduleKey === "cohorts" && action.href.includes("create=true") && organisationId) {
@@ -427,6 +450,8 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
                   recommendations={opportunityRecommendations}
                   matches={opportunityMatches}
                   matchesError={opportunityMatchesError}
+                  isRefreshing={matchesRefreshing}
+                  onRefresh={() => void refreshOpportunityMatches()}
                   isLoading={areRecordsLoading}
                   error={recordsError}
                   onCreate={() => void handleAction(content.primaryAction)}
@@ -2028,6 +2053,8 @@ function OpportunityRecordsPanel({
   recommendations,
   matches,
   matchesError,
+  isRefreshing,
+  onRefresh,
   isLoading,
   error,
   onCreate,
@@ -2036,6 +2063,8 @@ function OpportunityRecordsPanel({
   recommendations: OrganisationMemberOpportunityRecommendationRecord[];
   matches: OrganisationOpportunityMatchesResponse | null;
   matchesError: string | null;
+  isRefreshing: boolean;
+  onRefresh: () => void;
   isLoading: boolean;
   error: string | null;
   onCreate: () => void;
@@ -2121,6 +2150,16 @@ function OpportunityRecordsPanel({
           ) : null}
         </div>
 
+        <button type="button" onClick={onRefresh} disabled={isRefreshing}
+          className="mt-3 rounded-xl bg-[var(--organisation-action)] px-4 py-2 text-sm font-bold text-[var(--organisation-on-action)] disabled:opacity-50">
+          {isRefreshing ? "Refreshing..." : matches?.generated_at ? "Refresh my matches" : "Generate my matches"}
+        </button>
+        {matches?.status === "stale" ? (
+          <p className="mt-3 text-sm text-[var(--color-warning)]">Saved matches may be outdated. Refresh to use your latest profile and available opportunities.</p>
+        ) : null}
+        {matches?.status === "empty" ? (
+          <p className="mt-3 text-sm">No saved matches yet. Generate matches for your profile in this organisation.</p>
+        ) : null}
         {matchesError ? (
           <p className="mt-3 rounded-2xl border border-[var(--color-warning)] bg-[var(--color-warning-container)] px-4 py-3 text-sm font-semibold text-[var(--color-warning)]">
             {matchesError}
