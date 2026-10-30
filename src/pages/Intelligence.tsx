@@ -43,7 +43,11 @@ import {
   respondToCollaborationRequest,
 } from "../services/collaboration";
 import type { CollaborationRequestItem } from "../types/collaboration";
-import { generateOpportunityMatches, getOpportunityMatches } from "../services/opportunities";
+import {
+  generateOpportunityMatches,
+  getOpportunityMatches,
+  setOpportunityEngagement,
+} from "../services/opportunities";
 import type { Opportunity, OpportunityType } from "../types/opportunities";
 import { getVerifiedSkills, refreshVerifiedSkills } from "../services/verifiedSkills";
 import type { SkillVerificationLevel, VerifiedSkill } from "../types/verifiedSkills";
@@ -1976,6 +1980,24 @@ export default function Intelligence(): JSX.Element {
       setOpportunitiesError(error instanceof Error ? error.message : "Unable to refresh opportunity matches.");
     } finally {
       if (request === opportunityRequest.current) setOpportunitiesLoading(false);
+    }
+  };
+
+  const handleOpportunityEngagement = async (
+    opportunityId: string,
+    state: "saved" | "dismissed" | null,
+  ): Promise<void> => {
+    if (!activeOrganisationId) return;
+    setOpportunitiesError(null);
+    try {
+      const run = await setOpportunityEngagement(activeOrganisationId, opportunityId, state);
+      setRecommendedOpportunities(run.items);
+      setActionFeedback({
+        type: "success",
+        message: state === "saved" ? "Opportunity saved." : state === "dismissed" ? "Opportunity dismissed." : "Opportunity restored.",
+      });
+    } catch (error) {
+      setOpportunitiesError(error instanceof Error ? error.message : "Unable to update this opportunity.");
     }
   };
 
@@ -4404,7 +4426,7 @@ export default function Intelligence(): JSX.Element {
               </div>
               <div className="mt-3 space-y-3">
                 {recommendedOpportunities.slice(0, 3).map((item) => (
-                  <div key={item.id} className="rounded-xl border border-indigo-200 bg-white/90 p-3">
+                  <div key={item.id} className={`rounded-xl border border-indigo-200 bg-white/90 p-3 ${item.engagement_state === "dismissed" ? "opacity-60" : ""}`}>
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-indigo-950">{item.title}</p>
@@ -4432,6 +4454,16 @@ export default function Intelligence(): JSX.Element {
                           Open
                         </a>
                       ) : null}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button type="button" onClick={() => void handleOpportunityEngagement(item.id, item.engagement_state === "saved" ? null : "saved")}
+                        className={`rounded-full px-3 py-1.5 text-[11px] font-bold ${item.engagement_state === "saved" ? "bg-indigo-700 text-white" : "border border-indigo-200 text-indigo-700"}`}>
+                        {item.engagement_state === "saved" ? "Saved" : "Save"}
+                      </button>
+                      <button type="button" onClick={() => void handleOpportunityEngagement(item.id, item.engagement_state === "dismissed" ? null : "dismissed")}
+                        className="rounded-full border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-600">
+                        {item.engagement_state === "dismissed" ? "Restore" : "Dismiss"}
+                      </button>
                     </div>
                     {typeof item.match_score === "number" ? (
                       <div className="mt-2 flex flex-wrap items-center gap-2">
