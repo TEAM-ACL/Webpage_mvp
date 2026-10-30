@@ -76,6 +76,10 @@ export default function OpportunityDevelopmentPlan({ organisationId, opportunity
         ) : null}
       </div>
       {plan.needs_review ? <p className="mt-2 text-[11px] text-amber-800">Your profile, opportunity, or matching data changed. Refresh matches, then review this plan.</p> : null}
+      <div className={`mt-3 rounded-lg border px-3 py-2 ${plan.evaluation_status === "needs_attention" ? "border-amber-200 bg-amber-50 text-amber-900" : plan.evaluation_status === "ready_for_match_refresh" ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-indigo-100 bg-white text-indigo-950"}`}>
+        <p className="text-[10px] font-bold uppercase tracking-wide">Recommended next action</p>
+        <p className="mt-1 text-[11px] leading-4">{plan.evaluation_summary}</p>
+      </div>
       <div className="mt-3 space-y-2">
         {plan.steps.map((step, index) => (
           <article key={step.id} className="rounded-lg border border-indigo-100 bg-white p-3">
