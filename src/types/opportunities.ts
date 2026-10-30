@@ -35,7 +35,19 @@ export interface Opportunity {
   created_at?: string;
   engagement_state?: "saved" | "dismissed" | null;
   engagement_updated_at?: string | null;
+  application_stage?: OpportunityApplicationStage | null;
+  application_note?: string;
+  application_updated_at?: string | null;
 }
+
+export type OpportunityApplicationStage =
+  | "preparing"
+  | "applied"
+  | "interviewing"
+  | "offered"
+  | "accepted"
+  | "unsuccessful"
+  | "withdrawn";
 
 export type OpportunityMatchFactor = {
   label: string;

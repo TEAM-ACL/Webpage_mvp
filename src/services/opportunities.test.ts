@@ -193,4 +193,29 @@ describe("opportunities service tenant match adapter", () => {
     );
     expect(result.items[0].engagement_state).toBe("saved");
   });
+
+  it("updates the application stage and note for a saved opportunity", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({
+      organisation_id: "org-1", user_id: "user-1", status: "ready", items: [{
+        opportunity_id: "opportunity-1", title: "Cloud placement", match_score: 80,
+        matched_strengths: [], missing_requirements: [], improvement_actions: [],
+        explanation_factors: [], engagement_state: "saved",
+        application_stage: "interviewing", application_note: "Call Friday",
+      }],
+    }) });
+    vi.stubGlobal("fetch", fetchMock);
+    const { setOpportunityApplication } = await import("./opportunities");
+
+    const result = await setOpportunityApplication(
+      "org-1", "opportunity-1", "interviewing", "Call Friday",
+    );
+
+    expect(fetchMock.mock.calls[0][0]).toContain("/opportunity-1/application");
+    expect(fetchMock.mock.calls[0][1].body).toBe(JSON.stringify({
+      stage: "interviewing", note: "Call Friday",
+    }));
+    expect(result.items[0]).toMatchObject({
+      application_stage: "interviewing", application_note: "Call Friday",
+    });
+  });
 });

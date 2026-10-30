@@ -46,9 +46,14 @@ import type { CollaborationRequestItem } from "../types/collaboration";
 import {
   generateOpportunityMatches,
   getOpportunityMatches,
+  setOpportunityApplication,
   setOpportunityEngagement,
 } from "../services/opportunities";
-import type { Opportunity, OpportunityType } from "../types/opportunities";
+import type {
+  Opportunity,
+  OpportunityApplicationStage,
+  OpportunityType,
+} from "../types/opportunities";
 import { getVerifiedSkills, refreshVerifiedSkills } from "../services/verifiedSkills";
 import type { SkillVerificationLevel, VerifiedSkill } from "../types/verifiedSkills";
 
@@ -548,6 +553,7 @@ export default function Intelligence(): JSX.Element {
   const [opportunitiesNeedRefresh, setOpportunitiesNeedRefresh] = useState(false);
   const [opportunitiesLoading, setOpportunitiesLoading] = useState(false);
   const [opportunitiesError, setOpportunitiesError] = useState<string | null>(null);
+  const [applicationNotes, setApplicationNotes] = useState<Record<string, string>>({});
   const opportunityRequest = useRef(0);
   const [skillsNeedRefresh, setSkillsNeedRefresh] = useState(false);
   const [verifiedSkillsLoading, setVerifiedSkillsLoading] = useState(false);
@@ -1998,6 +2004,25 @@ export default function Intelligence(): JSX.Element {
       });
     } catch (error) {
       setOpportunitiesError(error instanceof Error ? error.message : "Unable to update this opportunity.");
+    }
+  };
+
+  const handleOpportunityApplication = async (
+    item: Opportunity,
+    stage: OpportunityApplicationStage | null,
+  ): Promise<void> => {
+    if (!activeOrganisationId) return;
+    setOpportunitiesError(null);
+    try {
+      const note = applicationNotes[item.id] ?? item.application_note ?? "";
+      const run = await setOpportunityApplication(activeOrganisationId, item.id, stage, note);
+      setRecommendedOpportunities(run.items);
+      setActionFeedback({
+        type: "success",
+        message: stage ? "Application stage updated." : "Application tracking cleared.",
+      });
+    } catch (error) {
+      setOpportunitiesError(error instanceof Error ? error.message : "Unable to update the application stage.");
     }
   };
 
@@ -4465,6 +4490,39 @@ export default function Intelligence(): JSX.Element {
                         {item.engagement_state === "dismissed" ? "Restore" : "Dismiss"}
                       </button>
                     </div>
+                    {item.engagement_state === "saved" ? (
+                      <div className="mt-3 rounded-xl border border-sky-100 bg-sky-50/70 p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-sky-700">Application tracker</p>
+                        <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,180px)_1fr_auto]">
+                          <select
+                            aria-label={`Application stage for ${item.title}`}
+                            value={item.application_stage ?? ""}
+                            onChange={(event) => void handleOpportunityApplication(item, (event.target.value || null) as OpportunityApplicationStage | null)}
+                            className="rounded-lg border border-sky-200 bg-white px-3 py-2 text-xs text-slate-700"
+                          >
+                            <option value="">Not tracking</option>
+                            <option value="preparing">Preparing</option>
+                            <option value="applied">Applied</option>
+                            <option value="interviewing">Interviewing</option>
+                            <option value="offered">Offered</option>
+                            <option value="accepted">Accepted</option>
+                            <option value="unsuccessful">Unsuccessful</option>
+                            <option value="withdrawn">Withdrawn</option>
+                          </select>
+                          <input
+                            value={applicationNotes[item.id] ?? item.application_note ?? ""}
+                            onChange={(event) => setApplicationNotes((current) => ({ ...current, [item.id]: event.target.value }))}
+                            placeholder="Add a deadline, interview date, or note"
+                            maxLength={1000}
+                            className="rounded-lg border border-sky-200 bg-white px-3 py-2 text-xs text-slate-700"
+                          />
+                          <button type="button" onClick={() => void handleOpportunityApplication(item, item.application_stage ?? "preparing")}
+                            className="rounded-lg bg-sky-700 px-3 py-2 text-[11px] font-bold text-white">
+                            Save update
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
                     {typeof item.match_score === "number" ? (
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">

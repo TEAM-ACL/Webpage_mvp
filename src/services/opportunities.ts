@@ -1,5 +1,6 @@
 import type {
   Opportunity,
+  OpportunityApplicationStage,
   OpportunityMatchRefreshPayload,
   OpportunityMatchRun,
   OpportunityStatus,
@@ -51,6 +52,9 @@ type OrganisationOpportunityMatchResponse = {
     }>;
     engagement_state?: "saved" | "dismissed" | null;
     engagement_updated_at?: string | null;
+    application_stage?: OpportunityApplicationStage | null;
+    application_note?: string;
+    application_updated_at?: string | null;
   }>;
 };
 
@@ -195,6 +199,30 @@ export async function setOpportunityEngagement(
   );
 }
 
+export async function setOpportunityApplication(
+  organisationId: string,
+  opportunityId: string,
+  stage: OpportunityApplicationStage | null,
+  note = "",
+): Promise<OpportunityMatchRun> {
+  const response = await fetch(
+    `${API_BASE_URL}/organisations/${encodeURIComponent(organisationId.trim())}/opportunity-matches/${encodeURIComponent(opportunityId)}/application`,
+    {
+      method: "PUT",
+      credentials: "include",
+      headers: opportunityHeaders(),
+      body: JSON.stringify({ stage, note }),
+    },
+  );
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Opportunity application update failed: ${errorText}`);
+  }
+  return normaliseOrganisationMatches(
+    (await response.json()) as OrganisationOpportunityMatchResponse,
+  );
+}
+
 function normaliseOrganisationMatches(matches: OrganisationOpportunityMatchResponse): OpportunityMatchRun {
   return {
     match_run_id: matches.match_run_id ?? (matches.generated_at
@@ -230,6 +258,9 @@ function normaliseOrganisationMatches(matches: OrganisationOpportunityMatchRespo
         created_at: match.created_at ?? null,
         engagement_state: match.engagement_state ?? null,
         engagement_updated_at: match.engagement_updated_at ?? null,
+        application_stage: match.application_stage ?? null,
+        application_note: match.application_note ?? "",
+        application_updated_at: match.application_updated_at ?? null,
       };
     }),
   };
