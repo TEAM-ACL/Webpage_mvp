@@ -19,6 +19,7 @@ import {
 import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
 import TenantContextBanner from "../components/dashboard/TenantContextBanner";
+import OpportunityDevelopmentPlan from "../components/OpportunityDevelopmentPlan";
 import { useAuth } from "../context/AuthContext";
 import { useOrganisation } from "../context/OrganisationContext";
 import type { CreateCustomPathwayPayload } from "../types/ai";
@@ -4484,6 +4485,12 @@ export default function Intelligence(): JSX.Element {
                           ))}
                         </ul>
                       </div>
+                    ) : null}
+                    {activeOrganisationId && item.missing_requirements && item.missing_requirements.length > 0 ? (
+                      <OpportunityDevelopmentPlan
+                        organisationId={activeOrganisationId}
+                        opportunityId={item.id}
+                      />
                     ) : null}
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {item.required_skills.slice(0, 4).map((skill) => (
