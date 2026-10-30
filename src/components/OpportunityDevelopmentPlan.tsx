@@ -93,6 +93,12 @@ export default function OpportunityDevelopmentPlan({ organisationId, opportunity
                     {step.resource.title} · {step.resource.provider} <ExternalLink size={11} />
                   </a>
                 ) : null}
+                {step.verification_status !== "not_submitted" ? (
+                  <p className={`mt-2 text-[10px] font-bold ${step.verification_status === "verified" ? "text-emerald-700" : step.verification_status === "changes_requested" ? "text-amber-700" : "text-indigo-600"}`}>
+                    {step.verification_status === "verified" ? "Evidence verified" : step.verification_status === "changes_requested" ? "Changes requested" : "Evidence awaiting review"}
+                  </p>
+                ) : null}
+                {step.review_note ? <p className="mt-1 text-[11px] leading-4 text-slate-600">Reviewer note: {step.review_note}</p> : null}
               </div>
             </div>
             <textarea value={evidence[step.id] ?? ""} onChange={(event) => setEvidence((current) => ({ ...current, [step.id]: event.target.value }))}
@@ -109,7 +115,7 @@ export default function OpportunityDevelopmentPlan({ organisationId, opportunity
           </article>
         ))}
       </div>
-      <p className="mt-3 text-[10px] leading-4 text-slate-500">Progress is self-reported. Completing a step does not automatically verify a skill.</p>
+      <p className="mt-3 text-[10px] leading-4 text-slate-500">Progress is self-reported until a mentor or organisation administrator reviews the evidence. Evidence review does not automatically add a verified profile skill.</p>
       {error ? <p className="mt-2 text-xs text-red-700">{error}</p> : null}
     </section>
   );

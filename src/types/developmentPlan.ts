@@ -25,6 +25,10 @@ export type DevelopmentStep = {
   status: DevelopmentStepStatus;
   evidence: string;
   completed_at: string | null;
+  verification_status: "not_submitted" | "pending" | "verified" | "changes_requested";
+  review_note: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
 };
 
 export type DevelopmentPlan = {
