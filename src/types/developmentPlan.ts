@@ -1,4 +1,5 @@
 export type DevelopmentStepStatus = "not_started" | "in_progress" | "completed" | "skipped";
+export type DevelopmentPlanEvaluationStatus = "not_started" | "in_progress" | "needs_attention" | "ready_for_match_refresh";
 
 export type DevelopmentResource = {
   id: string;
@@ -35,6 +36,9 @@ export type DevelopmentPlan = {
   gaps: string[];
   steps: DevelopmentStep[];
   archived_steps: DevelopmentStep[];
+  evaluation_status: DevelopmentPlanEvaluationStatus;
+  evaluation_summary: string;
+  evaluated_at: string;
   version: number;
   needs_review: boolean;
   review_reasons: string[];
