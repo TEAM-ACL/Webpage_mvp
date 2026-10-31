@@ -1,6 +1,6 @@
 import { getAccessToken } from "../lib/api";
 import { tenantAwareHeaders } from "../lib/tenantRequest";
-import type { DevelopmentPlan, DevelopmentStepStatus } from "../types/developmentPlan";
+import type { DevelopmentPlan, DevelopmentStep, DevelopmentStepStatus, EvidenceReviewQueue } from "../types/developmentPlan";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -70,5 +70,35 @@ export async function promoteVerifiedSkill(
     credentials: "include",
     headers: headers(),
     body: JSON.stringify({ expected_version: expectedVersion }),
+  }));
+}
+
+export async function getEvidenceReviewQueue(
+  organisationId: string,
+): Promise<EvidenceReviewQueue> {
+  return read(await fetch(`${API_BASE_URL}/organisations/${encodeURIComponent(organisationId)}/development-evidence-reviews`, {
+    method: "GET",
+    credentials: "include",
+    headers: headers(),
+  }));
+}
+
+export async function reviewDevelopmentEvidence(
+  organisationId: string,
+  opportunityId: string,
+  learnerId: string,
+  stepId: string,
+  payload: { expectedVersion: number; decision: "verified" | "changes_requested"; note: string },
+): Promise<{ plan_id: string; plan_version: number; step: DevelopmentStep }> {
+  const base = endpoint(organisationId, opportunityId);
+  return read(await fetch(`${base}/learners/${encodeURIComponent(learnerId)}/steps/${encodeURIComponent(stepId)}/review`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: headers(),
+    body: JSON.stringify({
+      expected_version: payload.expectedVersion,
+      decision: payload.decision,
+      note: payload.note,
+    }),
   }));
 }

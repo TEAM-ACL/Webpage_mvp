@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Image as ImageIcon, Info, LockKeyhole, RotateCcw } from "lucide-react";
 import type { JSX, ReactNode } from "react";
 import OrganisationAIPanel from "../../components/organisation/OrganisationAIPanel";
+import EvidenceReviewQueue from "../../components/organisation/EvidenceReviewQueue";
 import OrganisationLayout from "../../components/organisation/OrganisationLayout";
 import OrganisationMetricCard from "../../components/organisation/OrganisationMetricCard";
 import {
@@ -448,7 +449,9 @@ export default function OrganisationPlaceholder({ moduleKey }: OrganisationPlace
             content={content}
             onAction={handleAction}
             liveRecords={
-              moduleKey === "cohorts" ? (
+              moduleKey === "members" ? (
+                <EvidenceReviewQueue organisationId={organisation.id} />
+              ) : moduleKey === "cohorts" ? (
                 <CohortRecordsPanel
                   records={cohorts}
                   isLoading={areRecordsLoading}
