@@ -66,4 +66,35 @@ describe("development plans service", () => {
     );
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ expected_version: 4 });
   });
+
+  it("loads the tenant review queue", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({
+      organisation_id: "org-1", can_promote: true, items: [],
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const { getEvidenceReviewQueue } = await import("./developmentPlans");
+
+    await getEvidenceReviewQueue("org/1");
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "https://api.example.test/organisations/org%2F1/development-evidence-reviews",
+    );
+    expect(fetchMock.mock.calls[0][1]).toEqual(expect.objectContaining({ method: "GET" }));
+  });
+
+  it("submits a reviewer decision with its plan version", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({
+      plan_id: "plan-1", plan_version: 4, step: {},
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const { reviewDevelopmentEvidence } = await import("./developmentPlans");
+
+    await reviewDevelopmentEvidence("org-1", "opp-1", "learner-1", "step-1", {
+      expectedVersion: 3, decision: "changes_requested", note: "Add a query result.",
+    });
+
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      expected_version: 3,
+      decision: "changes_requested",
+      note: "Add a query result.",
+    });
+  });
 });

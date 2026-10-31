@@ -55,3 +55,18 @@ export type DevelopmentPlan = {
   created_at: string;
   updated_at: string;
 };
+
+export type EvidenceReviewQueueItem = {
+  plan_id: string;
+  plan_version: number;
+  learner_id: string;
+  opportunity_id: string;
+  goal: string;
+  step: DevelopmentStep;
+};
+
+export type EvidenceReviewQueue = {
+  organisation_id: string;
+  can_promote: boolean;
+  items: EvidenceReviewQueueItem[];
+};
