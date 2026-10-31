@@ -29,6 +29,8 @@ export type DevelopmentStep = {
   review_note: string;
   reviewed_by: string | null;
   reviewed_at: string | null;
+  promoted_to_profile_by: string | null;
+  promoted_to_profile_at: string | null;
 };
 
 export type DevelopmentPlan = {

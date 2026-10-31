@@ -99,6 +99,7 @@ export default function OpportunityDevelopmentPlan({ organisationId, opportunity
                   </p>
                 ) : null}
                 {step.review_note ? <p className="mt-1 text-[11px] leading-4 text-slate-600">Reviewer note: {step.review_note}</p> : null}
+                {step.promoted_to_profile_at ? <p className="mt-1 text-[10px] font-bold text-emerald-700">Added to verified profile skills</p> : null}
               </div>
             </div>
             <textarea value={evidence[step.id] ?? ""} onChange={(event) => setEvidence((current) => ({ ...current, [step.id]: event.target.value }))}

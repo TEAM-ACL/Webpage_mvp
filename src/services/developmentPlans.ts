@@ -56,3 +56,19 @@ export async function updateDevelopmentStep(
     }),
   }));
 }
+
+export async function promoteVerifiedSkill(
+  organisationId: string,
+  opportunityId: string,
+  learnerId: string,
+  stepId: string,
+  expectedVersion: number,
+): Promise<{ plan_id: string; plan_version: number; skill: string; verified_skills: string[] }> {
+  const base = endpoint(organisationId, opportunityId);
+  return read(await fetch(`${base}/learners/${encodeURIComponent(learnerId)}/steps/${encodeURIComponent(stepId)}/promote-skill`, {
+    method: "POST",
+    credentials: "include",
+    headers: headers(),
+    body: JSON.stringify({ expected_version: expectedVersion }),
+  }));
+}
