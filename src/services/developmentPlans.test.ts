@@ -52,4 +52,18 @@ describe("development plans service", () => {
       evidence: "https://portfolio.example/query",
     });
   });
+
+  it("promotes reviewed evidence with the current plan version", async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({
+      plan_id: "plan-1", plan_version: 5, skill: "SQL", verified_skills: ["SQL"],
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const { promoteVerifiedSkill } = await import("./developmentPlans");
+
+    await promoteVerifiedSkill("org-1", "opp-1", "learner/1", "step/1", 4);
+
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      "/learners/learner%2F1/steps/step%2F1/promote-skill",
+    );
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ expected_version: 4 });
+  });
 });
