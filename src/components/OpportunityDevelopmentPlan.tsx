@@ -89,9 +89,18 @@ export default function OpportunityDevelopmentPlan({ organisationId, opportunity
                 <p className="text-xs font-semibold text-slate-900">{step.title}</p>
                 <p className="mt-1 text-[11px] leading-4 text-slate-600">{step.rationale}</p>
                 {step.resource ? (
-                  <a href={step.resource.url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-indigo-700 hover:underline">
+                  <div className="mt-2">
+                  <a href={step.resource.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-700 hover:underline">
                     {step.resource.title} · {step.resource.provider} <ExternalLink size={11} />
                   </a>
+                    <p className="mt-1 text-[10px] text-slate-500">
+                      {step.resource.level}
+                      {step.resource.duration_minutes ? ` · About ${step.resource.duration_minutes < 120 ? `${step.resource.duration_minutes} minutes` : `${Math.round(step.resource.duration_minutes / 60)} hours`}` : ""}
+                      {step.resource.cost_note ? ` · ${step.resource.cost_note}` : ""}
+                    </p>
+                    {step.resource.prerequisites.length ? <p className="mt-1 text-[10px] text-slate-500">Before you start: {step.resource.prerequisites.join(", ")}</p> : null}
+                    <p className="mt-1 text-[10px] text-slate-400">Source checked {step.resource.source_checked_on}</p>
+                  </div>
                 ) : null}
                 {step.verification_status !== "not_submitted" ? (
                   <p className={`mt-2 text-[10px] font-bold ${step.verification_status === "verified" ? "text-emerald-700" : step.verification_status === "changes_requested" ? "text-amber-700" : "text-indigo-600"}`}>
