@@ -1,4 +1,5 @@
 import type {
+  CollaborationConnectionListResponse,
   CollaborationRequestItem,
   CollaborationRequestListResponse,
   CollaborationRequestStatus,
@@ -12,6 +13,22 @@ if (!API_BASE_URL) {
 }
 
 const collaborationHeaders = () => tenantAwareHeaders({ "Content-Type": "application/json" });
+
+export async function getCollaborationConnections(
+  organisationId: string,
+): Promise<CollaborationConnectionListResponse> {
+  const query = new URLSearchParams({ organisation_id: organisationId });
+  const response = await fetch(`${API_BASE_URL}/collaboration/connections?${query}`, {
+    method: "GET",
+    credentials: "include",
+    headers: collaborationHeaders(),
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Collaboration connections failed: ${errorText}`);
+  }
+  return (await response.json()) as CollaborationConnectionListResponse;
+}
 
 export async function sendCollaborationRequest(payload: {
   organisation_id: string;
