@@ -1,45 +1,32 @@
-import type { ElementType } from "react";
+import { useEffect, useMemo, useState } from "react";
 import DashboardShell from "../components/dashboard/DashboardShell";
 import PageHeader from "../components/dashboard/PageHeader";
 import SummaryGrid, { type SummaryItem } from "../components/dashboard/SummaryGrid";
 import TenantContextBanner from "../components/dashboard/TenantContextBanner";
+import { useAuth } from "../context/AuthContext";
+import { useOrganisation } from "../context/OrganisationContext";
+import {
+  getCollaborationConnections,
+  getIncomingCollaborationRequests,
+  getOutgoingCollaborationRequests,
+} from "../services/collaboration";
+import type {
+  CollaborationConnection,
+  CollaborationRequestItem,
+} from "../types/collaboration";
 import {
   Users,
   UserPlus,
   Briefcase,
-  Sparkles,
   ArrowRight,
   MessageSquare,
-  CheckCircle2,
   Search,
   ShieldCheck,
   Handshake,
 } from "lucide-react";
 
-type MatchType = "Collaborator" | "Mentor" | "Peer" | "Opportunity";
-type MatchCard = { id: number; name: string; role: string; type: MatchType; matchScore: number; reason: string; skills: string[]; availability: string };
-type ActivityItem = { id: number; name: string; action: string; time: string };
+type ActivityItem = { id: string; name: string; action: string; time: string };
 type SuggestedGroup = { id: number; title: string; description: string; members: number };
-
-const summaryCards: SummaryItem[] = [
-  { title: "Recommended Matches", value: "12", note: "Aligned to your pathway", icon: Sparkles },
-  { title: "Mentors Available", value: "4", note: "Stage-fit guidance", icon: ShieldCheck },
-  { title: "Collaboration Requests", value: "3", note: "Open invitations", icon: Handshake },
-  { title: "Connections Made", value: "9", note: "People already connected", icon: Users },
-];
-
-const recommendedMatches: MatchCard[] = [
-  { id: 1, name: "Esther A.", role: "Cloud Engineer", type: "Collaborator", matchScore: 92, reason: "Overlap in cloud security interests and practical project building.", skills: ["AWS", "IAM", "Linux"], availability: "Open to collaborate" },
-  { id: 2, name: "Daniel K.", role: "Security Analyst", type: "Mentor", matchScore: 88, reason: "Guidance on monitoring, detection, and workflows.", skills: ["SIEM", "Detection", "IR"], availability: "Available for mentorship" },
-  { id: 3, name: "Miriam O.", role: "Product Builder", type: "Peer", matchScore: 81, reason: "Good fit for innovation teamwork and delivery.", skills: ["Product", "Research", "Coordination"], availability: "Open to connect" },
-  { id: 4, name: "Cloud Security Project Sprint", role: "Mini Project Opportunity", type: "Opportunity", matchScore: 86, reason: "Fits your pathway and offers relevant collaboration.", skills: ["Cloud", "Security", "Docs"], availability: "Starts this week" },
-];
-
-const activityFeed: ActivityItem[] = [
-  { id: 1, name: "Esther A.", action: "accepted your connection request", time: "2 hours ago" },
-  { id: 2, name: "Daniel K.", action: "shared a mentoring note on cloud monitoring", time: "Today" },
-  { id: 3, name: "Miriam O.", action: "invited you to a project discussion", time: "Yesterday" },
-];
 
 const suggestedGroups: SuggestedGroup[] = [
   { id: 1, title: "Cloud Security Builders", description: "Hands-on cloud + security projects.", members: 24 },
@@ -52,20 +39,62 @@ const subtle = "text-[var(--color-on-surface-variant)]";
 const primaryButton = "inline-flex h-11 items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90";
 const outlineButton = "inline-flex h-11 items-center justify-center rounded-2xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] px-4 text-sm font-medium text-[var(--color-on-surface)] transition hover:bg-[var(--color-surface-container-low)]";
 
-function getMatchTypeStyles(type: MatchType) {
-  if (type === "Collaborator") return "bg-blue-100 text-blue-700 border-blue-200";
-  if (type === "Mentor") return "bg-emerald-100 text-emerald-700 border-emerald-200";
-  if (type === "Peer") return "bg-amber-100 text-amber-700 border-amber-200";
-  return "bg-purple-100 text-purple-700 border-purple-200";
-}
-function getScoreText(score: number) {
-  if (score >= 90) return "Very strong fit";
-  if (score >= 80) return "Strong fit";
-  if (score >= 70) return "Good fit";
-  return "Moderate fit";
-}
-
 export default function Network() {
+  const { profile } = useAuth();
+  const { organisation } = useOrganisation();
+  const organisationId = organisation?.id ?? profile?.organisationId ?? null;
+  const [connections, setConnections] = useState<CollaborationConnection[]>([]);
+  const [incoming, setIncoming] = useState<CollaborationRequestItem[]>([]);
+  const [outgoing, setOutgoing] = useState<CollaborationRequestItem[]>([]);
+  const [networkLoading, setNetworkLoading] = useState(false);
+  const [networkError, setNetworkError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!organisationId) {
+      setConnections([]);
+      setIncoming([]);
+      setOutgoing([]);
+      return () => { active = false; };
+    }
+    setNetworkLoading(true);
+    setNetworkError(null);
+    void Promise.all([
+      getCollaborationConnections(organisationId),
+      getIncomingCollaborationRequests(organisationId),
+      getOutgoingCollaborationRequests(organisationId),
+    ])
+      .then(([connectionResult, incomingResult, outgoingResult]) => {
+        if (!active) return;
+        setConnections(connectionResult.items);
+        setIncoming(incomingResult.items);
+        setOutgoing(outgoingResult.items);
+      })
+      .catch((error) => {
+        if (active) setNetworkError(error instanceof Error ? error.message : "Unable to load network activity.");
+      })
+      .finally(() => {
+        if (active) setNetworkLoading(false);
+      });
+    return () => { active = false; };
+  }, [organisationId]);
+
+  const pendingRequests = useMemo(
+    () => [...incoming, ...outgoing].filter((request) => request.status === "pending"),
+    [incoming, outgoing],
+  );
+  const summaryCards: SummaryItem[] = [
+    { title: "Active Connections", value: String(connections.length), note: "Authorised project relationships", icon: Users },
+    { title: "Incoming Requests", value: String(incoming.filter((item) => item.status === "pending").length), note: "Waiting for your decision", icon: Handshake },
+    { title: "Outgoing Requests", value: String(outgoing.filter((item) => item.status === "pending").length), note: "Waiting for a response", icon: UserPlus },
+    { title: "Project Permissions", value: String(connections.filter((item) => item.permission_scope.includes("project_activity")).length), note: "Scoped to collaboration activity", icon: ShieldCheck },
+  ];
+  const activityFeed: ActivityItem[] = connections.map((connection) => ({
+    id: connection.id,
+    name: connection.counterpart_name,
+    action: `connected with you on ${connection.project_title}`,
+    time: new Date(connection.connected_at).toLocaleDateString(),
+  }));
   return (
     <DashboardShell>
       <PageHeader
@@ -90,13 +119,15 @@ export default function Network() {
 
       <SummaryGrid items={summaryCards} />
 
+      {networkError ? <p className="mb-6 text-sm font-semibold text-[var(--color-error)]">{networkError}</p> : null}
+
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
           <div className={`${card} p-6`}>
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <p className={`text-sm font-semibold ${subtle}`}>Recommended Matches</p>
-                <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Best-fit connections for you</h2>
+                <p className={`text-sm font-semibold ${subtle}`}>Authorised Relationships</p>
+                <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Your active project connections</h2>
               </div>
               <button className="inline-flex items-center text-sm font-medium text-[var(--color-on-surface)] hover:text-[var(--color-primary)]">
                 Explore all
@@ -104,41 +135,20 @@ export default function Network() {
               </button>
             </div>
             <div className="space-y-4">
-              {recommendedMatches.map((match) => (
-                <div key={match.id} className="rounded-2xl border border-[var(--color-outline-variant)] p-5 transition hover:border-[var(--color-primary)]">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <h3 className="text-lg font-semibold text-[var(--color-on-surface)]">{match.name}</h3>
-                        <span className={`text-sm ${subtle}`}>{match.role}</span>
-                        <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getMatchTypeStyles(match.type)}`}>{match.type}</span>
-                      </div>
-                      <p className={`mt-3 text-sm leading-6 ${subtle}`}>{match.reason}</p>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {match.skills.map((skill) => (
-                          <span key={skill} className="rounded-full bg-[var(--color-surface-container-low)] px-3 py-1 text-xs font-medium text-[var(--color-on-surface-variant)]">
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                      <div className={`mt-4 flex flex-wrap items-center gap-4 text-sm ${subtle}`}>
-                        <span>{match.availability}</span>
-                        <span>{getScoreText(match.matchScore)}</span>
-                      </div>
-                    </div>
-                    <div className="w-full max-w-[180px]">
-                      <div className="rounded-2xl bg-[var(--color-surface-container-low)] p-4 text-center">
-                        <p className={`text-xs uppercase tracking-wide ${subtle}`}>Match Score</p>
-                        <p className="mt-2 text-3xl font-bold text-[var(--color-on-surface)]">{match.matchScore}%</p>
-                      </div>
-                      <button className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-2xl bg-[var(--color-primary)] px-4 text-sm font-medium text-white transition hover:opacity-90">
-                        Connect
-                      </button>
-                    </div>
+              {networkLoading ? <p className={`text-sm ${subtle}`}>Loading connections...</p> : null}
+              {!networkLoading && connections.length === 0 ? (
+                <p className={`rounded-2xl bg-[var(--color-surface-container-low)] p-5 text-sm ${subtle}`}>
+                  No active connections yet. Accepting a project collaboration request will create one here.
+                </p>
+              ) : null}
+              {connections.map((connection) => (
+                <div key={connection.id} className="rounded-2xl border border-[var(--color-outline-variant)] p-5">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h3 className="text-lg font-semibold text-[var(--color-on-surface)]">{connection.counterpart_name}</h3>
+                    <span className="inline-flex rounded-full border border-blue-200 bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">Project collaborator</span>
                   </div>
-                  <div className="mt-4 h-2 w-full rounded-full bg-[var(--color-surface-container-low)]">
-                    <div className="h-2 rounded-full bg-[var(--color-primary)]" style={{ width: `${match.matchScore}%` }} />
-                  </div>
+                  <p className={`mt-3 text-sm leading-6 ${subtle}`}>Connected on {connection.project_title}</p>
+                  <p className={`mt-2 text-xs ${subtle}`}>Permission: project activity only</p>
                 </div>
               ))}
             </div>
@@ -201,6 +211,7 @@ export default function Network() {
             <p className={`text-sm font-semibold ${subtle}`}>Connection Activity</p>
             <h2 className="mt-1 text-xl font-bold text-[var(--color-on-surface)]">Recent updates</h2>
             <div className="mt-5 space-y-4">
+              {activityFeed.length === 0 ? <p className={`mt-5 text-sm ${subtle}`}>No connection activity yet.</p> : null}
               {activityFeed.map((item) => (
                 <div key={item.id} className="rounded-2xl bg-[var(--color-surface-container-low)] p-4">
                   <p className="text-sm leading-6 text-[var(--color-on-surface)]">
@@ -219,7 +230,7 @@ export default function Network() {
               {[
                 { label: "Find collaborator", icon: UserPlus },
                 { label: "Explore mentors", icon: ShieldCheck },
-                { label: "View requests", icon: Handshake },
+                { label: `View requests (${pendingRequests.length})`, icon: Handshake },
               ].map((action) => (
                 <button
                   key={action.label}

@@ -37,6 +37,21 @@ describe("collaboration service", () => {
     });
   });
 
+  it("loads active connections for the explicit tenant", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ items: [] }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }));
+    const { getCollaborationConnections } = await import("./collaboration");
+
+    await getCollaborationConnections("org/1");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/collaboration/connections?organisation_id=org%2F1",
+      expect.objectContaining({ method: "GET", credentials: "include" }),
+    );
+  });
+
   it("scopes incoming and outgoing lists to the active organisation", async () => {
     const { getIncomingCollaborationRequests, getOutgoingCollaborationRequests } = await import("./collaboration");
 
