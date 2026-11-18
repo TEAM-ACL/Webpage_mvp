@@ -1923,11 +1923,16 @@ export default function Intelligence(): JSX.Element {
   };
 
   const loadCollaborationRequests = async (): Promise<void> => {
+    if (!activeOrganisationId) {
+      setIncomingRequests([]);
+      setOutgoingRequests([]);
+      return;
+    }
     setCollaborationLoading(true);
     try {
       const [incoming, outgoing] = await Promise.all([
-        getIncomingCollaborationRequests(),
-        getOutgoingCollaborationRequests(),
+        getIncomingCollaborationRequests(activeOrganisationId),
+        getOutgoingCollaborationRequests(activeOrganisationId),
       ]);
       setIncomingRequests(incoming.items ?? []);
       setOutgoingRequests(outgoing.items ?? []);
@@ -2177,6 +2182,10 @@ export default function Intelligence(): JSX.Element {
   };
 
   const handleSendCollaborationRequest = async (targetUserId: string): Promise<void> => {
+    if (!activeOrganisationId) {
+      setActionFeedback({ type: "error", message: "Select an organisation before collaborating." });
+      return;
+    }
     if (!selectedCollabProjectId) {
       setActionFeedback({ type: "error", message: "Select a project before sending a collaboration request." });
       return;
@@ -2188,6 +2197,7 @@ export default function Intelligence(): JSX.Element {
     }
     try {
       await sendCollaborationRequest({
+        organisation_id: activeOrganisationId,
         project_id: selectedCollabProjectId,
         target_user_id: targetUserId,
         message,

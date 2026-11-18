@@ -14,6 +14,7 @@ if (!API_BASE_URL) {
 const collaborationHeaders = () => tenantAwareHeaders({ "Content-Type": "application/json" });
 
 export async function sendCollaborationRequest(payload: {
+  organisation_id: string;
   project_id: string;
   target_user_id: string;
   message: string;
@@ -33,8 +34,11 @@ export async function sendCollaborationRequest(payload: {
   return (await response.json()) as CollaborationRequestItem;
 }
 
-export async function getIncomingCollaborationRequests(): Promise<CollaborationRequestListResponse> {
-  const response = await fetch(`${API_BASE_URL}/collaboration/incoming`, {
+export async function getIncomingCollaborationRequests(
+  organisationId: string,
+): Promise<CollaborationRequestListResponse> {
+  const query = new URLSearchParams({ organisation_id: organisationId });
+  const response = await fetch(`${API_BASE_URL}/collaboration/incoming?${query}`, {
     method: "GET",
     credentials: "include",
     headers: collaborationHeaders(),
@@ -48,8 +52,11 @@ export async function getIncomingCollaborationRequests(): Promise<CollaborationR
   return (await response.json()) as CollaborationRequestListResponse;
 }
 
-export async function getOutgoingCollaborationRequests(): Promise<CollaborationRequestListResponse> {
-  const response = await fetch(`${API_BASE_URL}/collaboration/outgoing`, {
+export async function getOutgoingCollaborationRequests(
+  organisationId: string,
+): Promise<CollaborationRequestListResponse> {
+  const query = new URLSearchParams({ organisation_id: organisationId });
+  const response = await fetch(`${API_BASE_URL}/collaboration/outgoing?${query}`, {
     method: "GET",
     credentials: "include",
     headers: collaborationHeaders(),
@@ -67,7 +74,7 @@ export async function respondToCollaborationRequest(
   requestId: string,
   status: CollaborationRequestStatus,
 ): Promise<CollaborationRequestItem> {
-  const response = await fetch(`${API_BASE_URL}/collaboration/request/${requestId}`, {
+  const response = await fetch(`${API_BASE_URL}/collaboration/request/${encodeURIComponent(requestId)}`, {
     method: "PATCH",
     credentials: "include",
     headers: collaborationHeaders(),
